@@ -1,0 +1,25 @@
+---
+type Props = {
+  href: string;
+  image: string;
+  title: string;
+  date: string;
+  rot?: number;
+};
+
+const { href, image, title, date, rot = -2 } = Astro.props as Props;
+---
+
+<a href={href} class="inline-block">
+  <article class="polaroid" style={`--p-rot:${rot}deg`} data-reveal>
+    <span class="tape" style="top:-10px; left:24px; --tape-rot:-9deg;"></span>
+    <span class="tape hide-mobile" style="top:22px; right:-14px; --tape-rot:11deg; width:82px;"></span>
+
+    <div class="photo">
+      <img src={image} alt="" loading="lazy" decoding="async" />
+    </div>
+
+    <div class="caption">{title}</div>
+    <div class="date">{date}</div>
+  </article>
+</a>

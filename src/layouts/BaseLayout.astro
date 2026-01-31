@@ -1,0 +1,97 @@
+---
+import "../styles/global.css";
+import { ClientRouter } from "astro:transitions";
+import Background from "../components/Background.astro";
+import StickerLayer from "../components/StickerLayer.astro";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+
+const {
+  title = "Two Against The World",
+  active = "Vụn đêm",
+  description = "Nhật ký Tin Yêu của Mỹ Uyên x Việt Hoà",
+} = Astro.props as {
+  title?: string;
+  description?: string;
+  active?: "entries" | "topics" | "about";
+};
+---
+
+<!doctype html>
+<html lang="en" data-motion="ok">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#141312" />
+    <title>{title}</title>
+  </head>
+
+  <body>
+    <ClientRouter />
+    <Background />
+    <StickerLayer />
+
+    <Header active={active} />
+
+    <main class="mx-auto max-w-6xl px-5 pt-6">
+      <slot />
+    </main>
+
+    <Footer />
+
+    <script is:inline>
+      // Respect reduced motion
+      const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (reduce) {
+        document.documentElement.removeAttribute('data-motion');
+      }
+
+      // Reveal on scroll
+      const reveal = () => {
+        const els = document.querySelectorAll('[data-reveal]');
+        if (!('IntersectionObserver' in window)) {
+          els.forEach((el) => el.classList.add('is-in'));
+          return;
+        }
+        const io = new IntersectionObserver((entries) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) {
+              e.target.classList.add('is-in');
+              io.unobserve(e.target);
+            }
+          });
+        }, { threshold: 0.12 });
+        els.forEach((el) => io.observe(el));
+      };
+      reveal();
+
+      // Simple parallax (pointer) — mobile safe
+      const root = document.documentElement;
+      let raf = 0;
+      let px = 0, py = 0;
+
+      const set = () => {
+        raf = 0;
+        root.style.setProperty('--parallax-x', px + 'px');
+        root.style.setProperty('--parallax-y', py + 'px');
+      };
+
+      const onMove = (e) => {
+        const w = window.innerWidth || 1;
+        const h = window.innerHeight || 1;
+        const x = (e.clientX / w - 0.5);
+        const y = (e.clientY / h - 0.5);
+        // keep it subtle
+        px = Math.round(x * 10);
+        py = Math.round(y * 10);
+        if (!raf) raf = requestAnimationFrame(set);
+      };
+
+      if (!reduce) window.addEventListener('pointermove', onMove, { passive: true });
+
+      // Re-run reveal after view transitions
+      document.addEventListener('astro:page-load', reveal);
+    </script>
+  </body>
+</html>

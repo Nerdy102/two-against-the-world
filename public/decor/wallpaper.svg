@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="220" height="220" viewBox="0 0 220 220">
+  <defs>
+    <pattern id="paper" width="110" height="110" patternUnits="userSpaceOnUse">
+      <rect width="110" height="110" fill="transparent" />
+
+      <!-- diamond lattice -->
+      <path d="M55 6 L104 55 L55 104 L6 55 Z" fill="none" stroke="white" stroke-opacity="0.06" stroke-width="1.2" />
+      <path d="M55 0 L55 110" fill="none" stroke="white" stroke-opacity="0.04" stroke-width="1" />
+      <path d="M0 55 L110 55" fill="none" stroke="white" stroke-opacity="0.04" stroke-width="1" />
+
+      <!-- faint curls -->
+      <path d="M55 16c18 0 26 12 26 22 0 10-6 18-16 22" fill="none" stroke="white" stroke-opacity="0.05" stroke-width="1" stroke-linecap="round" />
+      <path d="M55 94c-18 0-26-12-26-22 0-10 6-18 16-22" fill="none" stroke="white" stroke-opacity="0.05" stroke-width="1" stroke-linecap="round" />
+
+      <!-- tiny dots -->
+      <circle cx="22" cy="22" r="1.4" fill="white" opacity="0.05" />
+      <circle cx="88" cy="22" r="1.4" fill="white" opacity="0.05" />
+      <circle cx="22" cy="88" r="1.4" fill="white" opacity="0.05" />
+      <circle cx="88" cy="88" r="1.4" fill="white" opacity="0.05" />
+    </pattern>
+  </defs>
+
+  <rect width="220" height="220" fill="url(#paper)" />
+</svg>

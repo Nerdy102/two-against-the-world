@@ -1,0 +1,22 @@
+---
+import { STICKERS } from "../data/decor";
+---
+
+<div class="sticker-layer" aria-hidden="true" transition:persist>
+  {STICKERS.map((s) => (
+    <div
+      class="sticker"
+      data-hide-mobile={s.hideMobile ? "1" : undefined}
+      style={`
+        --s-x:${s.x}%;
+        --s-y:${s.y}%;
+        --s-w:${s.w}px;
+        --s-rot:${s.rot}deg;
+        --s-op:${s.op};
+        --s-scale:${s.scale ?? 1};
+      `}
+    >
+      <img src={s.src} alt="" loading="lazy" decoding="async" />
+    </div>
+  ))}
+</div>

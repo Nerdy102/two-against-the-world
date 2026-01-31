@@ -1,0 +1,68 @@
+---
+// Ransom / cut-out title that can safely render Vietnamese.
+// - English words use mixed fonts for punk vibe.
+// - Any word with non-ASCII chars is forced to a VN-safe font.
+
+const { text, stampEvery = 0, as = "h1", class: className = "", ...rest } = Astro.props as {
+  text: string;
+  stampEvery?: number; // 0 = no stamp
+  as?: string;
+  class?: string;
+  [key: string]: unknown;
+};
+
+const Tag = as as any;
+
+const words = String(text).split(/\s+/).filter(Boolean);
+
+const fontStyles = ["a", "b", "c", "d"]; // CSS: different fonts
+const tones = [
+  "tone-yellow",
+  "tone-cream",
+  "tone-news",
+  "tone-grey",
+  "tone-blue",
+  "tone-green",
+  "tone-pink",
+];
+
+function hashString(str: string) {
+  // FNV-1a 32-bit
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+const seed = hashString(text);
+
+function pickFrom<T>(arr: T[], i: number, salt: number) {
+  const idx = (seed + i * 131 + salt) % arr.length;
+  return arr[idx];
+}
+
+const hasNonAscii = (s: string) => /[^\x00-\x7F]/.test(s);
+---
+
+<Tag class={`ransom h-display ${className}`.trim()} {...rest}>
+  {words.map((w, i) => {
+    const vn = hasNonAscii(w);
+
+    const fontCls = pickFrom(fontStyles, i, 3);
+    const toneCls = pickFrom(tones, i, 17);
+
+    const tilt = (((i % 5) - 2) * 0.8) + (((seed % 7) - 3) * 0.25); // ~ -2..+2 deg
+    const stamp = stampEvery > 0 && (i + 1) % stampEvery === 0;
+
+    return (
+      <span
+        class={`cut ${fontCls} ${toneCls} ${vn ? "vn" : ""} ${stamp ? "stamp" : ""}`}
+        style={`--tilt:${tilt}deg`}
+      >
+        {w}
+      </span>
+    );
+  })}
+</Tag>

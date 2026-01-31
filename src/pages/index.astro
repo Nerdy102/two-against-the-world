@@ -1,0 +1,54 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import RansomTitle from "../components/RansomTitle.astro";
+import PolaroidCard from "../components/PolaroidCard.astro";
+import { getCollection } from "astro:content";
+import { TOPICS } from "../config/topics";
+
+const posts = (await getCollection("posts"))
+  .filter((p) => !p.data.draft)
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+const fmt = (d: Date) =>
+  d
+    .toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })
+    .toUpperCase();
+---
+
+<BaseLayout title="Entries — Two Against The World" active="entries" description="Entries archive">
+  <section class="paper edge-torn px-6 py-7 sm:px-8 sm:py-8" data-reveal>
+    <p class="kicker text-[18px] text-black/50">🩸“Tin Yêu”🖤</p>
+    <div class="mt-2">
+  <RansomTitle
+    text="Our-main-events🎸"
+    as="h1"
+    stampEvery={0}
+    class="text-[44px] sm:text-[56px] ransom-red"
+  />
+</div>
+
+    <p class="mt-4 text-black/70">
+      Cẩn thận nhé, chạm vào là cơ duyên của chúng ta sẽ thành giao ước 🕯️.
+    </p>
+
+    <div class="topic-bar">
+      {TOPICS.map((t) => (
+        <a class="topic-chip" href={`/topics/${t.slug}`}>{t.label}</a>
+      ))}
+    </div>
+  </section>
+
+  <section class="mt-10">
+    <div class="flex flex-wrap items-start gap-8">
+      {posts.map((post, i) => (
+        <PolaroidCard
+          href={`/entries/${post.slug}`}
+          image={post.data.cover}
+          title={post.data.title}
+          date={fmt(post.data.pubDate)}
+          rot={((i % 5) - 2) * 1.8}
+        />
+      ))}
+    </div>
+  </section>
+</BaseLayout>

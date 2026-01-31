@@ -1,0 +1,31 @@
+---
+import { COLLAGE } from "../data/decor";
+---
+
+<div class="bg-root" aria-hidden="true" transition:persist>
+  <div class="bg-parallax">
+    <div class="collage">
+      {COLLAGE.map((item) => (
+        <div
+          class="collage-item"
+          data-hide-mobile={item.hideMobile ? "1" : undefined}
+          style={`
+            --c-x:${item.x}%;
+            --c-y:${item.y}%;
+            --c-w:${item.w}px;
+            --c-rot:${item.rot}deg;
+            --c-op:${item.op};
+            --c-blur:${item.blur ?? 0}px;
+            --c-scale:${item.scale ?? 1};
+          `}
+        >
+          <img src={item.src} alt="" loading="lazy" decoding="async" />
+        </div>
+      ))}
+      <div class="center-mask"></div>
+    </div>
+  </div>
+
+  <div class="bg-grain"></div>
+  <div class="bg-vignette"></div>
+</div>
