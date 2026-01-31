@@ -46,6 +46,7 @@ export const STICKERS: StickerItem[] = [
   { src: "/stickers/film.svg",     x: 10, y: 62, w: 150, rot: -10, op: 0.85 },
   { src: "/stickers/cassette.svg", x: 92, y: 22, w: 140, rot: 12,  op: 0.78, hideMobile: true },
   { src: "/stickers/pin.svg",      x: 86, y: 86, w: 120, rot: -6,  op: 0.72, hideMobile: true },
-  { src: "/stickers/vinyl.svg",    x: 56, y: 10, w: 120, rot: 8,   op: 0.62, hideMobile: true }
+  { src: "/stickers/vinyl.svg",    x: 56, y: 10, w: 120, rot: 8,   op: 0.62, hideMobile: true },
+  { src: "/stickers/sticker_orange.svg", x: 18, y: 18, w: 140, rot: -8, op: 0.85, hideMobile: true },
 ];
 
