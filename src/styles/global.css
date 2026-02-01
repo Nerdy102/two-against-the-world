@@ -1027,6 +1027,22 @@ a { color: inherit; text-decoration: none; }
   }
 }
 
+@media (max-width: 480px){
+  .wall{
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-auto-rows: 36px;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .frame.size-xl { grid-column: span 4; grid-row: span 8; }
+  .frame.size-lg { grid-column: span 4; grid-row: span 7; }
+  .frame.size-md { grid-column: span 4; grid-row: span 7; }
+  .frame.size-sm { grid-column: span 2; grid-row: span 5; }
+  .frame.size-xs { grid-column: span 2; grid-row: span 4; }
+  .frame.size-xxs{ grid-column: span 2; grid-row: span 4; }
+}
+
 .sticker-layer{
   position: fixed;
   inset: 0;

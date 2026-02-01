@@ -102,19 +102,13 @@ import { PASSCODE } from "../config/secrets";
           <span>Ảnh (chọn nhiều ảnh)</span>
           <input class="input" type="file" name="photos" accept="image/*" multiple required />
         </label>
+
         <label class="compose-field">
           <span>Ảnh cover (chọn số thứ tự)</span>
           <select class="input" name="coverIndex" required>
-            <option value="0">Ảnh 1</option>
-            <option value="1">Ảnh 2</option>
-            <option value="2">Ảnh 3</option>
-            <option value="3">Ảnh 4</option>
-            <option value="4">Ảnh 5</option>
-            <option value="5">Ảnh 6</option>
-            <option value="6">Ảnh 7</option>
-            <option value="7">Ảnh 8</option>
-            <option value="8">Ảnh 9</option>
-            <option value="9">Ảnh 10</option>
+            {Array.from({ length: 36 }, (_, i) => (
+              <option value={i}>Ảnh {i + 1}</option>
+            ))}
           </select>
         </label>
 

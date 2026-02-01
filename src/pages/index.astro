@@ -5,6 +5,7 @@ import FeedCard from "../components/FeedCard.astro";
 import TopicCard from "../components/TopicCard.astro";
 import { getCollection } from "astro:content";
 import { TOPICS } from "../config/topics";
+import { formatDate } from "../lib/formatDate";
 
 const posts = (await getCollection("posts"))
   .filter((p) => !p.data.draft)

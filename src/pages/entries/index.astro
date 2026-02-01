@@ -5,6 +5,7 @@ import RansomTitle from "../../components/RansomTitle.astro";
 import TopicCard from "../../components/TopicCard.astro";
 import { getCollection } from "astro:content";
 import { TOPICS } from "../../config/topics";
+import { formatDate } from "../../lib/formatDate";
 
 const posts = (await getCollection("posts"))
   .filter((p) => !p.data.draft)
@@ -52,5 +53,66 @@ for (const p of posts) {
         ))}
       </div>
     </section>
+
+    <section class="mt-10">
+      <div class="pinterest-grid" data-search-grid>
+        {posts.map((post) => {
+          const dateKey = post.data.pubDate.toISOString().slice(0, 10);
+          const anchorId = seenDates.has(dateKey) ? undefined : `date-${dateKey}`;
+          seenDates.add(dateKey);
+          return (
+            <FeedCard
+              href={`/entries/${post.slug}`}
+              title={post.data.title}
+              description={post.data.description}
+              date={post.data.pubDate}
+              image={post.data.cover}
+              topic={post.data.topic}
+              locked={post.data.topic === "trash-bin"}
+              pinned={post.data.pinned}
+              dateKey={dateKey}
+              anchorId={anchorId}
+              searchText={`${post.data.title} ${post.data.description ?? ""} ${post.data.author ?? ""} ${post.data.location ?? ""} ${post.data.eventTime ?? ""} ${post.data.writtenAt ?? ""} ${post.data.photoTime ?? ""} ${post.data.sideNote ?? ""} ${(post.data.tags ?? []).join(" ")} ${post.data.topic ?? ""}`}
+            />
+          );
+        })}
+      </div>
+    </section>
   </main>
+
+  <script is:inline>
+    const initSearch = () => {
+      const input = document.querySelector("[data-search-input]");
+      const dateInput = document.querySelector("[data-search-date]");
+      const reset = document.querySelector("[data-search-reset]");
+      const cards = Array.from(document.querySelectorAll("[data-search-grid] .feed-card"));
+
+      if (!input || !dateInput || !reset || !cards.length) return;
+      if (input.dataset.bound === "1") return;
+      input.dataset.bound = "1";
+
+      const filter = () => {
+        const q = input.value.trim().toLowerCase();
+        const date = dateInput.value;
+        cards.forEach((card) => {
+          const text = (card.getAttribute("data-search") || "").toLowerCase();
+          const cardDate = card.getAttribute("data-date") || "";
+          const matchesText = q ? text.includes(q) : true;
+          const matchesDate = date ? cardDate === date : true;
+          card.classList.toggle("is-filtered", !(matchesText && matchesDate));
+        });
+      };
+
+      input.addEventListener("input", filter);
+      dateInput.addEventListener("change", filter);
+      reset.addEventListener("click", () => {
+        input.value = "";
+        dateInput.value = "";
+        filter();
+      });
+    };
+
+    initSearch();
+    document.addEventListener("astro:page-load", initSearch);
+  </script>
 </BaseLayout>

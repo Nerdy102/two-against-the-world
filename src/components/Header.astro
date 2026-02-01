@@ -11,7 +11,7 @@ const { active = "entries" } = Astro.props as { active?: "entries" | "topics" | 
       <span class="kicker text-[10px] sm:text-[11px] text-white/55 hidden sm:inline whitespace-nowrap">Nhật ký “Tin Yêu” của Việt Hoà x Mỹ Uyên</span>
     </a>
 
-    <nav class="flex items-center gap-2">
+    <nav class="header-nav flex items-center gap-2">
       <a
         href="/entries"
         class={`btn text-[13px] sm:text-[14px] ${active === "entries" ? "border-white/25" : ""}`}
