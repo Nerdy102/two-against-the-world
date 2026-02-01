@@ -530,34 +530,17 @@ a { color: inherit; text-decoration: none; }
 }
 
 .topic-search-card {
-  flex-direction: column;
-  align-items: stretch;
+  flex-wrap: wrap;
+  align-items: flex-start;
   gap: 10px;
-  padding: 16px;
-}
-
-.topic-search-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.topic-search-title {
-  font-family: var(--font-body);
-  font-weight: 700;
-  font-size: 14px;
-  letter-spacing: 0.04em;
-}
-
-.topic-search-note {
-  font-size: 11px;
-  color: rgba(255,255,255,0.7);
+  min-height: 84px;
 }
 
 .topic-search-card .search-grid {
   grid-template-columns: 1fr;
   gap: 10px;
+  width: 100%;
+  display: none;
 }
 
 .topic-search-card .search-field span {
@@ -566,6 +549,10 @@ a { color: inherit; text-decoration: none; }
 
 .topic-search-card .search-reset {
   justify-self: stretch;
+}
+
+.topic-search-card.is-expanded .search-grid {
+  display: grid;
 }
 
 .topic-card:hover {

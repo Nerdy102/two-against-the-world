@@ -60,10 +60,14 @@ const seenDates = new Set<string>();
         </p>
 
         <div class="topic-grid" aria-label="Chủ đề">
-          <div class="topic-card topic-search-card" aria-label="Tìm ký ức">
-            <div class="topic-search-head">
-              <span class="topic-search-title">Ký ức ✨</span>
-              <span class="topic-search-note">Tìm nhanh</span>
+          {TOPICS.map((t) => (
+            <TopicCard slug={t.slug} label={t.label} icon={t.icon} color={t.color} count={counts[t.slug] ?? 0} />
+          ))}
+          <div class="topic-card topic-search-card" data-search-card aria-label="Tìm ký ức">
+            <div class="topic-card__icon" aria-hidden="true">✨</div>
+            <div>
+              <div class="topic-card__label">Ký ức</div>
+              <div class="topic-card__count">Tìm nhanh</div>
             </div>
             <div class="search-grid">
               <label class="search-field">
@@ -77,9 +81,6 @@ const seenDates = new Set<string>();
               <button class="btn search-reset" type="button" data-search-reset>Reset</button>
             </div>
           </div>
-          {TOPICS.map((t) => (
-            <TopicCard slug={t.slug} label={t.label} icon={t.icon} color={t.color} count={counts[t.slug] ?? 0} />
-          ))}
         </div>
       </div>
 
@@ -124,6 +125,7 @@ const seenDates = new Set<string>();
       const dateInput = document.querySelector("[data-search-date]");
       const reset = document.querySelector("[data-search-reset]");
       const cards = Array.from(document.querySelectorAll("[data-search-grid] .feed-card"));
+      const searchCard = document.querySelector("[data-search-card]");
 
       if (!input || !dateInput || !reset || !cards.length) return;
       if (input.dataset.bound === "1") return;
@@ -132,6 +134,9 @@ const seenDates = new Set<string>();
       const filter = () => {
         const q = input.value.trim().toLowerCase();
         const date = dateInput.value;
+        if (searchCard) {
+          searchCard.classList.toggle("is-expanded", Boolean(date));
+        }
         cards.forEach((card) => {
           const text = (card.getAttribute("data-search") || "").toLowerCase();
           const cardDate = card.getAttribute("data-date") || "";
