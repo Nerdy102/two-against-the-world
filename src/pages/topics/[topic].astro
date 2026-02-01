@@ -40,11 +40,18 @@ for (const p of allPosts) {
         {TOPIC_COPY[topic] ?? "Chuyện cũ như mưa, đọc lại cho lòng vơi."}
       </p>
 
-      <div class="topic-grid">
-        {TOPICS.map((t) => (
-          <TopicCard slug={t.slug} label={t.label} icon={t.icon} color={t.color} count={counts[t.slug] ?? 0} />
-        ))}
-      </div>
+      <details class="topic-panel" data-topic-panel open>
+        <summary class="topic-panel__summary" aria-label="Mở danh sách chủ đề">
+          <span aria-hidden="true">▾</span>
+        </summary>
+        <div class="topic-panel__body">
+          <div class="topic-grid">
+            {TOPICS.map((t) => (
+              <TopicCard slug={t.slug} label={t.label} icon={t.icon} color={t.color} count={counts[t.slug] ?? 0} />
+            ))}
+          </div>
+        </div>
+      </details>
 
       <div class="mt-6">
         <a class="btn" href="/topics">Quay lại danh sách chủ đề</a>
