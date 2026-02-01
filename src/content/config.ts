@@ -19,6 +19,7 @@ const posts = defineCollection({
     // Drop your images in /public/photos/<photoDir>/01.jpg .. N
     photoDir: z.string(),
     photoCount: z.coerce.number().int().nonnegative().default(0),
+    pinned: z.boolean().optional(),
 
     // Topic / category (for your top navigation)
     // If you use a fixed topic system, swap to: z.enum(TOPIC_IDS)

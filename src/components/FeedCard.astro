@@ -10,13 +10,14 @@ type Props = {
   date?: Date | string;
   topic?: string;
   locked?: boolean;
+  pinned?: boolean;
 };
 
-const { href, title, description = "", image, date, topic, locked = false } = Astro.props as Props;
+const { href, title, description = "", image, date, topic, locked = false, pinned = false } = Astro.props as Props;
 const meta = topicMeta(topic);
 ---
 
-<a href={href} class={`feed-card ${locked ? "is-locked" : ""}`} data-reveal>
+<a href={href} class={`feed-card ${locked ? "is-locked" : ""} ${pinned ? "is-pinned" : ""}`} data-reveal>
   <div class="feed-card__head">
     <div class="feed-card__topic" style={`--topic-color:${meta.color};`}>
       <span class="feed-card__icon">{meta.icon}</span>

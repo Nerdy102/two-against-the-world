@@ -8,7 +8,12 @@ import { TOPICS } from "../../config/topics";
 
 const posts = (await getCollection("posts"))
   .filter((p) => !p.data.draft)
-  .sort((a, b) => +new Date(b.data.pubDate) - +new Date(a.data.pubDate));
+  .sort((a, b) => {
+    const pinnedA = p.data.pinned ? 1 : 0;
+    const pinnedB = b.data.pinned ? 1 : 0;
+    if (pinnedA !== pinnedB) return pinnedB - pinnedA;
+    return +new Date(b.data.pubDate) - +new Date(a.data.pubDate);
+  });
 
 const counts: Record<string, number> = {};
 for (const p of posts) {
@@ -42,6 +47,7 @@ for (const p of posts) {
             image={post.data.cover}
             topic={post.data.topic}
             locked={post.data.topic === "trash-bin"}
+            pinned={post.data.pinned}
           />
         ))}
       </div>

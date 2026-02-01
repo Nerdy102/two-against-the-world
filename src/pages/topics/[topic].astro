@@ -18,7 +18,12 @@ const isLocked = topic === "trash-bin";
 const allPosts = (await getCollection("posts")).filter((p) => !p.data.draft);
 const posts = allPosts
   .filter((p) => (p.data.topic ?? "two-of-us") === topic)
-  .sort((a, b) => +new Date(b.data.pubDate) - +new Date(a.data.pubDate));
+  .sort((a, b) => {
+    const pinnedA = p.data.pinned ? 1 : 0;
+    const pinnedB = b.data.pinned ? 1 : 0;
+    if (pinnedA !== pinnedB) return pinnedB - pinnedA;
+    return +new Date(b.data.pubDate) - +new Date(a.data.pubDate);
+  });
 const counts: Record<string, number> = {};
 for (const p of allPosts) {
   const t = p.data.topic ?? "two-of-us";
@@ -61,6 +66,7 @@ for (const p of allPosts) {
                 date={p.data.pubDate}
                 topic={p.data.topic}
                 locked={isLocked}
+                pinned={p.data.pinned}
               />
             ))}
           </div>
