@@ -4,7 +4,7 @@ import RansomTitle from "./RansomTitle.astro";
 const { active = "entries" } = Astro.props as { active?: "entries" | "topics" | "about" };
 ---
 
-<header class="mx-auto max-w-6xl px-5 pt-6">
+<header class="site-header mx-auto max-w-6xl px-5 pt-6">
   <div class="header-shell flex items-center justify-between gap-4 rounded-3xl border border-white/10 bg-black/20 px-4 py-3 shadow-[0_18px_60px_rgba(0,0,0,0.45)] backdrop-blur">
     <a href="/" class="header-brand flex items-baseline gap-3 flex-nowrap">
       <RansomTitle text="TWO AGAINST THE WORLD" as="div" stampEvery={0} class="ransom-sm text-[18px] sm:text-[22px] ransom-nowrap" />
