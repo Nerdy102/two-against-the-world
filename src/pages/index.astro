@@ -1,21 +1,29 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import RansomTitle from "../components/RansomTitle.astro";
-import PolaroidCard from "../components/PolaroidCard.astro";
+import FeedCard from "../components/FeedCard.astro";
+import TopicCard from "../components/TopicCard.astro";
 import { getCollection } from "astro:content";
 import { TOPICS } from "../config/topics";
 
 const posts = (await getCollection("posts"))
   .filter((p) => !p.data.draft)
-  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+  .sort((a, b) => {
+    const pinnedA = a.data.pinned ? 1 : 0;
+    const pinnedB = b.data.pinned ? 1 : 0;
+    if (pinnedA !== pinnedB) return pinnedB - pinnedA;
+    return b.data.pubDate.valueOf() - a.data.pubDate.valueOf();
+  });
 
-const fmt = (d: Date) =>
-  d
-    .toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })
-    .toUpperCase();
+const counts: Record<string, number> = {};
+for (const p of posts) {
+  const t = p.data.topic ?? "two-of-us";
+  counts[t] = (counts[t] ?? 0) + 1;
+}
+
 ---
 
-<BaseLayout title="Entries — Two Against The World" active="entries" description="Entries archive">
+<BaseLayout title="Nhật ký — Two Against The World" active="entries" description="Kho lưu nhật ký">
   <section class="paper edge-torn px-6 py-7 sm:px-8 sm:py-8" data-reveal>
     <p class="kicker text-[18px] text-black/50">🩸“Tin Yêu”🖤</p>
     <div class="mt-2">
@@ -31,22 +39,25 @@ const fmt = (d: Date) =>
       Cẩn thận nhé, chạm vào là cơ duyên của chúng ta sẽ thành giao ước 🕯️.
     </p>
 
-    <div class="topic-bar">
+    <div class="topic-grid topic-grid--scroll" aria-label="Chủ đề">
       {TOPICS.map((t) => (
-        <a class="topic-chip" href={`/topics/${t.slug}`}>{t.label}</a>
+        <TopicCard slug={t.slug} label={t.label} icon={t.icon} color={t.color} count={counts[t.slug] ?? 0} />
       ))}
     </div>
   </section>
 
   <section class="mt-10">
-    <div class="flex flex-wrap items-start gap-8">
-      {posts.map((post, i) => (
-        <PolaroidCard
+    <div class="pinterest-grid">
+      {posts.map((post) => (
+        <FeedCard
           href={`/entries/${post.slug}`}
           image={post.data.cover}
           title={post.data.title}
-          date={fmt(post.data.pubDate)}
-          rot={((i % 5) - 2) * 1.8}
+          description={post.data.description}
+          date={post.data.pubDate}
+          topic={post.data.topic}
+          locked={post.data.topic === "trash-bin"}
+          pinned={post.data.pinned}
         />
       ))}
     </div>

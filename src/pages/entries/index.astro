@@ -1,40 +1,146 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import PolaroidCard from "../../components/PolaroidCard.astro";
+import FeedCard from "../../components/FeedCard.astro";
 import RansomTitle from "../../components/RansomTitle.astro";
+import TopicCard from "../../components/TopicCard.astro";
 import { getCollection } from "astro:content";
 import { TOPICS } from "../../config/topics";
+import { formatDate } from "../../lib/formatDate";
 
 const posts = (await getCollection("posts"))
   .filter((p) => !p.data.draft)
-  .sort((a, b) => +new Date(b.data.pubDate) - +new Date(a.data.pubDate));
+  .sort((a, b) => {
+    const pinnedA = a.data.pinned ? 1 : 0;
+    const pinnedB = b.data.pinned ? 1 : 0;
+    if (pinnedA !== pinnedB) return pinnedB - pinnedA;
+    return +new Date(b.data.pubDate) - +new Date(a.data.pubDate);
+  });
+
+const counts: Record<string, number> = {};
+for (const p of posts) {
+  const t = p.data.topic ?? "two-of-us";
+  counts[t] = (counts[t] ?? 0) + 1;
+}
+
+const dateMap = new Map<string, { date: string; label: string; slug: string; count: number }>();
+for (const post of posts) {
+  const dateKey = post.data.pubDate.toISOString().slice(0, 10);
+  const existing = dateMap.get(dateKey);
+  if (existing) {
+    existing.count += 1;
+  } else {
+    dateMap.set(dateKey, {
+      date: dateKey,
+      label: formatDate(post.data.pubDate),
+      slug: post.slug,
+      count: 1,
+    });
+  }
+}
+const timelineDates = Array.from(dateMap.values());
+const seenDates = new Set<string>();
 ---
 
-<BaseLayout title="Entries" description="Archive of scrapbook entries." active="entries">
+<BaseLayout title="Nhật ký" description="Kho lưu nhật ký tình yêu." active="entries">
   <main class="mx-auto max-w-6xl px-5 pb-24 pt-10">
     <section class="paper edge-torn p-6 sm:p-10" data-reveal>
-      <div class="kicker text-xs text-black/50">ARCHIVE</div>
-      <RansomTitle text="Entries" as="h1" class="text-[44px] sm:text-[56px]" />
+      <div class="kicker text-xs text-black/50">LƯU TRỮ</div>
+      <RansomTitle text="Nhật ký" as="h1" class="text-[44px] sm:text-[56px]" />
       <p class="mt-3 text-black/60">Bấm vào bị ám đấy hí hí :p</p>
 
-      <div class="topic-bar" aria-label="Topics">
+      <div class="topic-grid topic-grid--scroll" aria-label="Chủ đề">
         {TOPICS.map((t) => (
-          <a class="topic-chip" href={`/topics/${t.slug}`}>{t.label}</a>
+          <TopicCard slug={t.slug} label={t.label} icon={t.icon} color={t.color} count={counts[t.slug] ?? 0} />
+        ))}
+      </div>
+    </section>
+
+    <section class="paper edge-torn mt-8 p-6 sm:p-10" data-reveal aria-label="Tìm kiếm và lịch">
+      <div class="kicker text-xs text-black/50">TÌM KIẾM</div>
+      <h2 class="mt-3 text-[24px] sm:text-[30px] font-semibold text-black/80">Lục lại ký ức ✨</h2>
+      <p class="mt-2 text-black/60">Tìm theo chữ hoặc chọn ngày để nhảy đúng mốc.</p>
+
+      <div class="search-grid mt-6">
+        <label class="search-field">
+          <span>Tìm theo chữ</span>
+          <input class="input" type="search" placeholder="Nhập từ khóa..." data-search-input />
+        </label>
+        <label class="search-field">
+          <span>Chọn ngày</span>
+          <input class="input" type="date" data-search-date />
+        </label>
+        <button class="btn search-reset" type="button" data-search-reset>Reset</button>
+      </div>
+
+      <div class="timeline mt-8" aria-label="Timeline theo ngày">
+        {timelineDates.map((item) => (
+          <a class="timeline-chip" href={`#date-${item.date}`}>
+            <span class="timeline-date">{item.label}</span>
+            <span class="timeline-count">{item.count} bài</span>
+          </a>
         ))}
       </div>
     </section>
 
     <section class="mt-10">
-      <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-        {posts.map((post) => (
-          <PolaroidCard
-            href={`/entries/${post.slug}`}
-            title={post.data.title}
-            date={post.data.pubDate}
-            imageSrc={post.data.cover}
-          />
-        ))}
+      <div class="pinterest-grid" data-search-grid>
+        {posts.map((post) => {
+          const dateKey = post.data.pubDate.toISOString().slice(0, 10);
+          const anchorId = seenDates.has(dateKey) ? undefined : `date-${dateKey}`;
+          seenDates.add(dateKey);
+          return (
+            <FeedCard
+              href={`/entries/${post.slug}`}
+              title={post.data.title}
+              description={post.data.description}
+              date={post.data.pubDate}
+              image={post.data.cover}
+              topic={post.data.topic}
+              locked={post.data.topic === "trash-bin"}
+              pinned={post.data.pinned}
+              dateKey={dateKey}
+              anchorId={anchorId}
+              searchText={`${post.data.title} ${post.data.description ?? ""} ${post.data.author ?? ""} ${post.data.location ?? ""} ${post.data.eventTime ?? ""} ${post.data.writtenAt ?? ""} ${post.data.photoTime ?? ""} ${(post.data.tags ?? []).join(" ")} ${post.data.topic ?? ""}`}
+            />
+          );
+        })}
       </div>
     </section>
   </main>
+
+  <script is:inline>
+    const initSearch = () => {
+      const input = document.querySelector("[data-search-input]");
+      const dateInput = document.querySelector("[data-search-date]");
+      const reset = document.querySelector("[data-search-reset]");
+      const cards = Array.from(document.querySelectorAll("[data-search-grid] .feed-card"));
+
+      if (!input || !dateInput || !reset || !cards.length) return;
+      if (input.dataset.bound === "1") return;
+      input.dataset.bound = "1";
+
+      const filter = () => {
+        const q = input.value.trim().toLowerCase();
+        const date = dateInput.value;
+        cards.forEach((card) => {
+          const text = (card.getAttribute("data-search") || "").toLowerCase();
+          const cardDate = card.getAttribute("data-date") || "";
+          const matchesText = q ? text.includes(q) : true;
+          const matchesDate = date ? cardDate === date : true;
+          card.classList.toggle("is-filtered", !(matchesText && matchesDate));
+        });
+      };
+
+      input.addEventListener("input", filter);
+      dateInput.addEventListener("change", filter);
+      reset.addEventListener("click", () => {
+        input.value = "";
+        dateInput.value = "";
+        filter();
+      });
+    };
+
+    initSearch();
+    document.addEventListener("astro:page-load", initSearch);
+  </script>
 </BaseLayout>

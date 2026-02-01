@@ -1,8 +1,10 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import RansomTitle from "../../components/RansomTitle.astro";
-import PolaroidCard from "../../components/PolaroidCard.astro";
-import { TOPICS, topicLabel } from "../../config/topics";
+import FeedCard from "../../components/FeedCard.astro";
+import TopicCard from "../../components/TopicCard.astro";
+import { TOPICS, topicLabel, TOPIC_COPY } from "../../config/topics";
+import { PASSCODE } from "../../config/secrets";
 import { getCollection } from "astro:content";
 
 export async function getStaticPaths() {
@@ -11,51 +13,121 @@ export async function getStaticPaths() {
 
 const { topic = "two-of-us" } = Astro.params;
 const label = topicLabel(topic);
+const isLocked = topic === "trash-bin";
 
-const posts = (await getCollection("posts"))
-  .filter((p) => !p.data.draft)
+const allPosts = (await getCollection("posts")).filter((p) => !p.data.draft);
+const posts = allPosts
   .filter((p) => (p.data.topic ?? "two-of-us") === topic)
-  .sort((a, b) => +new Date(b.data.pubDate) - +new Date(a.data.pubDate));
+  .sort((a, b) => {
+    const pinnedA = p.data.pinned ? 1 : 0;
+    const pinnedB = b.data.pinned ? 1 : 0;
+    if (pinnedA !== pinnedB) return pinnedB - pinnedA;
+    return +new Date(b.data.pubDate) - +new Date(a.data.pubDate);
+  });
+const counts: Record<string, number> = {};
+for (const p of allPosts) {
+  const t = p.data.topic ?? "two-of-us";
+  counts[t] = (counts[t] ?? 0) + 1;
+}
 ---
 
 <BaseLayout title={label} active="topics">
   <main class="mx-auto max-w-6xl px-5 pb-20">
     <section class="paper edge-torn mt-8 p-6 sm:p-10" data-reveal>
-      <p class="kicker text-[11px] text-black/50">Topic</p>
+      <p class="kicker text-[11px] text-black/50">Chủ đề</p>
       <RansomTitle text={label} as="h1" stampEvery={0} class="text-[40px] sm:text-[56px]" />
       <p class="mt-3 text-black/70">
-        Drop new posts into this collection by setting <code>topic: {topic}</code> in frontmatter.
+        {TOPIC_COPY[topic] ?? "Chuyện cũ như mưa, đọc lại cho lòng vơi."}
       </p>
 
-      <div class="topic-bar">
+      <div class="topic-grid topic-grid--scroll">
         {TOPICS.map((t) => (
-          <a class="topic-chip" href={`/topics/${t.slug}`}>{t.label}</a>
+          <TopicCard slug={t.slug} label={t.label} icon={t.icon} color={t.color} count={counts[t.slug] ?? 0} />
         ))}
       </div>
 
       <div class="mt-6">
-        <a class="btn" href="/topics">Back to topics</a>
+        <a class="btn" href="/topics">Quay lại danh sách chủ đề</a>
       </div>
     </section>
 
-    <section class="mt-10" aria-label="Topic entries">
-      {posts.length === 0 ? (
-        <p class="text-white/70">No entries yet.</p>
+    <section class="mt-10" aria-label="Bài viết trong chủ đề">
+        {posts.length === 0 ? (
+        <p class="text-white/70">Chưa có bài nào.</p>
       ) : (
-        <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          {posts.map((p, i) => (
-            <div style={`--tilt:${((i % 5) - 2) * 1.2}deg`}>
-              <PolaroidCard
+        <div class={`lock-wrap ${isLocked ? "is-locked" : ""}`} data-lock-wrap>
+          <div class="pinterest-grid lock-content" data-lock-content>
+            {posts.map((p) => (
+              <FeedCard
                 href={`/entries/${p.slug}`}
                 image={p.data.cover}
                 title={p.data.title}
+                description={p.data.description}
                 date={p.data.pubDate}
-                tilt={(i % 5) - 2}
+                topic={p.data.topic}
+                locked={isLocked}
+                pinned={p.data.pinned}
               />
+            ))}
+          </div>
+
+          {isLocked && (
+            <div class="lock-panel" data-lock-panel>
+              <div class="lock-card">
+                <div class="kicker text-xs text-white/60">ĐÃ KHÓA</div>
+                <h3 class="lock-title">Thùng rác cảm xúc</h3>
+                <p class="lock-desc">Nhập mật khẩu để mở kho lưu trữ bí mật.</p>
+                <form class="lock-form" data-lock-form>
+                  <input class="input" type="password" name="passcode" placeholder="Mật khẩu" autocomplete="off" />
+                  <button class="btn" type="submit">Mở khóa</button>
+                </form>
+                <p class="lock-hint" data-lock-error></p>
+              </div>
             </div>
-          ))}
+          )}
         </div>
       )}
     </section>
   </main>
+
+  {isLocked && (
+    <script is:inline>
+      const PASS = "281225";
+      const KEY = "tatw-trash-pass";
+
+      const initLock = () => {
+        const wrap = document.querySelector("[data-lock-wrap]");
+        const panel = document.querySelector("[data-lock-panel]");
+        const form = document.querySelector("[data-lock-form]");
+        const err = document.querySelector("[data-lock-error]");
+
+        if (!wrap || !panel || !form) return;
+        if (form.dataset.bound === "1") return;
+        form.dataset.bound = "1";
+
+        const unlock = () => {
+          wrap.classList.add("is-unlocked");
+          panel.classList.add("is-hidden");
+        };
+
+        if (localStorage.getItem(KEY) === PASS) unlock();
+
+        form.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const input = form.querySelector("input[name='passcode']");
+          const val = input?.value?.trim();
+          if (val === PASS) {
+            localStorage.setItem(KEY, PASS);
+            unlock();
+            if (err) err.textContent = "";
+          } else {
+            if (err) err.textContent = "Sai mật khẩu rồi.";
+          }
+        });
+      };
+
+      initLock();
+      document.addEventListener("astro:page-load", initLock);
+    </script>
+  )}
 </BaseLayout>
