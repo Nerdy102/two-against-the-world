@@ -4,7 +4,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import RansomTitle from "../../components/RansomTitle.astro";
 import FrameWall from "../../components/FrameWall.astro";
 import { formatDate } from "../../lib/formatDate";
-import { topicLabel } from "../../config/topics";
+import { topicLabel, topicMeta } from "../../config/topics";
 
 export async function getStaticPaths() {
   const posts = await getCollection("posts");
@@ -32,6 +32,30 @@ const writtenAt = s(post.data.writtenAt);
 const photoTime = s(post.data.photoTime);
 const sideNote = s(post.data.sideNote);
 const tagsText = joinTags(post.data.tags);
+const voiceMemo = s(post.data.voiceMemo);
+const voiceMemoTitle = s(post.data.voiceMemoTitle);
+const videoUrl = s(post.data.videoUrl);
+const videoPoster = s(post.data.videoPoster);
+
+const toEmbedUrl = (url: string) => {
+  if (url.includes("youtube.com/watch")) {
+    const match = url.match(/[?&]v=([^&]+)/);
+    const id = match?.[1];
+    return id ? `https://www.youtube.com/embed/${id}` : url;
+  }
+  if (url.includes("youtu.be/")) {
+    const id = url.split("youtu.be/")[1]?.split("?")[0];
+    return id ? `https://www.youtube.com/embed/${id}` : url;
+  }
+  if (url.includes("vimeo.com/")) {
+    const id = url.split("vimeo.com/")[1]?.split("?")[0];
+    return id ? `https://player.vimeo.com/video/${id}` : url;
+  }
+  return url;
+};
+
+const videoIsFile = /\.(mp4|webm|ogg)$/i.test(videoUrl);
+const videoEmbedUrl = videoUrl ? toEmbedUrl(videoUrl) : "";
 
 // Build photo list: /public/photos/<photoDir>/01.jpg..N
 const count = Number(post.data.photoCount ?? 0);
@@ -65,61 +89,11 @@ const wallImages = [
         </p>
       )}
 
-      {/* META GRID */}
-      <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div class="meta-card">
-          <div class="meta-k">Published</div>
-          <div class="meta-v">{formatDate(post.data.pubDate)}</div>
-        </div>
-
-        <div class="meta-card">
-          <div class="meta-k">Topic</div>
-          <div class="meta-v">{topicLabel(post.data.topic)}</div>
-        </div>
-
-        <div class="meta-card">
-          <div class="meta-k">Photos</div>
-          <div class="meta-v">{count}</div>
-        </div>
-
-        <div class="meta-card">
-          <div class="meta-k">Author</div>
-          <div class="meta-v">{author || "—"}</div>
-        </div>
-
-        <div class="meta-card">
-          <div class="meta-k">Location</div>
-          <div class="meta-v">{location || "—"}</div>
-        </div>
-
-        <div class="meta-card">
-          <div class="meta-k">Event time</div>
-          <div class="meta-v">{eventTime || "—"}</div>
-        </div>
-
-        <div class="meta-card">
-          <div class="meta-k">Written at</div>
-          <div class="meta-v">{writtenAt || "—"}</div>
-        </div>
-
-        <div class="meta-card">
-          <div class="meta-k">Photo time</div>
-          <div class="meta-v">{photoTime || "—"}</div>
-        </div>
-
-        <div class="meta-card">
-          <div class="meta-k">Tags</div>
-          <div class="meta-v">{tagsText || "—"}</div>
-        </div>
+      <div class="mt-5 flex flex-wrap items-center gap-3 text-[12px] text-black/60">
+        <span>Topic: {topicLabel(post.data.topic)}</span>
+        <span>•</span>
+        <span>{formatDate(post.data.pubDate)}</span>
       </div>
-
-      {/* SIDE NOTE (OPTIONAL) */}
-      {sideNote && (
-        <div class="mt-6 meta-card">
-          <div class="meta-k">Side note</div>
-          <div class="meta-v">{sideNote}</div>
-        </div>
-      )}
     </div>
 
     {/* PHOTO WALL */}
@@ -127,10 +101,113 @@ const wallImages = [
       <FrameWall images={wallImages} seed={post.slug} />
     </section>
 
+    {/* MEDIA */}
+    {(voiceMemo || videoUrl) && (
+      <section class="mt-10" aria-label="Media" data-reveal>
+        <div class="paper edge-torn p-6 sm:p-10">
+          <div class="kicker text-xs text-black/50">MEDIA</div>
+          <h2 class="mt-3 text-[26px] sm:text-[32px] font-semibold text-black/80">Listen & watch</h2>
+
+          {voiceMemo && (
+            <div class="mt-4">
+              <div class="meta-label">Voice memo</div>
+              {voiceMemoTitle && <div class="mt-1 text-black/70">{voiceMemoTitle}</div>}
+              <audio class="mt-2 w-full" controls src={voiceMemo}></audio>
+            </div>
+          )}
+
+          {videoUrl && (
+            <div class="mt-6">
+              <div class="meta-label">Video</div>
+              {videoIsFile ? (
+                <video class="mt-2 w-full rounded-2xl border border-black/10" controls poster={videoPoster || undefined}>
+                  <source src={videoUrl} />
+                </video>
+              ) : (
+                <div class="mt-2 aspect-video w-full overflow-hidden rounded-2xl border border-black/10">
+                  <iframe
+                    src={videoEmbedUrl}
+                    class="h-full w-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen
+                    title="Video"
+                  ></iframe>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </section>
+    )}
+
     {/* NOTES / BODY */}
     <section class="mt-10" aria-label="Notes" data-reveal>
       <div class="paper edge-torn p-6 sm:p-10 prose prose-scrap max-w-none">
         <Content />
+      </div>
+    </section>
+
+    {/* META GRID */}
+    <section class="mt-10" aria-label="Entry details" data-reveal>
+      <div class="paper edge-torn p-6 sm:p-10">
+        <div class="kicker text-xs text-black/50">DETAILS</div>
+        <h2 class="mt-3 text-[26px] sm:text-[32px] font-semibold text-black/80">Entry details</h2>
+
+        <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="meta-card">
+            <div class="meta-k">Published</div>
+            <div class="meta-v">{formatDate(post.data.pubDate)}</div>
+          </div>
+
+          <div class="meta-card">
+            <div class="meta-k">Topic</div>
+            <div class="meta-v">
+              <span style={`color:${topicMeta(post.data.topic).color};`}>{topicLabel(post.data.topic)}</span>
+            </div>
+          </div>
+
+          <div class="meta-card">
+            <div class="meta-k">Photos</div>
+            <div class="meta-v">{count}</div>
+          </div>
+
+          <div class="meta-card">
+            <div class="meta-k">Author</div>
+            <div class="meta-v">{author || "—"}</div>
+          </div>
+
+          <div class="meta-card">
+            <div class="meta-k">Location</div>
+            <div class="meta-v">{location || "—"}</div>
+          </div>
+
+          <div class="meta-card">
+            <div class="meta-k">Event time</div>
+            <div class="meta-v">{eventTime || "—"}</div>
+          </div>
+
+          <div class="meta-card">
+            <div class="meta-k">Written at</div>
+            <div class="meta-v">{writtenAt || "—"}</div>
+          </div>
+
+          <div class="meta-card">
+            <div class="meta-k">Photo time</div>
+            <div class="meta-v">{photoTime || "—"}</div>
+          </div>
+
+          <div class="meta-card">
+            <div class="meta-k">Tags</div>
+            <div class="meta-v">{tagsText || "—"}</div>
+          </div>
+        </div>
+
+        {sideNote && (
+          <div class="mt-6 meta-card">
+            <div class="meta-k">Side note</div>
+            <div class="meta-v">{sideNote}</div>
+          </div>
+        )}
       </div>
     </section>
   </main>

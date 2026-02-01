@@ -26,7 +26,7 @@ const main = async () => {
   const pubDate = await ask("Publish date (YYYY-MM-DD)", new Date().toISOString().slice(0, 10));
 
   const topic = await ask(
-    "Topic (two-of-us | miu-notes | oriyinframes | grey-h | grown-up-yap | sad-music | film-visuals)",
+    "Topic (two-of-us | miu-notes | oriyinframes | grey-h | grown-up-yap | sad-music | film-visuals | random-numbers | screenshots | trash-bin)",
     "two-of-us"
   );
 
@@ -35,6 +35,10 @@ const main = async () => {
   const eventTime = await ask("Event time (free text)", "");
   const writtenAt = await ask("Written at (free text)", "");
   const photoTime = await ask("Photos taken (free text)", "");
+  const voiceMemo = await ask("Voice memo file (optional)", "");
+  const voiceMemoTitle = await ask("Voice memo title (optional)", "");
+  const videoUrl = await ask("Video URL (optional)", "");
+  const videoPoster = await ask("Video poster (optional)", "");
 
   const photoCountStr = await ask("How many numbered photos? (01..N)", "0");
   const photoCount = Number(photoCountStr) || 0;
@@ -52,6 +56,10 @@ const main = async () => {
     `eventTime: "${eventTime.replaceAll('"', '\\"')}"\n` +
     `writtenAt: "${writtenAt.replaceAll('"', '\\"')}"\n` +
     `photoTime: "${photoTime.replaceAll('"', '\\"')}"\n\n` +
+    `voiceMemo: "${voiceMemo.replaceAll('"', '\\"')}"\n` +
+    `voiceMemoTitle: "${voiceMemoTitle.replaceAll('"', '\\"')}"\n` +
+    `videoUrl: "${videoUrl.replaceAll('"', '\\"')}"\n` +
+    `videoPoster: "${videoPoster.replaceAll('"', '\\"')}"\n\n` +
     `tags: []\n` +
     `draft: true\n` +
     `sideNote: ""\n` +

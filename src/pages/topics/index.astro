@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import RansomTitle from "../../components/RansomTitle.astro";
+import TopicCard from "../../components/TopicCard.astro";
 import { TOPICS } from "../../config/topics";
 import { getCollection } from "astro:content";
 
@@ -24,12 +25,9 @@ for (const p of posts) {
         Xem thì xem, đừng đọc quá kỹ, đừng dig too deep nhé, tao ngại đấy, xin đấy !!!!!!!!!!!!!!!!!!!!!
       </p>
 
-      <div class="topic-bar">
+      <div class="topic-grid">
         {TOPICS.map((t) => (
-          <a class="topic-chip" href={`/topics/${t.slug}`}> 
-            <span>{t.label}</span>
-            <span class="ml-2 text-white/60 text-xs">({counts[t.slug] ?? 0})</span>
-          </a>
+          <TopicCard slug={t.slug} label={t.label} icon={t.icon} color={t.color} count={counts[t.slug] ?? 0} />
         ))}
       </div>
 

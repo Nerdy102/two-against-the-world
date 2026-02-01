@@ -1,7 +1,8 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import RansomTitle from "../../components/RansomTitle.astro";
-import PolaroidCard from "../../components/PolaroidCard.astro";
+import FeedCard from "../../components/FeedCard.astro";
+import TopicCard from "../../components/TopicCard.astro";
 import { TOPICS, topicLabel } from "../../config/topics";
 import { getCollection } from "astro:content";
 
@@ -12,10 +13,15 @@ export async function getStaticPaths() {
 const { topic = "two-of-us" } = Astro.params;
 const label = topicLabel(topic);
 
-const posts = (await getCollection("posts"))
-  .filter((p) => !p.data.draft)
+const allPosts = (await getCollection("posts")).filter((p) => !p.data.draft);
+const posts = allPosts
   .filter((p) => (p.data.topic ?? "two-of-us") === topic)
   .sort((a, b) => +new Date(b.data.pubDate) - +new Date(a.data.pubDate));
+const counts: Record<string, number> = {};
+for (const p of allPosts) {
+  const t = p.data.topic ?? "two-of-us";
+  counts[t] = (counts[t] ?? 0) + 1;
+}
 ---
 
 <BaseLayout title={label} active="topics">
@@ -27,9 +33,9 @@ const posts = (await getCollection("posts"))
         Drop new posts into this collection by setting <code>topic: {topic}</code> in frontmatter.
       </p>
 
-      <div class="topic-bar">
+      <div class="topic-grid">
         {TOPICS.map((t) => (
-          <a class="topic-chip" href={`/topics/${t.slug}`}>{t.label}</a>
+          <TopicCard slug={t.slug} label={t.label} icon={t.icon} color={t.color} count={counts[t.slug] ?? 0} />
         ))}
       </div>
 
@@ -42,17 +48,16 @@ const posts = (await getCollection("posts"))
       {posts.length === 0 ? (
         <p class="text-white/70">No entries yet.</p>
       ) : (
-        <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          {posts.map((p, i) => (
-            <div style={`--tilt:${((i % 5) - 2) * 1.2}deg`}>
-              <PolaroidCard
-                href={`/entries/${p.slug}`}
-                image={p.data.cover}
-                title={p.data.title}
-                date={p.data.pubDate}
-                tilt={(i % 5) - 2}
-              />
-            </div>
+        <div class="pinterest-grid">
+          {posts.map((p) => (
+            <FeedCard
+              href={`/entries/${p.slug}`}
+              image={p.data.cover}
+              title={p.data.title}
+              description={p.data.description}
+              date={p.data.pubDate}
+              topic={p.data.topic}
+            />
           ))}
         </div>
       )}

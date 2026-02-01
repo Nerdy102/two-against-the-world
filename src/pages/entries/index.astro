@@ -1,13 +1,20 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import PolaroidCard from "../../components/PolaroidCard.astro";
+import FeedCard from "../../components/FeedCard.astro";
 import RansomTitle from "../../components/RansomTitle.astro";
+import TopicCard from "../../components/TopicCard.astro";
 import { getCollection } from "astro:content";
 import { TOPICS } from "../../config/topics";
 
 const posts = (await getCollection("posts"))
   .filter((p) => !p.data.draft)
   .sort((a, b) => +new Date(b.data.pubDate) - +new Date(a.data.pubDate));
+
+const counts: Record<string, number> = {};
+for (const p of posts) {
+  const t = p.data.topic ?? "two-of-us";
+  counts[t] = (counts[t] ?? 0) + 1;
+}
 ---
 
 <BaseLayout title="Entries" description="Archive of scrapbook entries." active="entries">
@@ -17,21 +24,23 @@ const posts = (await getCollection("posts"))
       <RansomTitle text="Entries" as="h1" class="text-[44px] sm:text-[56px]" />
       <p class="mt-3 text-black/60">Bấm vào bị ám đấy hí hí :p</p>
 
-      <div class="topic-bar" aria-label="Topics">
+      <div class="topic-grid" aria-label="Chủ đề">
         {TOPICS.map((t) => (
-          <a class="topic-chip" href={`/topics/${t.slug}`}>{t.label}</a>
+          <TopicCard slug={t.slug} label={t.label} icon={t.icon} color={t.color} count={counts[t.slug] ?? 0} />
         ))}
       </div>
     </section>
 
     <section class="mt-10">
-      <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="pinterest-grid">
         {posts.map((post) => (
-          <PolaroidCard
+          <FeedCard
             href={`/entries/${post.slug}`}
             title={post.data.title}
+            description={post.data.description}
             date={post.data.pubDate}
-            imageSrc={post.data.cover}
+            image={post.data.cover}
+            topic={post.data.topic}
           />
         ))}
       </div>

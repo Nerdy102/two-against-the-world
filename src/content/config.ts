@@ -37,6 +37,12 @@ const posts = defineCollection({
 
     // Optional short “side note” card (separate from the main text)
     sideNote: z.string().optional(),
+
+    // Optional media
+    voiceMemo: z.string().optional(),
+    voiceMemoTitle: z.string().optional(),
+    videoUrl: z.string().optional(),
+    videoPoster: z.string().optional(),
   }),
 });
 
