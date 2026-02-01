@@ -92,6 +92,23 @@ const {
 
       // Re-run reveal after view transitions
       document.addEventListener('astro:page-load', reveal);
+
+      // Collapse topic panels on small screens
+      const syncTopicPanels = () => {
+        const panels = document.querySelectorAll('[data-topic-panel]');
+        if (!panels.length) return;
+        const isMobile = window.matchMedia('(max-width: 720px)').matches;
+        panels.forEach((panel) => {
+          if (isMobile) {
+            panel.removeAttribute('open');
+          } else {
+            panel.setAttribute('open', '');
+          }
+        });
+      };
+
+      syncTopicPanels();
+      window.addEventListener('resize', syncTopicPanels);
     </script>
   </body>
 </html>

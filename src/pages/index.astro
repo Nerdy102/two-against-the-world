@@ -22,6 +22,14 @@ for (const p of posts) {
   counts[t] = (counts[t] ?? 0) + 1;
 }
 
+const entriesCard = {
+  slug: "entries",
+  label: "Nhật ký",
+  icon: "📓",
+  color: "#f97316",
+  href: "/entries",
+};
+
 ---
 
 <BaseLayout title="Nhật ký — Two Against The World" active="entries" description="Kho lưu nhật ký">
@@ -40,11 +48,27 @@ for (const p of posts) {
       Cẩn thận nhé, chạm vào là cơ duyên của chúng ta sẽ thành giao ước 🕯️.
     </p>
 
-    <div class="topic-grid">
-      {TOPICS.map((t) => (
-        <TopicCard slug={t.slug} label={t.label} icon={t.icon} color={t.color} count={counts[t.slug] ?? 0} />
-      ))}
-    </div>
+    <details class="topic-panel" data-topic-panel open>
+      <summary class="topic-panel__summary">
+        <span aria-hidden="true">▾</span>
+        <span>Vừng ơi mở cửa ra nữa!!!!</span>
+      </summary>
+      <div class="topic-panel__body">
+        <div class="topic-grid">
+          {TOPICS.map((t) => (
+            <TopicCard slug={t.slug} label={t.label} icon={t.icon} color={t.color} count={counts[t.slug] ?? 0} />
+          ))}
+          <TopicCard
+            slug={entriesCard.slug}
+            label={entriesCard.label}
+            icon={entriesCard.icon}
+            color={entriesCard.color}
+            count={posts.length}
+            href={entriesCard.href}
+          />
+        </div>
+      </div>
+    </details>
   </section>
 
   <section class="mt-10">
