@@ -2,7 +2,7 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import RansomTitle from "../components/RansomTitle.astro";
 import { TOPICS } from "../config/topics";
-import { EDITOR_PASSCODES } from "../config/secrets";
+import { PASSCODE } from "../config/secrets";
 ---
 
 <BaseLayout title="Soạn bài — Two Against The World" active="entries" description="Soạn bài trực tiếp trên web">
@@ -13,6 +13,9 @@ import { EDITOR_PASSCODES } from "../config/secrets";
       <p class="mt-3 text-black/60">
         Trang này cho phép 2 người nhập nội dung trực tiếp và tải xuống gói bài viết để dùng trên máy local.
       </p>
+      <p class="mt-2 text-black/60">
+        Nội dung mới sẽ đồng bộ theo cấu trúc các bài đã đăng trước đó (frontmatter + thư mục ảnh).
+      </p>
     </section>
 
     <section class="mt-10" aria-label="Soạn bài">
@@ -20,7 +23,7 @@ import { EDITOR_PASSCODES } from "../config/secrets";
         <div class="lock-card">
           <div class="kicker text-xs text-white/60">XÁC THỰC</div>
           <h3 class="lock-title">Mở khóa khu soạn bài</h3>
-          <p class="lock-desc">Nhập 1 trong 2 mật khẩu để dùng trình soạn bài.</p>
+          <p class="lock-desc">Nhập mật khẩu để dùng trình soạn bài.</p>
           <form class="lock-form" data-compose-form>
             <input class="input" type="password" name="passcode" placeholder="Mật khẩu" autocomplete="off" />
             <button class="btn" type="submit">Mở khóa</button>
@@ -34,19 +37,19 @@ import { EDITOR_PASSCODES } from "../config/secrets";
         <div class="compose-grid">
           <label class="compose-field">
             <span>Tiêu đề</span>
-            <input class="input" name="title" placeholder="Tiêu đề bài viết" />
+            <input class="input" name="title" placeholder="Tiêu đề bài viết" required />
           </label>
           <label class="compose-field">
             <span>Mô tả ngắn</span>
-            <input class="input" name="description" placeholder="Một câu giới thiệu ngắn" />
+            <input class="input" name="description" placeholder="Một câu giới thiệu ngắn" required />
           </label>
           <label class="compose-field">
             <span>Ngày đăng</span>
-            <input class="input" name="pubDate" type="date" />
+            <input class="input" name="pubDate" type="date" required />
           </label>
           <label class="compose-field">
             <span>Chủ đề</span>
-            <select class="input" name="topic">
+            <select class="input" name="topic" required>
               {TOPICS.map((t) => (
                 <option value={t.slug}>{t.label}</option>
               ))}
@@ -54,50 +57,65 @@ import { EDITOR_PASSCODES } from "../config/secrets";
           </label>
           <label class="compose-field">
             <span>Tác giả</span>
-            <input class="input" name="author" placeholder="Tên người viết" />
+            <input class="input" name="author" placeholder="Tên người viết" required />
           </label>
           <label class="compose-field">
             <span>Địa điểm</span>
-            <input class="input" name="location" placeholder="Địa điểm" />
+            <input class="input" name="location" placeholder="Địa điểm" required />
           </label>
           <label class="compose-field">
             <span>Thời gian sự kiện</span>
-            <input class="input" name="eventTime" placeholder="Ví dụ: 20:30 - 21:00" />
+            <input class="input" name="eventTime" placeholder="Ví dụ: 20:30 - 21:00" required />
           </label>
           <label class="compose-field">
             <span>Viết lúc</span>
-            <input class="input" name="writtenAt" placeholder="Ví dụ: 21/02/2026" />
+            <input class="input" name="writtenAt" placeholder="Ví dụ: 21/02/2026" required />
           </label>
           <label class="compose-field">
             <span>Chụp lúc</span>
-            <input class="input" name="photoTime" placeholder="Ví dụ: 21/02/2026" />
+            <input class="input" name="photoTime" placeholder="Ví dụ: 21/02/2026" required />
           </label>
           <label class="compose-field">
             <span>Ghi âm (URL)</span>
-            <input class="input" name="voiceMemo" placeholder="https://..." />
+            <input class="input" name="voiceMemo" placeholder="https://..." required />
           </label>
           <label class="compose-field">
             <span>Tiêu đề ghi âm</span>
-            <input class="input" name="voiceMemoTitle" placeholder="Tên đoạn ghi âm" />
+            <input class="input" name="voiceMemoTitle" placeholder="Tên đoạn ghi âm" required />
           </label>
           <label class="compose-field">
             <span>Video (URL)</span>
-            <input class="input" name="videoUrl" placeholder="https://..." />
+            <input class="input" name="videoUrl" placeholder="https://..." required />
           </label>
           <label class="compose-field">
             <span>Poster video (URL)</span>
-            <input class="input" name="videoPoster" placeholder="https://..." />
+            <input class="input" name="videoPoster" placeholder="https://..." required />
           </label>
         </div>
 
         <label class="compose-field mt-6">
           <span>Nội dung chính</span>
-          <textarea class="input compose-textarea" name="body" rows={10} placeholder="Viết nội dung ở đây..."></textarea>
+          <textarea class="input compose-textarea" name="body" rows={10} placeholder="Viết nội dung ở đây..." required></textarea>
         </label>
 
         <label class="compose-field mt-6">
-          <span>Ảnh (chọn nhiều ảnh, ảnh đầu tiên là cover)</span>
-          <input class="input" type="file" name="photos" accept="image/*" multiple />
+          <span>Ảnh (chọn nhiều ảnh)</span>
+          <input class="input" type="file" name="photos" accept="image/*" multiple required />
+        </label>
+        <label class="compose-field">
+          <span>Ảnh cover (chọn số thứ tự)</span>
+          <select class="input" name="coverIndex" required>
+            <option value="0">Ảnh 1</option>
+            <option value="1">Ảnh 2</option>
+            <option value="2">Ảnh 3</option>
+            <option value="3">Ảnh 4</option>
+            <option value="4">Ảnh 5</option>
+            <option value="5">Ảnh 6</option>
+            <option value="6">Ảnh 7</option>
+            <option value="7">Ảnh 8</option>
+            <option value="8">Ảnh 9</option>
+            <option value="9">Ảnh 10</option>
+          </select>
         </label>
 
         <div class="compose-preview" data-compose-preview></div>
@@ -120,7 +138,7 @@ import { EDITOR_PASSCODES } from "../config/secrets";
   </main>
 
   <script is:inline>
-    const PASSCODES = {JSON.stringify(EDITOR_PASSCODES)};
+    const PASS = {JSON.stringify(PASSCODE)};
     const KEY = "tatw-compose-pass";
     const lock = document.querySelector("[data-compose-lock]");
     const wrap = document.querySelector("[data-compose-wrap]");
@@ -137,14 +155,14 @@ import { EDITOR_PASSCODES } from "../config/secrets";
       wrap?.classList.add("is-unlocked");
     };
 
-    if (PASSCODES.includes(localStorage.getItem(KEY))) unlock();
+    if (localStorage.getItem(KEY) === PASS) unlock();
 
     form?.addEventListener("submit", (e) => {
       e.preventDefault();
       const input = form.querySelector("input[name='passcode']");
       const val = input?.value?.trim();
-      if (PASSCODES.includes(val)) {
-        localStorage.setItem(KEY, val);
+      if (val === PASS) {
+        localStorage.setItem(KEY, PASS);
         unlock();
         if (err) err.textContent = "";
       } else {
@@ -167,26 +185,54 @@ import { EDITOR_PASSCODES } from "../config/secrets";
         if (el.name && el.type !== "file") data[el.name] = el.value?.trim?.() ?? "";
       });
       const files = wrap?.querySelector("input[name='photos']")?.files ?? [];
-      return { data, files };
+      const coverIndex = Number(wrap?.querySelector("select[name='coverIndex']")?.value ?? 0);
+      return { data, files, coverIndex };
     };
 
-    const renderPreview = (files) => {
+    const renderPreview = (files, coverIndex) => {
       if (!preview) return;
       preview.innerHTML = "";
       Array.from(files).forEach((file, idx) => {
         const url = URL.createObjectURL(file);
         const card = document.createElement("div");
         card.className = "compose-thumb";
-        card.innerHTML = `<img src="${url}" alt="photo-${idx + 1}" /><span>${file.name}</span>`;
+        const label = idx === coverIndex ? " (cover)" : "";
+        card.innerHTML = `<img src="${url}" alt="photo-${idx + 1}" /><span>${file.name}${label}</span>`;
         preview.appendChild(card);
       });
     };
 
     const generateMarkdown = () => {
-      const { data, files } = getFormData();
-      renderPreview(files);
+      const { data, files, coverIndex } = getFormData();
+      renderPreview(files, coverIndex);
+      const required = [
+        "title",
+        "description",
+        "pubDate",
+        "topic",
+        "author",
+        "location",
+        "eventTime",
+        "writtenAt",
+        "photoTime",
+        "voiceMemo",
+        "voiceMemoTitle",
+        "videoUrl",
+        "videoPoster",
+        "body",
+      ];
+      const missing = required.filter((k) => !data[k]);
+      if (missing.length) {
+        if (err) err.textContent = "Vui lòng điền đầy đủ metadata trước khi tạo.";
+        return { md: "", slug: "", files };
+      }
+      if (!files.length) {
+        if (err) err.textContent = "Vui lòng chọn ảnh và chọn ảnh cover.";
+        return { md: "", slug: "", files };
+      }
       const slug = slugify(data.title || "bai-chua-dat-ten");
       const photoCount = files.length ? Math.max(0, files.length - 1) : 0;
+      const cover = Array.from(files)[coverIndex] ?? files[0];
       const md =
         `---\n` +
         `title: "${(data.title || "Chưa đặt tên").replaceAll('"', '\\"')}"\n` +
@@ -218,6 +264,7 @@ import { EDITOR_PASSCODES } from "../config/secrets";
 
     dlBtn?.addEventListener("click", () => {
       const { md, slug } = generateMarkdown();
+      if (!md) return;
       const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
@@ -227,9 +274,12 @@ import { EDITOR_PASSCODES } from "../config/secrets";
     });
 
     exportBtn?.addEventListener("click", () => {
-      const { files, slug } = generateMarkdown();
-      if (!files.length) return;
-      Array.from(files).forEach((file, idx) => {
+      const { files, slug, coverIndex } = getFormData();
+      if (!files.length || !slug) return;
+      const ordered = Array.from(files);
+      const cover = ordered.splice(coverIndex, 1)[0];
+      ordered.unshift(cover);
+      ordered.forEach((file, idx) => {
         const a = document.createElement("a");
         const name = idx === 0 ? "cover.jpg" : String(idx).padStart(2, "0") + "." + file.name.split(".").pop();
         a.href = URL.createObjectURL(file);

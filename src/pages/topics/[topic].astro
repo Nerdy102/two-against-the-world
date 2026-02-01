@@ -4,7 +4,7 @@ import RansomTitle from "../../components/RansomTitle.astro";
 import FeedCard from "../../components/FeedCard.astro";
 import TopicCard from "../../components/TopicCard.astro";
 import { TOPICS, topicLabel, TOPIC_COPY } from "../../config/topics";
-import { TRASH_PASSCODE } from "../../config/secrets";
+import { PASSCODE } from "../../config/secrets";
 import { getCollection } from "astro:content";
 
 export async function getStaticPaths() {
@@ -86,7 +86,7 @@ for (const p of allPosts) {
 
   {isLocked && (
     <script is:inline>
-      const PASS = {JSON.stringify(TRASH_PASSCODE)};
+      const PASS = {JSON.stringify(PASSCODE)};
       const KEY = "tatw-trash-pass";
       const wrap = document.querySelector("[data-lock-wrap]");
       const panel = document.querySelector("[data-lock-panel]");

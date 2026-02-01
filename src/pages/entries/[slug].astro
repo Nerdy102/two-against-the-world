@@ -5,7 +5,7 @@ import RansomTitle from "../../components/RansomTitle.astro";
 import FrameWall from "../../components/FrameWall.astro";
 import { formatDate } from "../../lib/formatDate";
 import { topicLabel, topicMeta } from "../../config/topics";
-import { TRASH_PASSCODE } from "../../config/secrets";
+import { PASSCODE } from "../../config/secrets";
 
 export async function getStaticPaths() {
   const posts = await getCollection("posts");
@@ -235,7 +235,7 @@ const wallImages = [
 
   {isLocked && (
     <script is:inline>
-      const PASS = {JSON.stringify(TRASH_PASSCODE)};
+      const PASS = {JSON.stringify(PASSCODE)};
       const KEY = "tatw-trash-pass";
       const wrap = document.querySelector("[data-lock-wrap]");
       const panel = document.querySelector("[data-lock-panel]");
