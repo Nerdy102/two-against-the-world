@@ -25,11 +25,19 @@ for (const p of posts) {
         Xem thì xem, đừng đọc quá kỹ, đừng đào sâu nhé, tao ngại đấy, xin đấy !!!!!!!!!!!!!!!!!!!!!
       </p>
 
-      <div class="topic-grid">
-        {TOPICS.map((t) => (
-          <TopicCard slug={t.slug} label={t.label} icon={t.icon} color={t.color} count={counts[t.slug] ?? 0} />
-        ))}
-      </div>
+      <details class="topic-panel" data-topic-panel open>
+        <summary class="topic-panel__summary">
+          <span aria-hidden="true">▾</span>
+          <span>Vừng ơi, mở cửa ra !!!!!!</span>
+        </summary>
+        <div class="topic-panel__body">
+          <div class="topic-grid">
+            {TOPICS.map((t) => (
+              <TopicCard slug={t.slug} label={t.label} icon={t.icon} color={t.color} count={counts[t.slug] ?? 0} />
+            ))}
+          </div>
+        </div>
+      </details>
 
       <div class="mt-6">
         <a class="btn" href="/entries">Thích xem thêm thì bấm vào đây</a>
