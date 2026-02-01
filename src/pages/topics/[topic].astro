@@ -19,7 +19,7 @@ const allPosts = (await getCollection("posts")).filter((p) => !p.data.draft);
 const posts = allPosts
   .filter((p) => (p.data.topic ?? "two-of-us") === topic)
   .sort((a, b) => {
-    const pinnedA = p.data.pinned ? 1 : 0;
+    const pinnedA = a.data.pinned ? 1 : 0;
     const pinnedB = b.data.pinned ? 1 : 0;
     if (pinnedA !== pinnedB) return pinnedB - pinnedA;
     return +new Date(b.data.pubDate) - +new Date(a.data.pubDate);
