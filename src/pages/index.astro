@@ -22,140 +22,45 @@ for (const p of posts) {
   counts[t] = (counts[t] ?? 0) + 1;
 }
 
-const dateMap = new Map<string, { date: string; label: string; count: number }>();
-for (const post of posts) {
-  const dateKey = post.data.pubDate.toISOString().slice(0, 10);
-  const existing = dateMap.get(dateKey);
-  if (existing) {
-    existing.count += 1;
-  } else {
-    dateMap.set(dateKey, {
-      date: dateKey,
-      label: formatDate(post.data.pubDate),
-      count: 1,
-    });
-  }
-}
-const timelineDates = Array.from(dateMap.values());
-const seenDates = new Set<string>();
-
 ---
 
 <BaseLayout title="Nhật ký — Two Against The World" active="entries" description="Kho lưu nhật ký">
-  <main class="feed-layout">
-    <section class="feed-main">
-      <div class="paper edge-torn px-6 py-7 sm:px-8 sm:py-8" data-reveal>
-        <p class="kicker text-[18px] text-black/50">🩸“Tin Yêu”🖤</p>
-        <div class="mt-2">
-          <RansomTitle
-            text="Our-main-events🎸"
-            as="h1"
-            stampEvery={0}
-            class="text-[44px] sm:text-[56px] ransom-red"
-          />
-        </div>
+  <section class="paper edge-torn px-6 py-7 sm:px-8 sm:py-8" data-reveal>
+    <p class="kicker text-[18px] text-black/50">🩸“Tin Yêu”🖤</p>
+    <div class="mt-2">
+  <RansomTitle
+    text="Our-main-events🎸"
+    as="h1"
+    stampEvery={0}
+    class="text-[44px] sm:text-[56px] ransom-red"
+  />
+</div>
 
-        <p class="mt-4 text-black/70">
-          Cẩn thận nhé, chạm vào là cơ duyên của chúng ta sẽ thành giao ước 🕯️.
-        </p>
+    <p class="mt-4 text-black/70">
+      Cẩn thận nhé, chạm vào là cơ duyên của chúng ta sẽ thành giao ước 🕯️.
+    </p>
 
-        <div class="topic-grid" aria-label="Chủ đề">
-          {TOPICS.map((t) => (
-            <TopicCard slug={t.slug} label={t.label} icon={t.icon} color={t.color} count={counts[t.slug] ?? 0} />
-          ))}
-          <div class="topic-card topic-search-card" data-search-card aria-label="Tìm ký ức">
-            <div class="topic-card__icon" aria-hidden="true">✨</div>
-            <div>
-              <div class="topic-card__label">Ký ức</div>
-              <div class="topic-card__count">Tìm nhanh</div>
-            </div>
-            <div class="search-grid">
-              <label class="search-field">
-                <span>Tìm theo chữ</span>
-                <input class="input" type="search" placeholder="Nhập từ khóa..." data-search-input />
-              </label>
-              <label class="search-field">
-                <span>Chọn ngày</span>
-                <input class="input" type="date" data-search-date />
-              </label>
-              <button class="btn search-reset" type="button" data-search-reset>Reset</button>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div class="topic-grid">
+      {TOPICS.map((t) => (
+        <TopicCard slug={t.slug} label={t.label} icon={t.icon} color={t.color} count={counts[t.slug] ?? 0} />
+      ))}
+    </div>
+  </section>
 
-      <section class="mt-10">
-        <div class="timeline timeline-inline mb-6" aria-label="Timeline theo ngày">
-          {timelineDates.map((item) => (
-            <a class="timeline-chip" href={`#date-${item.date}`}>
-              <span class="timeline-date">{item.label}</span>
-              <span class="timeline-count">{item.count} bài</span>
-            </a>
-          ))}
-        </div>
-        <div class="pinterest-grid" data-search-grid>
-          {posts.map((post) => {
-            const dateKey = post.data.pubDate.toISOString().slice(0, 10);
-            const anchorId = seenDates.has(dateKey) ? undefined : `date-${dateKey}`;
-            seenDates.add(dateKey);
-            return (
-              <FeedCard
-                href={`/entries/${post.slug}`}
-                image={post.data.cover}
-                title={post.data.title}
-                description={post.data.description}
-                date={post.data.pubDate}
-                topic={post.data.topic}
-                locked={post.data.topic === "trash-bin"}
-                pinned={post.data.pinned}
-                dateKey={dateKey}
-                anchorId={anchorId}
-                searchText={`${post.data.title} ${post.data.description ?? ""} ${post.data.author ?? ""} ${post.data.location ?? ""} ${post.data.eventTime ?? ""} ${post.data.writtenAt ?? ""} ${post.data.photoTime ?? ""} ${post.data.sideNote ?? ""} ${(post.data.tags ?? []).join(" ")} ${post.data.topic ?? ""}`}
-              />
-            );
-          })}
-        </div>
-      </section>
-    </section>
-  </main>
-
-  <script is:inline>
-    const initSearch = () => {
-      const input = document.querySelector("[data-search-input]");
-      const dateInput = document.querySelector("[data-search-date]");
-      const reset = document.querySelector("[data-search-reset]");
-      const cards = Array.from(document.querySelectorAll("[data-search-grid] .feed-card"));
-      const searchCard = document.querySelector("[data-search-card]");
-
-      if (!input || !dateInput || !reset || !cards.length) return;
-      if (input.dataset.bound === "1") return;
-      input.dataset.bound = "1";
-
-      const filter = () => {
-        const q = input.value.trim().toLowerCase();
-        const date = dateInput.value;
-        if (searchCard) {
-          searchCard.classList.toggle("is-expanded", Boolean(date));
-        }
-        cards.forEach((card) => {
-          const text = (card.getAttribute("data-search") || "").toLowerCase();
-          const cardDate = card.getAttribute("data-date") || "";
-          const matchesText = q ? text.includes(q) : true;
-          const matchesDate = date ? cardDate === date : true;
-          card.classList.toggle("is-filtered", !(matchesText && matchesDate));
-        });
-      };
-
-      input.addEventListener("input", filter);
-      dateInput.addEventListener("change", filter);
-      reset.addEventListener("click", () => {
-        input.value = "";
-        dateInput.value = "";
-        filter();
-      });
-    };
-
-    initSearch();
-    document.addEventListener("astro:page-load", initSearch);
-  </script>
+  <section class="mt-10">
+    <div class="pinterest-grid">
+      {posts.map((post) => (
+        <FeedCard
+          href={`/entries/${post.slug}`}
+          image={post.data.cover}
+          title={post.data.title}
+          description={post.data.description}
+          date={post.data.pubDate}
+          topic={post.data.topic}
+          locked={post.data.topic === "trash-bin"}
+          pinned={post.data.pinned}
+        />
+      ))}
+    </div>
+  </section>
 </BaseLayout>

@@ -15,12 +15,15 @@ export const TOPICS = [
 ] as const;
 
 export type TopicSlug = (typeof TOPICS)[number]["slug"];
+
 export const UI_LABELS = {
   entries: "🩸 Nhật ký “Tin Yêu”",
 };
 
-export const TOPIC_BY_SLUG: Record<string, { slug: string; label: string; icon: string; color: string }> =
-  Object.fromEntries(TOPICS.map((t) => [t.slug, t]));
+export const TOPIC_BY_SLUG: Record<
+  string,
+  { slug: string; label: string; icon: string; color: string }
+> = Object.fromEntries(TOPICS.map((t) => [t.slug, t]));
 
 export function topicLabel(slug: string | undefined) {
   if (!slug) return "Uncategorized";
@@ -28,8 +31,16 @@ export function topicLabel(slug: string | undefined) {
 }
 
 export function topicMeta(slug: string | undefined) {
-  if (!slug) return { slug: "uncategorized", label: "Chưa phân loại", icon: "❔", color: "#a3a3a3" };
-  return TOPIC_BY_SLUG[slug] ?? { slug, label: slug, icon: "📌", color: "#a3a3a3" };
+  if (!slug)
+    return {
+      slug: "uncategorized",
+      label: "Chưa phân loại",
+      icon: "❔",
+      color: "#a3a3a3",
+    };
+  return (
+    TOPIC_BY_SLUG[slug] ?? { slug, label: slug, icon: "📌", color: "#a3a3a3" }
+  );
 }
 
 export const TOPIC_COPY: Record<string, string> = {
@@ -37,13 +48,16 @@ export const TOPIC_COPY: Record<string, string> = {
   "miu-notes": "Em này quắn và miên lắmmmmmmmmmmmm",
   "oriyinframes": "the poets are dying, but no matter, poetry remains...",
   "grey-h": "No cap, mong là không phải dùng đến thư mục này",
-  "grown-up-yap": "Chính trị, kinh tế, đầu tư, tài chính,... mọi thứ mà người lớn cơ bản phải đắm chìm để trưởng thành",
+  "grown-up-yap":
+    "Chính trị, kinh tế, đầu tư, tài chính,... mọi thứ mà người lớn cơ bản phải đắm chìm để trưởng thành",
   "sad-music": "Đứa con thứ nhất",
   "film-visuals": "Đứa con thứ hai",
-  "random-numbers": "Cuộc sống của chúng tôi là những chuỗi sự kiện và chuỗi chữ số 'ảo vl' nên bắt buộc phải có thư mục riêng đấy",
-  "screenshots": "Mong là sẽ đủ chăm để up hết mọi screenshots thường ngày mà somehow đáng yêu vcl của chúng tôi",
+  "random-numbers":
+    "Cuộc sống của chúng tôi là những chuỗi sự kiện và chuỗi chữ số 'ảo vl' nên bắt buộc phải có thư mục riêng đấy",
+  screenshots:
+    "Mong là sẽ đủ chăm để up hết mọi screenshots thường ngày mà somehow đáng yêu vcl của chúng tôi",
   "trash-bin": "Thùng rác cảm xúc, chôn chữ cũ như trang thơ tàn.",
-  "quotes": "Quotes đủ thể loại, tao dự là chắc toàn meme quotes thôi :))))",
-  "memes": "Bà chúa soạn Meme - Uyên Trần",
+  quotes: "Quotes đủ thể loại, tao dự là chắc toàn meme quotes thôi :))))",
+  memes: "Bà chúa soạn Meme - Uyên Trần",
   "taste-yap": "Gu mình là bữa tiệc chữ: place, food, style.",
 };

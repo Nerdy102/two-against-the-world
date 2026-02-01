@@ -15,18 +15,18 @@ const { topic = "two-of-us" } = Astro.params;
 const label = topicLabel(topic);
 const isLocked = topic === "trash-bin";
 
-const allPosts = (await getCollection("posts")).filter((post) => !post.data.draft);
+const allPosts = (await getCollection("posts")).filter((p) => !p.data.draft);
 const posts = allPosts
-  .filter((post) => (post.data.topic ?? "two-of-us") === topic)
-  .sort((postA, postB) => {
-    const pinnedA = postA.data.pinned ? 1 : 0;
-    const pinnedB = postB.data.pinned ? 1 : 0;
+  .filter((p) => (p.data.topic ?? "two-of-us") === topic)
+  .sort((a, b) => {
+    const pinnedA = p.data.pinned ? 1 : 0;
+    const pinnedB = b.data.pinned ? 1 : 0;
     if (pinnedA !== pinnedB) return pinnedB - pinnedA;
-    return +new Date(postB.data.pubDate) - +new Date(postA.data.pubDate);
+    return +new Date(b.data.pubDate) - +new Date(a.data.pubDate);
   });
 const counts: Record<string, number> = {};
-for (const post of allPosts) {
-  const t = post.data.topic ?? "two-of-us";
+for (const p of allPosts) {
+  const t = p.data.topic ?? "two-of-us";
   counts[t] = (counts[t] ?? 0) + 1;
 }
 ---
@@ -57,16 +57,16 @@ for (const post of allPosts) {
       ) : (
         <div class={`lock-wrap ${isLocked ? "is-locked" : ""}`} data-lock-wrap>
           <div class="pinterest-grid lock-content" data-lock-content>
-            {posts.map((post) => (
+            {posts.map((p) => (
               <FeedCard
-                href={`/entries/${post.slug}`}
-                image={post.data.cover}
-                title={post.data.title}
-                description={post.data.description}
-                date={post.data.pubDate}
-                topic={post.data.topic}
+                href={`/entries/${p.slug}`}
+                image={p.data.cover}
+                title={p.data.title}
+                description={p.data.description}
+                date={p.data.pubDate}
+                topic={p.data.topic}
                 locked={isLocked}
-                pinned={post.data.pinned}
+                pinned={p.data.pinned}
               />
             ))}
           </div>
