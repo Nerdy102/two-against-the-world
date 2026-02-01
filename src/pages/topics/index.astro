@@ -25,7 +25,7 @@ for (const p of posts) {
         Xem thì xem, đừng đọc quá kỹ, đừng đào sâu nhé, tao ngại đấy, xin đấy !!!!!!!!!!!!!!!!!!!!!
       </p>
 
-      <div class="topic-grid topic-grid--scroll">
+      <div class="topic-grid">
         {TOPICS.map((t) => (
           <TopicCard slug={t.slug} label={t.label} icon={t.icon} color={t.color} count={counts[t.slug] ?? 0} />
         ))}

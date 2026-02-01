@@ -39,7 +39,7 @@ for (const p of posts) {
       Cẩn thận nhé, chạm vào là cơ duyên của chúng ta sẽ thành giao ước 🕯️.
     </p>
 
-    <div class="topic-grid topic-grid--scroll" aria-label="Chủ đề">
+    <div class="topic-grid" aria-label="Chủ đề">
       {TOPICS.map((t) => (
         <TopicCard slug={t.slug} label={t.label} icon={t.icon} color={t.color} count={counts[t.slug] ?? 0} />
       ))}

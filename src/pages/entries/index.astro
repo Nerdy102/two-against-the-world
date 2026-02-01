@@ -48,7 +48,7 @@ const seenDates = new Set<string>();
       <RansomTitle text="Nhật ký" as="h1" class="text-[44px] sm:text-[56px]" />
       <p class="mt-3 text-black/60">Bấm vào bị ám đấy hí hí :p</p>
 
-      <div class="topic-grid topic-grid--scroll" aria-label="Chủ đề">
+      <div class="topic-grid" aria-label="Chủ đề">
         {TOPICS.map((t) => (
           <TopicCard slug={t.slug} label={t.label} icon={t.icon} color={t.color} count={counts[t.slug] ?? 0} />
         ))}
