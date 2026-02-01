@@ -42,79 +42,85 @@ const seenDates = new Set<string>();
 ---
 
 <BaseLayout title="Nhật ký — Two Against The World" active="entries" description="Kho lưu nhật ký">
-  <section class="paper edge-torn px-6 py-7 sm:px-8 sm:py-8" data-reveal>
-    <p class="kicker text-[18px] text-black/50">🩸“Tin Yêu”🖤</p>
-    <div class="mt-2">
-  <RansomTitle
-    text="Our-main-events🎸"
-    as="h1"
-    stampEvery={0}
-    class="text-[44px] sm:text-[56px] ransom-red"
-  />
-</div>
+  <main class="feed-layout">
+    <aside class="feed-sidebar" aria-label="Bộ lọc và lịch">
+      <div class="paper edge-torn px-6 py-7 sm:px-8 sm:py-8" data-reveal>
+        <div class="kicker text-xs text-black/50">TÌM KIẾM</div>
+        <h2 class="mt-3 text-[24px] sm:text-[30px] font-semibold text-black/80">Lục lại ký ức ✨</h2>
+        <p class="mt-2 text-black/60">Tìm theo chữ hoặc chọn ngày để nhảy đúng mốc.</p>
 
-    <p class="mt-4 text-black/70">
-      Cẩn thận nhé, chạm vào là cơ duyên của chúng ta sẽ thành giao ước 🕯️.
-    </p>
+        <div class="search-grid mt-6">
+          <label class="search-field">
+            <span>Tìm theo chữ</span>
+            <input class="input" type="search" placeholder="Nhập từ khóa..." data-search-input />
+          </label>
+          <label class="search-field">
+            <span>Chọn ngày</span>
+            <input class="input" type="date" data-search-date />
+          </label>
+          <button class="btn search-reset" type="button" data-search-reset>Reset</button>
+        </div>
 
-    <div class="topic-grid" aria-label="Chủ đề">
-      {TOPICS.map((t) => (
-        <TopicCard slug={t.slug} label={t.label} icon={t.icon} color={t.color} count={counts[t.slug] ?? 0} />
-      ))}
-    </div>
-  </section>
+        <div class="timeline mt-8" aria-label="Timeline theo ngày">
+          {timelineDates.map((item) => (
+            <a class="timeline-chip" href={`#date-${item.date}`}>
+              <span class="timeline-date">{item.label}</span>
+              <span class="timeline-count">{item.count} bài</span>
+            </a>
+          ))}
+        </div>
+      </div>
+    </aside>
 
-  <section class="paper edge-torn mt-8 px-6 py-7 sm:px-8 sm:py-8" data-reveal aria-label="Tìm kiếm và lịch">
-    <div class="kicker text-xs text-black/50">TÌM KIẾM</div>
-    <h2 class="mt-3 text-[24px] sm:text-[30px] font-semibold text-black/80">Lục lại ký ức ✨</h2>
-    <p class="mt-2 text-black/60">Tìm theo chữ hoặc chọn ngày để nhảy đúng mốc.</p>
-
-    <div class="search-grid mt-6">
-      <label class="search-field">
-        <span>Tìm theo chữ</span>
-        <input class="input" type="search" placeholder="Nhập từ khóa..." data-search-input />
-      </label>
-      <label class="search-field">
-        <span>Chọn ngày</span>
-        <input class="input" type="date" data-search-date />
-      </label>
-      <button class="btn search-reset" type="button" data-search-reset>Reset</button>
-    </div>
-
-    <div class="timeline mt-8" aria-label="Timeline theo ngày">
-      {timelineDates.map((item) => (
-        <a class="timeline-chip" href={`#date-${item.date}`}>
-          <span class="timeline-date">{item.label}</span>
-          <span class="timeline-count">{item.count} bài</span>
-        </a>
-      ))}
-    </div>
-  </section>
-
-  <section class="mt-10">
-    <div class="pinterest-grid" data-search-grid>
-      {posts.map((post) => {
-        const dateKey = post.data.pubDate.toISOString().slice(0, 10);
-        const anchorId = seenDates.has(dateKey) ? undefined : `date-${dateKey}`;
-        seenDates.add(dateKey);
-        return (
-          <FeedCard
-            href={`/entries/${post.slug}`}
-            image={post.data.cover}
-            title={post.data.title}
-            description={post.data.description}
-            date={post.data.pubDate}
-            topic={post.data.topic}
-            locked={post.data.topic === "trash-bin"}
-            pinned={post.data.pinned}
-            dateKey={dateKey}
-            anchorId={anchorId}
-            searchText={`${post.data.title} ${post.data.description ?? ""} ${post.data.author ?? ""} ${post.data.location ?? ""} ${post.data.eventTime ?? ""} ${post.data.writtenAt ?? ""} ${post.data.photoTime ?? ""} ${post.data.sideNote ?? ""} ${(post.data.tags ?? []).join(" ")} ${post.data.topic ?? ""}`}
+    <section class="feed-main">
+      <div class="paper edge-torn px-6 py-7 sm:px-8 sm:py-8" data-reveal>
+        <p class="kicker text-[18px] text-black/50">🩸“Tin Yêu”🖤</p>
+        <div class="mt-2">
+          <RansomTitle
+            text="Our-main-events🎸"
+            as="h1"
+            stampEvery={0}
+            class="text-[44px] sm:text-[56px] ransom-red"
           />
-        );
-      })}
-    </div>
-  </section>
+        </div>
+
+        <p class="mt-4 text-black/70">
+          Cẩn thận nhé, chạm vào là cơ duyên của chúng ta sẽ thành giao ước 🕯️.
+        </p>
+
+        <div class="topic-grid" aria-label="Chủ đề">
+          {TOPICS.map((t) => (
+            <TopicCard slug={t.slug} label={t.label} icon={t.icon} color={t.color} count={counts[t.slug] ?? 0} />
+          ))}
+        </div>
+      </div>
+
+      <section class="mt-10">
+        <div class="pinterest-grid" data-search-grid>
+          {posts.map((post) => {
+            const dateKey = post.data.pubDate.toISOString().slice(0, 10);
+            const anchorId = seenDates.has(dateKey) ? undefined : `date-${dateKey}`;
+            seenDates.add(dateKey);
+            return (
+              <FeedCard
+                href={`/entries/${post.slug}`}
+                image={post.data.cover}
+                title={post.data.title}
+                description={post.data.description}
+                date={post.data.pubDate}
+                topic={post.data.topic}
+                locked={post.data.topic === "trash-bin"}
+                pinned={post.data.pinned}
+                dateKey={dateKey}
+                anchorId={anchorId}
+                searchText={`${post.data.title} ${post.data.description ?? ""} ${post.data.author ?? ""} ${post.data.location ?? ""} ${post.data.eventTime ?? ""} ${post.data.writtenAt ?? ""} ${post.data.photoTime ?? ""} ${post.data.sideNote ?? ""} ${(post.data.tags ?? []).join(" ")} ${post.data.topic ?? ""}`}
+              />
+            );
+          })}
+        </div>
+      </section>
+    </section>
+  </main>
 
   <script is:inline>
     const initSearch = () => {
