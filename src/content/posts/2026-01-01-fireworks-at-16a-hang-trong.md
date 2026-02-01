@@ -5,7 +5,7 @@ pubDate: 2026-01-31
 topic: two-of-us
 cover: "/photos/2026-01-01-fireworks-at-16a-hang-trong/cover.jpg"
 photoDir: "2026-01-01-fireworks-at-16a-hang-trong"
-photoCount: 9
+photoCount: 0
 
 author: "Viet Hoa Nguyen"
 location: "16A Hàng Trống, Hà Nội"
