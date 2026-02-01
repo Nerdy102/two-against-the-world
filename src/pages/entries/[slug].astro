@@ -235,7 +235,7 @@ const wallImages = [
 
   {isLocked && (
     <script is:inline>
-      const PASS = {JSON.stringify(PASSCODE)};
+      const PASS = ${JSON.stringify(PASSCODE)};
       const KEY = "tatw-trash-pass";
       const wrap = document.querySelector("[data-lock-wrap]");
       const panel = document.querySelector("[data-lock-panel]");

@@ -138,7 +138,7 @@ import { PASSCODE } from "../config/secrets";
   </main>
 
   <script is:inline>
-    const PASS = {JSON.stringify(PASSCODE)};
+    const PASS = ${JSON.stringify(PASSCODE)};
     const KEY = "tatw-compose-pass";
     const lock = document.querySelector("[data-compose-lock]");
     const wrap = document.querySelector("[data-compose-wrap]");
