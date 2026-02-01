@@ -2,7 +2,7 @@
 import RansomTitle from "./RansomTitle.astro";
 
 const { active = "entries" } = Astro.props as { active?: "entries" | "topics" | "about" };
-const searchHref = active === "entries" ? "#journal-tools" : "/entries#journal-tools";
+const searchHref = "/entries#journal-tools";
 ---
 
 <header class="site-header mx-auto max-w-6xl px-5 pt-6">

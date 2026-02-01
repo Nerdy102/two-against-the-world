@@ -102,7 +102,6 @@ const dateStats = Object.entries(dateCounts)
       const resets = Array.from(document.querySelectorAll("[data-search-reset]"));
       const cards = Array.from(document.querySelectorAll("[data-search-grid] .feed-card"));
       const primaryInput = document.querySelector("[data-search-primary]");
-      const searchTriggers = Array.from(document.querySelectorAll("[data-search-trigger]"));
 
       if (!dateInputs.length || !resets.length || !cards.length) return;
       if (dateInputs.some((input) => input.dataset.bound === "1")) return;
@@ -146,18 +145,14 @@ const dateStats = Object.entries(dateCounts)
         if (primaryInput.showPicker) primaryInput.showPicker();
       };
 
-      searchTriggers.forEach((trigger) => {
-        trigger.addEventListener("click", (event) => {
-          if (trigger.getAttribute("href")?.startsWith("#")) {
-            event.preventDefault();
-            focusPrimary();
-          }
-        });
-      });
+      const maybeFocusFromHash = () => {
+        if (window.location.hash === "#journal-tools") {
+          setTimeout(focusPrimary, 0);
+        }
+      };
 
-      if (window.location.hash === "#journal-tools") {
-        setTimeout(focusPrimary, 0);
-      }
+      maybeFocusFromHash();
+      window.addEventListener("hashchange", maybeFocusFromHash);
     };
 
     initSearch();
