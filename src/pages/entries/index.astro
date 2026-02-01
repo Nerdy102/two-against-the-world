@@ -100,7 +100,7 @@ const seenDates = new Set<string>();
               pinned={post.data.pinned}
               dateKey={dateKey}
               anchorId={anchorId}
-              searchText={`${post.data.title} ${post.data.description ?? ""} ${post.data.author ?? ""} ${post.data.location ?? ""} ${post.data.eventTime ?? ""} ${post.data.writtenAt ?? ""} ${post.data.photoTime ?? ""} ${(post.data.tags ?? []).join(" ")} ${post.data.topic ?? ""}`}
+              searchText={`${post.data.title} ${post.data.description ?? ""} ${post.data.author ?? ""} ${post.data.location ?? ""} ${post.data.eventTime ?? ""} ${post.data.writtenAt ?? ""} ${post.data.photoTime ?? ""} ${post.data.sideNote ?? ""} ${(post.data.tags ?? []).join(" ")} ${post.data.topic ?? ""}`}
             />
           );
         })}
