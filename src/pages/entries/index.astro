@@ -37,7 +37,7 @@ const dateStats = Object.entries(dateCounts)
       <RansomTitle text="Nhật ký" as="h1" class="text-[44px] sm:text-[56px]" />
       <p class="mt-3 text-black/60">Bấm vào bị ám đấy hí hí :p</p>
 
-      <div class="journal-tools" data-reveal>
+      <div class="journal-tools" id="journal-tools" data-reveal>
         <div class="journal-tools__panel">
           <div class="journal-tools__header">
             <span class="journal-tools__icon">📓</span>
@@ -48,7 +48,7 @@ const dateStats = Object.entries(dateCounts)
             <div class="journal-tools__fields">
               <label class="journal-tools__field">
                 <span>Ngày đăng</span>
-                <input class="input" type="date" data-search-date />
+                <input class="input" type="date" data-search-date data-search-primary />
               </label>
               <button class="btn journal-tools__reset" type="button" data-search-reset>Đặt lại</button>
             </div>
@@ -67,23 +67,6 @@ const dateStats = Object.entries(dateCounts)
             </div>
           </div>
         </div>
-      </div>
-    </section>
-
-    <section class="mt-10">
-      <div class="pinterest-grid">
-        {posts.map((post) => (
-          <FeedCard
-            href={`/entries/${post.slug}`}
-            title={post.data.title}
-            description={post.data.description}
-            date={post.data.pubDate}
-            image={post.data.cover}
-            topic={post.data.topic}
-            locked={post.data.topic === "trash-bin"}
-            pinned={post.data.pinned}
-          />
-        ))}
       </div>
     </section>
 
@@ -118,6 +101,7 @@ const dateStats = Object.entries(dateCounts)
       const dateInputs = Array.from(document.querySelectorAll("[data-search-date]"));
       const resets = Array.from(document.querySelectorAll("[data-search-reset]"));
       const cards = Array.from(document.querySelectorAll("[data-search-grid] .feed-card"));
+      const primaryInput = document.querySelector("[data-search-primary]");
 
       if (!dateInputs.length || !resets.length || !cards.length) return;
       if (dateInputs.some((input) => input.dataset.bound === "1")) return;
@@ -153,6 +137,22 @@ const dateStats = Object.entries(dateCounts)
           filter();
         });
       });
+
+      const focusPrimary = () => {
+        if (!primaryInput) return;
+        primaryInput.scrollIntoView({ behavior: "smooth", block: "center" });
+        primaryInput.focus();
+        if (primaryInput.showPicker) primaryInput.showPicker();
+      };
+
+      const maybeFocusFromHash = () => {
+        if (window.location.hash === "#journal-tools") {
+          setTimeout(focusPrimary, 0);
+        }
+      };
+
+      maybeFocusFromHash();
+      window.addEventListener("hashchange", maybeFocusFromHash);
     };
 
     initSearch();
