@@ -1002,11 +1002,6 @@ a { color: inherit; text-decoration: none; }
   font-family: var(--font-mono);
 }
 
-.comment-name {
-  font-weight: 600;
-  color: rgba(0,0,0,0.7);
-}
-
 .comment-nick {
   color: rgba(0,0,0,0.45);
 }
