@@ -623,6 +623,65 @@ a { color: inherit; text-decoration: none; }
   display: none;
 }
 
+.compose-wrap {
+  margin-top: 24px;
+}
+
+.compose-wrap:not(.is-unlocked) {
+  display: none;
+}
+
+.compose-grid {
+  margin-top: 16px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.compose-field span {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(0,0,0,0.55);
+  font-family: var(--font-mono);
+}
+
+.compose-textarea {
+  min-height: 160px;
+  resize: vertical;
+}
+
+.compose-preview {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  margin-top: 16px;
+}
+
+.compose-thumb {
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,0.12);
+  overflow: hidden;
+  background: rgba(0,0,0,0.06);
+  text-align: center;
+  font-size: 11px;
+  color: rgba(0,0,0,0.6);
+}
+
+.compose-thumb img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  display: block;
+}
+
+.compose-thumb span {
+  display: block;
+  padding: 6px 8px;
+}
+
 .lock-card {
   width: min(520px, 92vw);
   padding: 22px;

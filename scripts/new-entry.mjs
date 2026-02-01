@@ -26,7 +26,7 @@ const main = async () => {
   const pubDate = await ask("Publish date (YYYY-MM-DD)", new Date().toISOString().slice(0, 10));
 
   const topic = await ask(
-    "Topic (two-of-us | miu-notes | oriyinframes | grey-h | grown-up-yap | sad-music | film-visuals | random-numbers | screenshots | trash-bin)",
+    "Topic (two-of-us | miu-notes | oriyinframes | grey-h | grown-up-yap | sad-music | film-visuals | random-numbers | screenshots | trash-bin | quotes | memes)",
     "two-of-us"
   );
 
