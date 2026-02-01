@@ -73,9 +73,11 @@ const frames = images.map((img, i) => {
     delay: i * 60,
   };
 });
+
+const isSingle = frames.length === 1;
 ---
 
-<div class="framewall">
+<div class={`framewall ${isSingle ? "framewall--single" : ""}`}>
   <!-- dummy target for closing -->
   <span id="lb-close" class="lb-close-target" aria-hidden="true"></span>
 
@@ -84,7 +86,10 @@ const frames = images.map((img, i) => {
       <a
         href={`#lb-${f.idx}`}
         class={`frame ${f.isCover ? "is-cover" : ""} ${f.shape ? "shape-" + f.shape : ""}`}
-        style={`grid-column:${f.cStart} / span ${f.cSpan}; grid-row:${f.rStart} / span ${f.rSpan}; --rot:${f.rot}deg; --delay:${f.delay}ms;`}
+        style={isSingle
+          ? `--rot:${f.rot}deg; --delay:${f.delay}ms;`
+          : `grid-column:${f.cStart} / span ${f.cSpan}; grid-row:${f.rStart} / span ${f.rSpan}; --rot:${f.rot}deg; --delay:${f.delay}ms;`
+        }
         data-reveal
         aria-label={`Open photo ${f.idx + 1}`}
       >
@@ -157,6 +162,31 @@ const frames = images.map((img, i) => {
       box-shadow: 0 22px 70px rgba(0,0,0,0.45);
     }
 
+    .framewall--single .wall{
+      display: block;
+      padding: 12px;
+    }
+
+    .framewall--single .frame{
+      transform: none;
+      height: auto;
+    }
+
+    .framewall--single .frame:hover{
+      transform: none;
+      filter: none;
+    }
+
+    .framewall--single .frame-inner,
+    .framewall--single .mat{
+      height: auto;
+    }
+
+    .framewall--single .mat img{
+      height: auto;
+      object-fit: contain;
+    }
+
     @media (max-width: 640px){
       .wall{
         grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -166,6 +196,7 @@ const frames = images.map((img, i) => {
       }
       .frame{ grid-column: span 3 !important; grid-row: span 18 !important; }
       .frame.is-cover{ grid-column: 1 / -1 !important; grid-row: span 30 !important; }
+      .framewall--single .frame{ grid-column: auto !important; grid-row: auto !important; }
     }
 
     .frame{
