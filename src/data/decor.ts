@@ -26,6 +26,9 @@ export type StickerItem = {
  * Add images in /public/collage, then add a new item here.
  */
 export const COLLAGE: CollageItem[] = [
+  { src: "/collage/taste-angel-01.jpg", x: 8, y: 18, w: 260, rot: -6, op: 0.32, blur: 0 },
+  { src: "/collage/taste-angel-02.jpg", x: 92, y: 26, w: 260, rot: 8, op: 0.32, blur: 0, hideMobile: true },
+  { src: "/collage/taste-angel-03.jpg", x: 86, y: 82, w: 280, rot: -4, op: 0.30, blur: 0, hideMobile: true },
   { src: "/collage/scrapbook-love.jpg", x: 84, y: 18, w: 420, rot: 9, op: 0.42, blur: 0, hideMobile: true },
   { src: "/collage/vw-collage.jpg",      x: 92, y: 74, w: 480, rot: -7, op: 0.36, blur: 0, hideMobile: true },
   { src: "/collage/moodboard.jpg",       x: 16, y: 78, w: 520, rot: 7, op: 0.34, blur: 1, hideMobile: true },
@@ -49,4 +52,3 @@ export const STICKERS: StickerItem[] = [
   { src: "/stickers/vinyl.svg",    x: 56, y: 10, w: 120, rot: 8,   op: 0.62, hideMobile: true },
   { src: "/stickers/sticker_orange.svg", x: 90, y: 60, w: 160, rot: -8, op: 0.85, hideMobile: true },
 ];
-
