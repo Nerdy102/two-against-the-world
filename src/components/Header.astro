@@ -2,6 +2,7 @@
 import RansomTitle from "./RansomTitle.astro";
 
 const { active = "entries" } = Astro.props as { active?: "entries" | "topics" | "about" };
+const searchHref = active === "entries" ? "#journal-tools" : "/entries#journal-tools";
 ---
 
 <header class="site-header mx-auto max-w-6xl px-5 pt-6">
@@ -12,31 +13,14 @@ const { active = "entries" } = Astro.props as { active?: "entries" | "topics" | 
     </a>
 
     <nav class="header-nav flex items-center gap-2">
-      {active === "entries" ? (
-        <details class="header-journal">
-          <summary
-            class={`btn text-[13px] sm:text-[14px] ${active === "entries" ? "border-white/25" : ""}`}
-            aria-current={active === "entries" ? "page" : undefined}
-          >
-            📓
-          </summary>
-          <div class="header-journal__panel">
-            <label class="header-journal__field">
-              <span>Ngày đăng</span>
-              <input class="input" type="date" data-search-date />
-            </label>
-            <button class="btn header-journal__reset" type="button" data-search-reset>Đặt lại</button>
-          </div>
-        </details>
-      ) : (
-        <a
-          href="/entries"
-          class={`btn text-[13px] sm:text-[14px] ${active === "entries" ? "border-white/25" : ""}`}
-          aria-current={active === "entries" ? "page" : undefined}
-        >
-          📓
-        </a>
-      )}
+      <a
+        href={searchHref}
+        class={`btn text-[13px] sm:text-[14px] ${active === "entries" ? "border-white/25" : ""}`}
+        aria-current={active === "entries" ? "page" : undefined}
+        data-search-trigger
+      >
+        📓
+      </a>
       <a
         href="/topics"
         class={`btn text-[13px] sm:text-[14px] ${active === "topics" ? "border-white/25" : ""}`}
