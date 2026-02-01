@@ -5,7 +5,7 @@ pubDate: 2026-02-01
 topic: miu-notes
 cover: "/photos/2026-02-01-what-you-do-for-love/cover.jpg"
 photoDir: "2026-02-01-what-you-do-for-love"
-photoCount: 0
+photoCount: 1
 
 author: "Mỹ Miu"
 location: "chat của mình"
@@ -23,6 +23,8 @@ Có nhiều cách để thể hiện tình yêu, nhưng việc một người đ
 Và đó cũng là lí do chúng ta có chiếc blog “Tin – Yêu” này. 
 
 Cám ơn anh đã yêu em vì em là chính em, thậm chí còn tạo không gian cổ vũ em làm điều ấy.
+
+![đoạn chat kỷ niệm](/photos/2026-02-01-what-you-do-for-love/1.jpg)
 
 Cám ơn anh, em tin là anh yêu em dù anh cũng không nói câu đó nhiều mấy.
 Cám ơn anh, vì đã tin em mà trao đi tình yêu nhiều đến vậy. 
