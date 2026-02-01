@@ -1,23 +1,20 @@
 ---
-title: "cái tên đẹp nhất từng gặp"
-description: "Cái tên đẹp nhất mà mình từng nghe trong một thread hỏi đáp là đây."
+title: "Topic: Cái tên đẹp nhất từng gặp"
+description: "Con vịu ơ lại xàm ngôn trên thread"
 pubDate: 2026-02-02
-topic: miu-notes
+topic: screenshots
 cover: "/photos/2026-02-02-ten-dep-nhat/cover.jpg"
 photoDir: "2026-02-02-ten-dep-nhat"
-photoCount: 1
+photoCount: 0
 
-author: "Mỹ Uyên"
-location: "Instagram"
+author: "Việt Hoà"
+location: "Thread City"
 eventTime: "lúc reply thread hỏi đáp"
-writtenAt: "trên Instagram"
+writtenAt: "Giữa đêm lạnh lẽo vcl, bây giờ là 1:47 AM, bên ngoài là -8 độ"
 photoTime: "01:33"
 
-tags: [Instagram, "tên đẹp"]
+tags: [screenshot, Thread]
 draft: false
 sideNote: ""
 ---
 
-Có một thread hỏi đáp về “cái tên đẹp nhất từng gặp”, và câu trả lời peak nhất với mình là: **Nguyễn Việt Hoà**. 
-
-Tên đẹp kiểu nhìn thấy là nhớ, nghe xong muốn lưu lại luôn. 
