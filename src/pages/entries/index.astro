@@ -2,9 +2,7 @@
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import FeedCard from "../../components/FeedCard.astro";
 import RansomTitle from "../../components/RansomTitle.astro";
-import TopicCard from "../../components/TopicCard.astro";
 import { getCollection } from "astro:content";
-import { TOPICS } from "../../config/topics";
 import { formatDate } from "../../lib/formatDate";
 
 const posts = (await getCollection("posts"))
@@ -16,11 +14,20 @@ const posts = (await getCollection("posts"))
     return +new Date(b.data.pubDate) - +new Date(a.data.pubDate);
   });
 
-const counts: Record<string, number> = {};
+const dateCounts: Record<string, number> = {};
 for (const p of posts) {
-  const t = p.data.topic ?? "two-of-us";
-  counts[t] = (counts[t] ?? 0) + 1;
+  const dateKey = p.data.pubDate.toISOString().slice(0, 10);
+  dateCounts[dateKey] = (dateCounts[dateKey] ?? 0) + 1;
 }
+
+const seenDates = new Set<string>();
+const dateStats = Object.entries(dateCounts)
+  .map(([dateKey, count]) => ({
+    dateKey,
+    count,
+    label: formatDate(dateKey),
+  }))
+  .sort((a, b) => b.dateKey.localeCompare(a.dateKey));
 ---
 
 <BaseLayout title="Nhật ký" description="Kho lưu nhật ký tình yêu." active="entries">
@@ -30,10 +37,36 @@ for (const p of posts) {
       <RansomTitle text="Nhật ký" as="h1" class="text-[44px] sm:text-[56px]" />
       <p class="mt-3 text-black/60">Bấm vào bị ám đấy hí hí :p</p>
 
-      <div class="topic-grid" aria-label="Chủ đề">
-        {TOPICS.map((t) => (
-          <TopicCard slug={t.slug} label={t.label} icon={t.icon} color={t.color} count={counts[t.slug] ?? 0} />
-        ))}
+      <div class="journal-tools" data-reveal>
+        <div class="journal-tools__panel">
+          <div class="journal-tools__header">
+            <span class="journal-tools__icon">📓</span>
+            <span>Nhật ký</span>
+            <span class="journal-tools__hint">Tìm ảnh theo ngày</span>
+          </div>
+          <div class="journal-tools__content">
+            <div class="journal-tools__fields">
+              <label class="journal-tools__field">
+                <span>Ngày đăng</span>
+                <input class="input" type="date" data-search-date />
+              </label>
+              <button class="btn journal-tools__reset" type="button" data-search-reset>Đặt lại</button>
+            </div>
+            <div class="journal-tools__stats">
+              <div class="journal-tools__stats-title">Ngày đã đăng</div>
+              <ul class="journal-tools__stats-list">
+                {dateStats.map((stat) => (
+                  <li>
+                    <a href={`#date-${stat.dateKey}`}>
+                      <span>{stat.label}</span>
+                      <span class="journal-tools__count">{stat.count} bài</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -82,33 +115,43 @@ for (const p of posts) {
 
   <script is:inline>
     const initSearch = () => {
-      const input = document.querySelector("[data-search-input]");
-      const dateInput = document.querySelector("[data-search-date]");
-      const reset = document.querySelector("[data-search-reset]");
+      const dateInputs = Array.from(document.querySelectorAll("[data-search-date]"));
+      const resets = Array.from(document.querySelectorAll("[data-search-reset]"));
       const cards = Array.from(document.querySelectorAll("[data-search-grid] .feed-card"));
 
-      if (!input || !dateInput || !reset || !cards.length) return;
-      if (input.dataset.bound === "1") return;
-      input.dataset.bound = "1";
+      if (!dateInputs.length || !resets.length || !cards.length) return;
+      if (dateInputs.some((input) => input.dataset.bound === "1")) return;
+      dateInputs.forEach((input) => {
+        input.dataset.bound = "1";
+      });
 
-      const filter = () => {
-        const q = input.value.trim().toLowerCase();
-        const date = dateInput.value;
-        cards.forEach((card) => {
-          const text = (card.getAttribute("data-search") || "").toLowerCase();
-          const cardDate = card.getAttribute("data-date") || "";
-          const matchesText = q ? text.includes(q) : true;
-          const matchesDate = date ? cardDate === date : true;
-          card.classList.toggle("is-filtered", !(matchesText && matchesDate));
+      const syncDates = (value) => {
+        dateInputs.forEach((input) => {
+          if (input.value !== value) input.value = value;
         });
       };
 
-      input.addEventListener("input", filter);
-      dateInput.addEventListener("change", filter);
-      reset.addEventListener("click", () => {
-        input.value = "";
-        dateInput.value = "";
-        filter();
+      const filter = () => {
+        const date = dateInputs[0]?.value ?? "";
+        cards.forEach((card) => {
+          const cardDate = card.getAttribute("data-date") || "";
+          const matchesDate = date ? cardDate === date : true;
+          card.classList.toggle("is-filtered", !matchesDate);
+        });
+      };
+
+      dateInputs.forEach((input) => {
+        input.addEventListener("change", () => {
+          syncDates(input.value);
+          filter();
+        });
+      });
+
+      resets.forEach((reset) => {
+        reset.addEventListener("click", () => {
+          syncDates("");
+          filter();
+        });
       });
     };
 
