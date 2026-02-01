@@ -1,0 +1,36 @@
+---
+import { formatDate } from "../lib/formatDate";
+import { topicMeta } from "../config/topics";
+
+type Props = {
+  href: string;
+  title: string;
+  description?: string;
+  image: string;
+  date?: Date | string;
+  topic?: string;
+  locked?: boolean;
+  pinned?: boolean;
+};
+
+const { href, title, description = "", image, date, topic, locked = false, pinned = false } = Astro.props as Props;
+const meta = topicMeta(topic);
+---
+
+<a href={href} class={`feed-card ${locked ? "is-locked" : ""} ${pinned ? "is-pinned" : ""}`} data-reveal>
+  <div class="feed-card__head">
+    <div class="feed-card__topic" style={`--topic-color:${meta.color};`}>
+      <span class="feed-card__icon">{meta.icon}</span>
+      <span>{meta.label}</span>
+    </div>
+    {date && <div class="feed-card__date">{formatDate(date)}</div>}
+  </div>
+
+  <h3 class="feed-card__title">{title}</h3>
+  {description && !locked && <p class="feed-card__desc">{description}</p>}
+  {locked && <p class="feed-card__desc">🔒 Đã khóa</p>}
+
+  <div class="feed-card__media">
+    <img src={image} alt="" loading="lazy" decoding="async" />
+  </div>
+</a>

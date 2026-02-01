@@ -6,32 +6,39 @@ const { active = "entries" } = Astro.props as { active?: "entries" | "topics" | 
 
 <header class="mx-auto max-w-6xl px-5 pt-6">
   <div class="flex items-center justify-between gap-4 rounded-3xl border border-white/10 bg-black/20 px-4 py-3 shadow-[0_18px_60px_rgba(0,0,0,0.45)] backdrop-blur">
-    <a href="/" class="flex items-baseline gap-3">
-      <RansomTitle text="TWO AGAINST THE WORLD" as="div" stampEvery={0} class="ransom-sm text-[18px] sm:text-[22px]" />
-      <span class="kicker text-[10px] sm:text-[11px] text-white/55 hidden sm:inline"> Nhật ký 'Tin Yêu' của Việt Hoà x Mỹ Uyên</span>
+    <a href="/" class="flex items-baseline gap-3 flex-nowrap">
+      <RansomTitle text="TWO AGAINST THE WORLD" as="div" stampEvery={0} class="ransom-sm text-[18px] sm:text-[22px] ransom-nowrap" />
+      <span class="kicker text-[10px] sm:text-[11px] text-white/55 hidden sm:inline whitespace-nowrap">Nhật ký “Tin Yêu” của Việt Hoà x Mỹ Uyên</span>
     </a>
 
     <nav class="flex items-center gap-2">
       <a
         href="/entries"
-        class={`btn text-[19px] sm:text-[14px] ${active === "👉 Hồ sơ" ? "border-white/25" : ""}`}
+        class={`btn text-[13px] sm:text-[14px] ${active === "entries" ? "border-white/25" : ""}`}
         aria-current={active === "entries" ? "page" : undefined}
       >
         📓
       </a>
       <a
         href="/topics"
-        class={`btn text-[13px] sm:text-[14px] ${active === "👉 Chủ đề" ? "border-white/25" : ""}`}
+        class={`btn text-[13px] sm:text-[14px] ${active === "topics" ? "border-white/25" : ""}`}
         aria-current={active === "topics" ? "page" : undefined}
       >
         🏷️
       </a>
       <a
         href="/about"
-        class={`btn text-[13px] sm:text-[14px] ${active === "Who r we? 💜🧡" ? "border-white/25" : ""}`}
+        class={`btn text-[13px] sm:text-[14px] whitespace-nowrap ${active === "about" ? "border-white/25" : ""}`}
         aria-current={active === "about" ? "page" : undefined}
       >
         Who r we? 💜🧡
+      </a>
+      <a
+        href="/compose"
+        class="btn text-[13px] sm:text-[14px]"
+        aria-label="Viết bài mới"
+      >
+        ✍️
       </a>
     </nav>
   </div>

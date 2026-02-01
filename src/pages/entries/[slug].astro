@@ -4,7 +4,8 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import RansomTitle from "../../components/RansomTitle.astro";
 import FrameWall from "../../components/FrameWall.astro";
 import { formatDate } from "../../lib/formatDate";
-import { topicLabel } from "../../config/topics";
+import { topicLabel, topicMeta } from "../../config/topics";
+import { PASSCODE } from "../../config/secrets";
 
 export async function getStaticPaths() {
   const posts = await getCollection("posts");
@@ -32,6 +33,31 @@ const writtenAt = s(post.data.writtenAt);
 const photoTime = s(post.data.photoTime);
 const sideNote = s(post.data.sideNote);
 const tagsText = joinTags(post.data.tags);
+const voiceMemo = s(post.data.voiceMemo);
+const voiceMemoTitle = s(post.data.voiceMemoTitle);
+const videoUrl = s(post.data.videoUrl);
+const videoPoster = s(post.data.videoPoster);
+const isLocked = post.data.topic === "trash-bin";
+
+const toEmbedUrl = (url: string) => {
+  if (url.includes("youtube.com/watch")) {
+    const match = url.match(/[?&]v=([^&]+)/);
+    const id = match?.[1];
+    return id ? `https://www.youtube.com/embed/${id}` : url;
+  }
+  if (url.includes("youtu.be/")) {
+    const id = url.split("youtu.be/")[1]?.split("?")[0];
+    return id ? `https://www.youtube.com/embed/${id}` : url;
+  }
+  if (url.includes("vimeo.com/")) {
+    const id = url.split("vimeo.com/")[1]?.split("?")[0];
+    return id ? `https://player.vimeo.com/video/${id}` : url;
+  }
+  return url;
+};
+
+const videoIsFile = /\.(mp4|webm|ogg)$/i.test(videoUrl);
+const videoEmbedUrl = videoUrl ? toEmbedUrl(videoUrl) : "";
 
 // Build photo list: /public/photos/<photoDir>/01.jpg..N
 const count = Number(post.data.photoCount ?? 0);
@@ -48,9 +74,26 @@ const wallImages = [
 
 <BaseLayout title={post.data.title} description={post.data.description}>
   <main class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-10">
+    {isLocked && (
+      <div class="lock-panel" data-lock-panel>
+        <div class="lock-card">
+          <div class="kicker text-xs text-white/60">ĐÃ KHÓA</div>
+          <h3 class="lock-title">Thùng rác cảm xúc</h3>
+          <p class="lock-desc">Nhập pass để mở kho xàm xí này nhé 😜</p>
+          <form class="lock-form" data-lock-form>
+            <input class="input" type="password" name="passcode" placeholder="Mật khẩu" autocomplete="off" />
+            <button class="btn" type="submit">Mở khóa</button>
+          </form>
+          <p class="lock-hint" data-lock-error></p>
+        </div>
+      </div>
+    )}
+
+    <div class={`lock-wrap ${isLocked ? "is-locked" : ""}`} data-lock-wrap>
+      <div class="lock-content" data-lock-content>
     {/* TOP PAPER (TITLE + META) */}
     <div class="paper edge-torn p-6 sm:p-10" data-reveal>
-      <div class="kicker text-xs text-[rgba(0,0,0,0.58)]">ENTRY</div>
+      <div class="kicker text-xs text-[rgba(0,0,0,0.58)]">NỘI DUNG XÀM NGÔN 😜</div>
 
       <RansomTitle
         text={post.data.title}
@@ -65,73 +108,274 @@ const wallImages = [
         </p>
       )}
 
-      {/* META GRID */}
-      <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div class="meta-card">
-          <div class="meta-k">Published</div>
-          <div class="meta-v">{formatDate(post.data.pubDate)}</div>
-        </div>
-
-        <div class="meta-card">
-          <div class="meta-k">Topic</div>
-          <div class="meta-v">{topicLabel(post.data.topic)}</div>
-        </div>
-
-        <div class="meta-card">
-          <div class="meta-k">Photos</div>
-          <div class="meta-v">{count}</div>
-        </div>
-
-        <div class="meta-card">
-          <div class="meta-k">Author</div>
-          <div class="meta-v">{author || "—"}</div>
-        </div>
-
-        <div class="meta-card">
-          <div class="meta-k">Location</div>
-          <div class="meta-v">{location || "—"}</div>
-        </div>
-
-        <div class="meta-card">
-          <div class="meta-k">Event time</div>
-          <div class="meta-v">{eventTime || "—"}</div>
-        </div>
-
-        <div class="meta-card">
-          <div class="meta-k">Written at</div>
-          <div class="meta-v">{writtenAt || "—"}</div>
-        </div>
-
-        <div class="meta-card">
-          <div class="meta-k">Photo time</div>
-          <div class="meta-v">{photoTime || "—"}</div>
-        </div>
-
-        <div class="meta-card">
-          <div class="meta-k">Tags</div>
-          <div class="meta-v">{tagsText || "—"}</div>
-        </div>
+      <div class="mt-5 flex flex-wrap items-center gap-3 text-[12px] text-black/60">
+        <span>Chủ đề: {topicLabel(post.data.topic)}</span>
+        <span>•</span>
+        <span>{formatDate(post.data.pubDate)}</span>
       </div>
-
-      {/* SIDE NOTE (OPTIONAL) */}
-      {sideNote && (
-        <div class="mt-6 meta-card">
-          <div class="meta-k">Side note</div>
-          <div class="meta-v">{sideNote}</div>
-        </div>
-      )}
     </div>
 
     {/* PHOTO WALL */}
-    <section class="mt-10" aria-label="Photo wall">
+    <section class="mt-10" aria-label="Bức tường ảnh">
       <FrameWall images={wallImages} seed={post.slug} />
     </section>
 
+    {/* MEDIA */}
+    {(voiceMemo || videoUrl) && (
+      <section class="mt-10" aria-label="Đa phương tiện" data-reveal>
+        <div class="paper edge-torn p-6 sm:p-10">
+          <div class="kicker text-xs text-black/50">ĐA PHƯƠNG TIỆN</div>
+          <h2 class="mt-3 text-[26px] sm:text-[32px] font-semibold text-black/80">Nghe & xem</h2>
+
+          {voiceMemo && (
+            <div class="mt-4">
+              <div class="meta-label">Ghi âm</div>
+              {voiceMemoTitle && <div class="mt-1 text-black/70">{voiceMemoTitle}</div>}
+              <audio class="mt-2 w-full" controls src={voiceMemo}></audio>
+            </div>
+          )}
+
+          {videoUrl && (
+            <div class="mt-6">
+              <div class="meta-label">Video</div>
+              {videoIsFile ? (
+                <video class="mt-2 w-full rounded-2xl border border-black/10" controls poster={videoPoster || undefined}>
+                  <source src={videoUrl} />
+                </video>
+              ) : (
+                <div class="mt-2 aspect-video w-full overflow-hidden rounded-2xl border border-black/10">
+                  <iframe
+                    src={videoEmbedUrl}
+                    class="h-full w-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen
+                    title="Video"
+                  ></iframe>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </section>
+    )}
+
     {/* NOTES / BODY */}
-    <section class="mt-10" aria-label="Notes" data-reveal>
+    <section class="mt-10" aria-label="Ghi chú" data-reveal>
       <div class="paper edge-torn p-6 sm:p-10 prose prose-scrap max-w-none">
         <Content />
       </div>
     </section>
+
+    {/* COMMENTS */}
+    <section class="mt-10" aria-label="Bình luận" data-reveal>
+      <div class="paper edge-torn p-6 sm:p-10">
+        <div class="kicker text-xs text-black/50">BÌNH LUẬN LẮT NHẮT 💬</div>
+        <h2 class="mt-3 text-[26px] sm:text-[32px] font-semibold text-black/80">Để lại lời nhắn xàm xí</h2>
+        <p class="mt-2 text-black/60">Nhập tên + biệt danh (ẩn danh thôi nhé) rồi thả vài dòng.</p>
+
+        <form class="comment-form mt-6" data-comment-form data-comment-slug={post.slug}>
+          <label class="comment-field">
+            <span>Tên</span>
+            <input class="input" name="name" placeholder="Tên của bạn" required />
+          </label>
+          <label class="comment-field">
+            <span>Biệt danh</span>
+            <input class="input" name="nickname" placeholder="Biệt danh (ẩn danh)" required />
+          </label>
+          <label class="comment-field comment-field--full">
+            <span>Nội dung</span>
+            <textarea class="input comment-textarea" name="message" rows={4} placeholder="Viết gì đó..." required></textarea>
+          </label>
+          <button class="btn comment-submit" type="submit">Gửi lời nhắn</button>
+          <p class="comment-hint" data-comment-error></p>
+        </form>
+
+        <div class="comment-list mt-8" data-comment-list></div>
+      </div>
+    </section>
+
+    {/* META GRID */}
+    <section class="mt-10" aria-label="Chi tiết bài viết" data-reveal>
+      <div class="paper edge-torn p-6 sm:p-10">
+        <div class="kicker text-xs text-black/50">CHUYỆN LẮT NHẮT ✨</div>
+        <h2 class="mt-3 text-[26px] sm:text-[32px] font-semibold text-black/80">Chuyện nhỏ xíu ✨</h2>
+
+        <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="meta-card">
+            <div class="meta-k">Ngày đăng</div>
+            <div class="meta-v">{formatDate(post.data.pubDate)}</div>
+          </div>
+
+          <div class="meta-card">
+            <div class="meta-k">Chủ đề</div>
+            <div class="meta-v">
+              <span style={`color:${topicMeta(post.data.topic).color};`}>{topicLabel(post.data.topic)}</span>
+            </div>
+          </div>
+
+          <div class="meta-card">
+            <div class="meta-k">Số ảnh</div>
+            <div class="meta-v">{count}</div>
+          </div>
+
+          <div class="meta-card">
+            <div class="meta-k">Tác giả</div>
+            <div class="meta-v">{author || "—"}</div>
+          </div>
+
+          <div class="meta-card">
+            <div class="meta-k">Địa điểm</div>
+            <div class="meta-v">{location || "—"}</div>
+          </div>
+
+          <div class="meta-card">
+            <div class="meta-k">Thời gian sự kiện</div>
+            <div class="meta-v">{eventTime || "—"}</div>
+          </div>
+
+          <div class="meta-card">
+            <div class="meta-k">Viết lúc</div>
+            <div class="meta-v">{writtenAt || "—"}</div>
+          </div>
+
+          <div class="meta-card">
+            <div class="meta-k">Chụp lúc</div>
+            <div class="meta-v">{photoTime || "—"}</div>
+          </div>
+
+          <div class="meta-card">
+            <div class="meta-k">Tags</div>
+            <div class="meta-v">{tagsText || "—"}</div>
+          </div>
+        </div>
+
+        {sideNote && (
+          <div class="mt-6 meta-card">
+            <div class="meta-k">Ghi chú thêm</div>
+            <div class="meta-v">{sideNote}</div>
+          </div>
+        )}
+      </div>
+    </section>
+      </div>
+    </div>
   </main>
+
+  {isLocked && (
+    <script is:inline>
+      const PASS = "281225";
+      const KEY = "tatw-trash-pass";
+
+      const initLock = () => {
+        const wrap = document.querySelector("[data-lock-wrap]");
+        const panel = document.querySelector("[data-lock-panel]");
+        const form = document.querySelector("[data-lock-form]");
+        const err = document.querySelector("[data-lock-error]");
+
+        if (!wrap || !panel || !form) return;
+        if (form.dataset.bound === "1") return;
+        form.dataset.bound = "1";
+
+        const unlock = () => {
+          wrap.classList.add("is-unlocked");
+          panel.classList.add("is-hidden");
+        };
+
+        if (localStorage.getItem(KEY) === PASS) unlock();
+
+        form.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const input = form.querySelector("input[name='passcode']");
+          const val = input?.value?.trim();
+          if (val === PASS) {
+            localStorage.setItem(KEY, PASS);
+            unlock();
+            if (err) err.textContent = "";
+          } else {
+            if (err) err.textContent = "Sai mật khẩu rồi.";
+          }
+        });
+      };
+
+      initLock();
+      document.addEventListener("astro:page-load", initLock);
+    </script>
+  )}
+
+  <script is:inline>
+    const initComments = () => {
+      const form = document.querySelector("[data-comment-form]");
+      const list = document.querySelector("[data-comment-list]");
+      const err = document.querySelector("[data-comment-error]");
+
+      if (!form || !list) return;
+      if (form.dataset.bound === "1") return;
+      form.dataset.bound = "1";
+
+      const slug = form.dataset.commentSlug || "unknown";
+      const key = `tatw-comments-${slug}`;
+
+      const load = () => {
+        try {
+          const raw = localStorage.getItem(key);
+          return raw ? JSON.parse(raw) : [];
+        } catch {
+          return [];
+        }
+      };
+
+      const save = (items) => {
+        localStorage.setItem(key, JSON.stringify(items));
+      };
+
+      const render = () => {
+        const items = load();
+        if (!items.length) {
+          list.innerHTML = "<p class='text-black/60 text-sm'>Chưa có lời nhắn nào.</p>";
+          return;
+        }
+        list.innerHTML = items
+          .map(
+            (item) => `
+              <div class="comment-card">
+                <div class="comment-meta">
+                  <span class="comment-name">${item.name}</span>
+                  <span class="comment-nick">${item.nickname}</span>
+                  <span class="comment-time">${item.time}</span>
+                </div>
+                <p class="comment-body">${item.message}</p>
+              </div>
+            `
+          )
+          .join("");
+      };
+
+      render();
+
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const name = form.querySelector("input[name='name']")?.value?.trim();
+        const nickname = form.querySelector("input[name='nickname']")?.value?.trim();
+        const message = form.querySelector("textarea[name='message']")?.value?.trim();
+        if (!name || !nickname || !message) {
+          if (err) err.textContent = "Điền đủ 3 ô mới được nhé!";
+          return;
+        }
+        const items = load();
+        items.unshift({
+          name,
+          nickname,
+          message,
+          time: new Date().toLocaleString("vi-VN"),
+        });
+        save(items.slice(0, 50));
+        form.reset();
+        if (err) err.textContent = "";
+        render();
+      });
+    };
+
+    initComments();
+    document.addEventListener("astro:page-load", initComments);
+  </script>
 </BaseLayout>
