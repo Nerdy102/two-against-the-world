@@ -88,30 +88,40 @@ for (const p of allPosts) {
     <script is:inline>
       const PASS = "281225";
       const KEY = "tatw-trash-pass";
-      const wrap = document.querySelector("[data-lock-wrap]");
-      const panel = document.querySelector("[data-lock-panel]");
-      const form = document.querySelector("[data-lock-form]");
-      const err = document.querySelector("[data-lock-error]");
 
-      const unlock = () => {
-        wrap?.classList.add("is-unlocked");
-        panel?.classList.add("is-hidden");
+      const initLock = () => {
+        const wrap = document.querySelector("[data-lock-wrap]");
+        const panel = document.querySelector("[data-lock-panel]");
+        const form = document.querySelector("[data-lock-form]");
+        const err = document.querySelector("[data-lock-error]");
+
+        if (!wrap || !panel || !form) return;
+        if (form.dataset.bound === "1") return;
+        form.dataset.bound = "1";
+
+        const unlock = () => {
+          wrap.classList.add("is-unlocked");
+          panel.classList.add("is-hidden");
+        };
+
+        if (localStorage.getItem(KEY) === PASS) unlock();
+
+        form.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const input = form.querySelector("input[name='passcode']");
+          const val = input?.value?.trim();
+          if (val === PASS) {
+            localStorage.setItem(KEY, PASS);
+            unlock();
+            if (err) err.textContent = "";
+          } else {
+            if (err) err.textContent = "Sai mật khẩu rồi.";
+          }
+        });
       };
 
-      if (localStorage.getItem(KEY) === PASS) unlock();
-
-      form?.addEventListener("submit", (e) => {
-        e.preventDefault();
-        const input = form.querySelector("input[name='passcode']");
-        const val = input?.value?.trim();
-        if (val === PASS) {
-          localStorage.setItem(KEY, PASS);
-          unlock();
-          if (err) err.textContent = "";
-        } else {
-          if (err) err.textContent = "Sai mật khẩu rồi.";
-        }
-      });
+      initLock();
+      document.addEventListener("astro:page-load", initLock);
     </script>
   )}
 </BaseLayout>

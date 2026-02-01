@@ -140,153 +140,163 @@ import { PASSCODE } from "../config/secrets";
   <script is:inline>
     const PASS = "281225";
     const KEY = "tatw-compose-pass";
-    const lock = document.querySelector("[data-compose-lock]");
-    const wrap = document.querySelector("[data-compose-wrap]");
-    const form = document.querySelector("[data-compose-form]");
-    const err = document.querySelector("[data-compose-error]");
-    const preview = document.querySelector("[data-compose-preview]");
-    const output = document.querySelector("[data-compose-output]");
-    const genBtn = document.querySelector("[data-compose-generate]");
-    const dlBtn = document.querySelector("[data-compose-download]");
-    const exportBtn = document.querySelector("[data-compose-export]");
 
-    const unlock = () => {
-      lock?.classList.add("is-hidden");
-      wrap?.classList.add("is-unlocked");
-    };
+    const initCompose = () => {
+      const lock = document.querySelector("[data-compose-lock]");
+      const wrap = document.querySelector("[data-compose-wrap]");
+      const form = document.querySelector("[data-compose-form]");
+      const err = document.querySelector("[data-compose-error]");
+      const preview = document.querySelector("[data-compose-preview]");
+      const output = document.querySelector("[data-compose-output]");
+      const genBtn = document.querySelector("[data-compose-generate]");
+      const dlBtn = document.querySelector("[data-compose-download]");
+      const exportBtn = document.querySelector("[data-compose-export]");
 
-    if (localStorage.getItem(KEY) === PASS) unlock();
+      if (!lock || !wrap || !form || !genBtn || !dlBtn || !exportBtn) return;
+      if (form.dataset.bound === "1") return;
+      form.dataset.bound = "1";
 
-    form?.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const input = form.querySelector("input[name='passcode']");
-      const val = input?.value?.trim();
-      if (val === PASS) {
-        localStorage.setItem(KEY, PASS);
-        unlock();
-        if (err) err.textContent = "";
-      } else {
-        if (err) err.textContent = "Sai mật khẩu rồi.";
-      }
-    });
+      const unlock = () => {
+        lock.classList.add("is-hidden");
+        wrap.classList.add("is-unlocked");
+      };
 
-    const slugify = (s = "") =>
-      s
-        .toLowerCase()
-        .normalize("NFKD")
-        .replace(/[^\w\s-]/g, "")
-        .trim()
-        .replace(/\s+/g, "-")
-        .replace(/-+/g, "-");
+      if (localStorage.getItem(KEY) === PASS) unlock();
 
-    const getFormData = () => {
-      const data = {};
-      wrap?.querySelectorAll("input, select, textarea").forEach((el) => {
-        if (el.name && el.type !== "file") data[el.name] = el.value?.trim?.() ?? "";
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const input = form.querySelector("input[name='passcode']");
+        const val = input?.value?.trim();
+        if (val === PASS) {
+          localStorage.setItem(KEY, PASS);
+          unlock();
+          if (err) err.textContent = "";
+        } else {
+          if (err) err.textContent = "Sai mật khẩu rồi.";
+        }
       });
-      const files = wrap?.querySelector("input[name='photos']")?.files ?? [];
-      const coverIndex = Number(wrap?.querySelector("select[name='coverIndex']")?.value ?? 0);
-      return { data, files, coverIndex };
-    };
 
-    const renderPreview = (files, coverIndex) => {
-      if (!preview) return;
-      preview.innerHTML = "";
-      Array.from(files).forEach((file, idx) => {
-        const url = URL.createObjectURL(file);
-        const card = document.createElement("div");
-        card.className = "compose-thumb";
-        const label = idx === coverIndex ? " (cover)" : "";
-        card.innerHTML = `<img src="${url}" alt="photo-${idx + 1}" /><span>${file.name}${label}</span>`;
-        preview.appendChild(card);
-      });
-    };
+      const slugify = (s = "") =>
+        s
+          .toLowerCase()
+          .normalize("NFKD")
+          .replace(/[^\w\s-]/g, "")
+          .trim()
+          .replace(/\s+/g, "-")
+          .replace(/-+/g, "-");
 
-    const generateMarkdown = () => {
-      const { data, files, coverIndex } = getFormData();
-      renderPreview(files, coverIndex);
-      const required = [
-        "title",
-        "description",
-        "pubDate",
-        "topic",
-        "author",
-        "location",
-        "eventTime",
-        "writtenAt",
-        "photoTime",
-        "voiceMemo",
-        "voiceMemoTitle",
-        "videoUrl",
-        "videoPoster",
-        "body",
-      ];
-      const missing = required.filter((k) => !data[k]);
-      if (missing.length) {
-        if (err) err.textContent = "Vui lòng điền đầy đủ metadata trước khi tạo.";
-        return { md: "", slug: "", files };
-      }
-      if (!files.length) {
-        if (err) err.textContent = "Vui lòng chọn ảnh và chọn ảnh cover.";
-        return { md: "", slug: "", files };
-      }
-      const slug = slugify(data.title || "bai-chua-dat-ten");
-      const photoCount = files.length ? Math.max(0, files.length - 1) : 0;
-      const cover = Array.from(files)[coverIndex] ?? files[0];
-      const md =
-        `---\n` +
-        `title: "${(data.title || "Chưa đặt tên").replaceAll('"', '\\"')}"\n` +
-        `description: "${(data.description || "").replaceAll('"', '\\"')}"\n` +
-        `pubDate: ${data.pubDate || new Date().toISOString().slice(0, 10)}\n` +
-        `topic: ${data.topic || "two-of-us"}\n` +
-        `cover: "/photos/${slug}/cover.jpg"\n` +
-        `photoDir: "${slug}"\n` +
-        `photoCount: ${photoCount}\n\n` +
-        `author: "${(data.author || "").replaceAll('"', '\\"')}"\n` +
-        `location: "${(data.location || "").replaceAll('"', '\\"')}"\n` +
-        `eventTime: "${(data.eventTime || "").replaceAll('"', '\\"')}"\n` +
-        `writtenAt: "${(data.writtenAt || "").replaceAll('"', '\\"')}"\n` +
-        `photoTime: "${(data.photoTime || "").replaceAll('"', '\\"')}"\n\n` +
-        `voiceMemo: "${(data.voiceMemo || "").replaceAll('"', '\\"')}"\n` +
-        `voiceMemoTitle: "${(data.voiceMemoTitle || "").replaceAll('"', '\\"')}"\n` +
-        `videoUrl: "${(data.videoUrl || "").replaceAll('"', '\\"')}"\n` +
-        `videoPoster: "${(data.videoPoster || "").replaceAll('"', '\\"')}"\n\n` +
-        `tags: []\n` +
-        `draft: true\n` +
-        `sideNote: ""\n` +
-        `---\n\n` +
-        `${data.body || "Viết ở đây."}\n`;
-      if (output) output.value = md;
-      return { md, slug, files };
-    };
+      const getFormData = () => {
+        const data = {};
+        wrap.querySelectorAll("input, select, textarea").forEach((el) => {
+          if (el.name && el.type !== "file") data[el.name] = el.value?.trim?.() ?? "";
+        });
+        const files = wrap.querySelector("input[name='photos']")?.files ?? [];
+        const coverIndex = Number(wrap.querySelector("select[name='coverIndex']")?.value ?? 0);
+        return { data, files, coverIndex };
+      };
 
-    genBtn?.addEventListener("click", generateMarkdown);
+      const renderPreview = (files, coverIndex) => {
+        if (!preview) return;
+        preview.innerHTML = "";
+        Array.from(files).forEach((file, idx) => {
+          const url = URL.createObjectURL(file);
+          const card = document.createElement("div");
+          card.className = "compose-thumb";
+          const label = idx === coverIndex ? " (cover)" : "";
+          card.innerHTML = `<img src="${url}" alt="photo-${idx + 1}" /><span>${file.name}${label}</span>`;
+          preview.appendChild(card);
+        });
+      };
 
-    dlBtn?.addEventListener("click", () => {
-      const { md, slug } = generateMarkdown();
-      if (!md) return;
-      const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `${slug}.md`;
-      a.click();
-      URL.revokeObjectURL(a.href);
-    });
+      const generateMarkdown = () => {
+        const { data, files, coverIndex } = getFormData();
+        renderPreview(files, coverIndex);
+        const required = [
+          "title",
+          "description",
+          "pubDate",
+          "topic",
+          "author",
+          "location",
+          "eventTime",
+          "writtenAt",
+          "photoTime",
+          "voiceMemo",
+          "voiceMemoTitle",
+          "videoUrl",
+          "videoPoster",
+          "body",
+        ];
+        const missing = required.filter((k) => !data[k]);
+        if (missing.length) {
+          if (err) err.textContent = "Vui lòng điền đầy đủ metadata trước khi tạo.";
+          return { md: "", slug: "", files };
+        }
+        if (!files.length) {
+          if (err) err.textContent = "Vui lòng chọn ảnh và chọn ảnh cover.";
+          return { md: "", slug: "", files };
+        }
+        const slug = slugify(data.title || "bai-chua-dat-ten");
+        const photoCount = files.length ? Math.max(0, files.length - 1) : 0;
+        const cover = Array.from(files)[coverIndex] ?? files[0];
+        const md =
+          `---\n` +
+          `title: "${(data.title || "Chưa đặt tên").replaceAll('"', '\\"')}"\n` +
+          `description: "${(data.description || "").replaceAll('"', '\\"')}"\n` +
+          `pubDate: ${data.pubDate || new Date().toISOString().slice(0, 10)}\n` +
+          `topic: ${data.topic || "two-of-us"}\n` +
+          `cover: "/photos/${slug}/cover.jpg"\n` +
+          `photoDir: "${slug}"\n` +
+          `photoCount: ${photoCount}\n\n` +
+          `author: "${(data.author || "").replaceAll('"', '\\"')}"\n` +
+          `location: "${(data.location || "").replaceAll('"', '\\"')}"\n` +
+          `eventTime: "${(data.eventTime || "").replaceAll('"', '\\"')}"\n` +
+          `writtenAt: "${(data.writtenAt || "").replaceAll('"', '\\"')}"\n` +
+          `photoTime: "${(data.photoTime || "").replaceAll('"', '\\"')}"\n\n` +
+          `voiceMemo: "${(data.voiceMemo || "").replaceAll('"', '\\"')}"\n` +
+          `voiceMemoTitle: "${(data.voiceMemoTitle || "").replaceAll('"', '\\"')}"\n` +
+          `videoUrl: "${(data.videoUrl || "").replaceAll('"', '\\"')}"\n` +
+          `videoPoster: "${(data.videoPoster || "").replaceAll('"', '\\"')}"\n\n` +
+          `tags: []\n` +
+          `draft: true\n` +
+          `sideNote: ""\n` +
+          `---\n\n` +
+          `${data.body || "Viết ở đây."}\n`;
+        if (output) output.value = md;
+        return { md, slug, files };
+      };
 
-    exportBtn?.addEventListener("click", () => {
-      const { files, slug, coverIndex } = getFormData();
-      if (!files.length || !slug) return;
-      const ordered = Array.from(files);
-      const cover = ordered.splice(coverIndex, 1)[0];
-      ordered.unshift(cover);
-      ordered.forEach((file, idx) => {
+      genBtn.addEventListener("click", generateMarkdown);
+
+      dlBtn.addEventListener("click", () => {
+        const { md, slug } = generateMarkdown();
+        if (!md) return;
+        const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
         const a = document.createElement("a");
-        const name = idx === 0 ? "cover.jpg" : String(idx).padStart(2, "0") + "." + file.name.split(".").pop();
-        a.href = URL.createObjectURL(file);
-        a.download = `${slug}/${name}`;
+        a.href = URL.createObjectURL(blob);
+        a.download = `${slug}.md`;
         a.click();
         URL.revokeObjectURL(a.href);
       });
-    });
+
+      exportBtn.addEventListener("click", () => {
+        const { files, slug, coverIndex } = getFormData();
+        if (!files.length || !slug) return;
+        const ordered = Array.from(files);
+        const cover = ordered.splice(coverIndex, 1)[0];
+        ordered.unshift(cover);
+        ordered.forEach((file, idx) => {
+          const a = document.createElement("a");
+          const name = idx === 0 ? "cover.jpg" : String(idx).padStart(2, "0") + "." + file.name.split(".").pop();
+          a.href = URL.createObjectURL(file);
+          a.download = `${slug}/${name}`;
+          a.click();
+          URL.revokeObjectURL(a.href);
+        });
+      });
+    };
+
+    initCompose();
+    document.addEventListener("astro:page-load", initCompose);
   </script>
 </BaseLayout>
