@@ -555,40 +555,6 @@ a { color: inherit; text-decoration: none; }
   gap: 16px;
 }
 
-.journal-tools__topic {
-  margin-top: 12px;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  border: 1px solid rgba(0,0,0,0.12);
-  background: rgba(255,255,255,0.65);
-  box-shadow: 0 12px 30px rgba(0,0,0,0.12);
-}
-
-.journal-tools__topic-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  display: grid;
-  place-items: center;
-  font-size: 18px;
-  background: rgba(0,0,0,0.08);
-}
-
-.journal-tools__topic-label {
-  font-weight: 700;
-  font-size: 14px;
-}
-
-.journal-tools__topic-count {
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(0,0,0,0.55);
-}
-
 .journal-tools__fields {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -602,18 +568,6 @@ a { color: inherit; text-decoration: none; }
   color: rgba(0,0,0,0.7);
   font-weight: 600;
   font-size: 13px;
-}
-
-.journal-tools__field .input {
-  background: rgba(255,255,255,0.95);
-  border-color: rgba(0,0,0,0.18);
-  color: rgba(0,0,0,0.8);
-  box-shadow: 0 8px 18px rgba(0,0,0,0.08);
-}
-
-.journal-tools__field .input:focus {
-  border-color: rgba(45, 170, 255, 0.6);
-  box-shadow: 0 0 0 3px rgba(45, 170, 255, 0.2);
 }
 
 .journal-tools__reset {
@@ -669,35 +623,6 @@ a { color: inherit; text-decoration: none; }
 }
 
 /* -----------------
-   Topic panel (mobile)
-   ----------------- */
-
-.topic-panel {
-  margin-top: 16px;
-  width: 100%;
-}
-
-.topic-panel__summary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 999px;
-  border: 1px solid rgba(0,0,0,0.12);
-  background: rgba(255,255,255,0.7);
-  color: rgba(0,0,0,0.6);
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 8px 18px rgba(0,0,0,0.12);
-}
-
-.topic-panel__body {
-  margin-top: 12px;
-  width: 100%;
-}
-
-/* -----------------
    Header journal panel
    ----------------- */
 
@@ -744,28 +669,6 @@ a { color: inherit; text-decoration: none; }
 }
 
 @media (max-width: 720px) {
-  .header-shell {
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 10px;
-  }
-
-  .header-shell > a {
-    flex: 1 1 100%;
-    justify-content: center;
-  }
-
-  .header-nav {
-    width: 100%;
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-
-  .ransom-nowrap {
-    flex-wrap: wrap;
-    white-space: normal;
-  }
-
   .journal-tools__panel {
     padding: 12px;
   }
@@ -780,18 +683,6 @@ a { color: inherit; text-decoration: none; }
 
   .journal-tools__hint {
     display: none;
-  }
-
-  .topic-panel__body {
-    margin-top: 10px;
-  }
-
-  .topic-panel__summary {
-    margin: 0 auto;
-  }
-
-  .topic-grid {
-    grid-template-columns: minmax(0, 1fr);
   }
 
   .header-journal__panel {
