@@ -9,7 +9,7 @@ import { TOPICS } from "../config/topics";
 const posts = (await getCollection("posts"))
   .filter((p) => !p.data.draft)
   .sort((a, b) => {
-    const pinnedA = p.data.pinned ? 1 : 0;
+    const pinnedA = a.data.pinned ? 1 : 0;
     const pinnedB = b.data.pinned ? 1 : 0;
     if (pinnedA !== pinnedB) return pinnedB - pinnedA;
     return b.data.pubDate.valueOf() - a.data.pubDate.valueOf();
