@@ -18,3 +18,4 @@ draft: false
 sideNote: ""
 ---
 
+Con vịu ơ vẫn chăm chỉ comment dạo mà, khéo khi phải chuẩn bị nhập cảnh làm cư dân của Thread City thật để stalk con vịu này, hừm grr grr
