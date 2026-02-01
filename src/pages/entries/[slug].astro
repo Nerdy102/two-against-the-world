@@ -171,13 +171,9 @@ const wallImages = [
       <div class="paper edge-torn p-6 sm:p-10">
         <div class="kicker text-xs text-black/50">BÌNH LUẬN LẮT NHẮT 💬</div>
         <h2 class="mt-3 text-[26px] sm:text-[32px] font-semibold text-black/80">Để lại lời nhắn xàm xí</h2>
-        <p class="mt-2 text-black/60">Nhập tên + biệt danh (ẩn danh thôi nhé) rồi thả vài dòng.</p>
+        <p class="mt-2 text-black/60">Nhập biệt danh (ẩn danh thôi nhé) rồi thả vài dòng.</p>
 
         <form class="comment-form mt-6" data-comment-form data-comment-slug={post.slug}>
-          <label class="comment-field">
-            <span>Tên</span>
-            <input class="input" name="name" placeholder="Tên của bạn" required />
-          </label>
           <label class="comment-field">
             <span>Biệt danh</span>
             <input class="input" name="nickname" placeholder="Biệt danh (ẩn danh)" required />
@@ -339,7 +335,6 @@ const wallImages = [
             (item) => `
               <div class="comment-card">
                 <div class="comment-meta">
-                  <span class="comment-name">${item.name}</span>
                   <span class="comment-nick">${item.nickname}</span>
                   <span class="comment-time">${item.time}</span>
                 </div>
@@ -354,16 +349,14 @@ const wallImages = [
 
       form.addEventListener("submit", (e) => {
         e.preventDefault();
-        const name = form.querySelector("input[name='name']")?.value?.trim();
         const nickname = form.querySelector("input[name='nickname']")?.value?.trim();
         const message = form.querySelector("textarea[name='message']")?.value?.trim();
-        if (!name || !nickname || !message) {
-          if (err) err.textContent = "Điền đủ 3 ô mới được nhé!";
+        if (!nickname || !message) {
+          if (err) err.textContent = "Điền đủ 2 ô mới được nhé!";
           return;
         }
         const items = load();
         items.unshift({
-          name,
           nickname,
           message,
           time: new Date().toLocaleString("vi-VN"),

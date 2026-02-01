@@ -2,16 +2,16 @@ export const TOPICS = [
   { slug: "two-of-us", label: "Hai đứa mình", icon: "💞", color: "#e35a6f" },
   { slug: "miu-notes", label: "Miu tâm sự", icon: "📝", color: "#f2b84b" },
   { slug: "oriyinframes", label: "oriyinframes", icon: "🎞️", color: "#6dc9ff" },
-  { slug: "grey-h", label: "chữ H xám xịt", icon: "☁️", color: "#9fa5b8" },
   { slug: "grown-up-yap", label: "yapping người lớn", icon: "🧠", color: "#9f7aea" },
   { slug: "sad-music", label: "nhạc văn nhẽo", icon: "🎵", color: "#6ee7b7" },
   { slug: "film-visuals", label: "phim thị ảnh", icon: "🎬", color: "#f59ab1" },
   { slug: "random-numbers", label: "Những con số ngẫu nhiên", icon: "🔢", color: "#f97316" },
   { slug: "screenshots", label: "Ảnh chụp màn hình", icon: "📸", color: "#60a5fa" },
-  { slug: "trash-bin", label: "Thùng rác cảm xúc", icon: "🗑️", color: "#94a3b8" },
   { slug: "quotes", label: "Quotes", icon: "📜", color: "#f8b4c9" },
   { slug: "memes", label: "Meme", icon: "😼", color: "#a3e635" },
   { slug: "taste-yap", label: "Taste yap", icon: "🍽️", color: "#fca5a5" },
+  { slug: "grey-h", label: "chữ H xám xịt", icon: "☁️", color: "#9fa5b8" },
+  { slug: "trash-bin", label: "Thùng rác cảm xúc", icon: "🧸", color: "#94a3b8" },
 ] as const;
 
 export type TopicSlug = (typeof TOPICS)[number]["slug"];
@@ -33,17 +33,17 @@ export function topicMeta(slug: string | undefined) {
 }
 
 export const TOPIC_COPY: Record<string, string> = {
-  "two-of-us": "Lời hẹn như trang Kiều — chữ tình in sâu, chữ duyên còn đó.",
-  "miu-notes": "Ngõ mây lạc bút, một nét tâm tư gửi gió hiên nhà.",
-  "oriyinframes": "Khung ảnh như thơ, nét mực cũ mà lòng vẫn mới.",
-  "grey-h": "Chữ H xám mà tình vẫn thắm, tựa bút tích thời gian.",
-  "grown-up-yap": "Chuyện người lớn, chữ nghĩa như rượu, càng nhấp càng say.",
-  "sad-music": "Khúc buồn ngân, ngàn năm còn vọng như tiếng tì bà.",
-  "film-visuals": "Ánh phim vỡ, cảnh cũ mơ hồ như mộng Liêu Trai.",
-  "random-numbers": "Con số rơi vãi, như sao lạc trong đêm trăng cổ.",
-  "screenshots": "Ảnh chụp một khoảnh khắc, tựa thủy mặc dừng bút.",
+  "two-of-us": "Just the two of us",
+  "miu-notes": "Em này quắn và miên lắmmmmmmmmmmmm",
+  "oriyinframes": "the poets are dying, but no matter, poetry remains...",
+  "grey-h": "No cap, mong là không phải dùng đến thư mục này",
+  "grown-up-yap": "Chính trị, kinh tế, đầu tư, tài chính,... mọi thứ mà người lớn cơ bản phải đắm chìm để trưởng thành",
+  "sad-music": "Đứa con thứ nhất",
+  "film-visuals": "Đứa con thứ hai",
+  "random-numbers": "Cuộc sống của chúng tôi là những chuỗi sự kiện và chuỗi chữ số 'ảo vl' nên bắt buộc phải có thư mục riêng đấy",
+  "screenshots": "Mong là sẽ đủ chăm để up hết mọi screenshots thường ngày mà somehow đáng yêu vcl của chúng tôi",
   "trash-bin": "Thùng rác cảm xúc, chôn chữ cũ như trang thơ tàn.",
-  "quotes": "Quotes như hương xưa, đọc một câu mà gợi cả đời.",
-  "memes": "Meme như tiếu lâm cổ, vui một khắc mà nhớ mãi.",
+  "quotes": "Quotes đủ thể loại, tao dự là chắc toàn meme quotes thôi :))))",
+  "memes": "Bà chúa soạn Meme - Uyên Trần",
   "taste-yap": "Gu mình là bữa tiệc chữ: place, food, style.",
 };
