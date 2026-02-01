@@ -5,6 +5,7 @@ import RansomTitle from "../../components/RansomTitle.astro";
 import FrameWall from "../../components/FrameWall.astro";
 import { formatDate } from "../../lib/formatDate";
 import { topicLabel, topicMeta } from "../../config/topics";
+import { TRASH_PASSCODE } from "../../config/secrets";
 
 export async function getStaticPaths() {
   const posts = await getCollection("posts");
@@ -36,6 +37,7 @@ const voiceMemo = s(post.data.voiceMemo);
 const voiceMemoTitle = s(post.data.voiceMemoTitle);
 const videoUrl = s(post.data.videoUrl);
 const videoPoster = s(post.data.videoPoster);
+const isLocked = post.data.topic === "trash-bin";
 
 const toEmbedUrl = (url: string) => {
   if (url.includes("youtube.com/watch")) {
@@ -72,6 +74,23 @@ const wallImages = [
 
 <BaseLayout title={post.data.title} description={post.data.description}>
   <main class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-10">
+    {isLocked && (
+      <div class="lock-panel" data-lock-panel>
+        <div class="lock-card">
+          <div class="kicker text-xs text-white/60">LOCKED</div>
+          <h3 class="lock-title">Thùng rác cảm xúc</h3>
+          <p class="lock-desc">Nhập passcode để mở bài viết này.</p>
+          <form class="lock-form" data-lock-form>
+            <input class="input" type="password" name="passcode" placeholder="Passcode" autocomplete="off" />
+            <button class="btn" type="submit">Unlock</button>
+          </form>
+          <p class="lock-hint" data-lock-error></p>
+        </div>
+      </div>
+    )}
+
+    <div class={`lock-wrap ${isLocked ? "is-locked" : ""}`} data-lock-wrap>
+      <div class="lock-content" data-lock-content>
     {/* TOP PAPER (TITLE + META) */}
     <div class="paper edge-torn p-6 sm:p-10" data-reveal>
       <div class="kicker text-xs text-[rgba(0,0,0,0.58)]">ENTRY</div>
@@ -210,5 +229,38 @@ const wallImages = [
         )}
       </div>
     </section>
+      </div>
+    </div>
   </main>
+
+  {isLocked && (
+    <script is:inline>
+      const PASS = {JSON.stringify(TRASH_PASSCODE)};
+      const KEY = "tatw-trash-pass";
+      const wrap = document.querySelector("[data-lock-wrap]");
+      const panel = document.querySelector("[data-lock-panel]");
+      const form = document.querySelector("[data-lock-form]");
+      const err = document.querySelector("[data-lock-error]");
+
+      const unlock = () => {
+        wrap?.classList.add("is-unlocked");
+        panel?.classList.add("is-hidden");
+      };
+
+      if (localStorage.getItem(KEY) === PASS) unlock();
+
+      form?.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const input = form.querySelector("input[name='passcode']");
+        const val = input?.value?.trim();
+        if (val === PASS) {
+          localStorage.setItem(KEY, PASS);
+          unlock();
+          if (err) err.textContent = "";
+        } else {
+          if (err) err.textContent = "Sai passcode rồi.";
+        }
+      });
+    </script>
+  )}
 </BaseLayout>

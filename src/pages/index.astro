@@ -51,6 +51,7 @@ for (const p of posts) {
           description={post.data.description}
           date={post.data.pubDate}
           topic={post.data.topic}
+          locked={post.data.topic === "trash-bin"}
         />
       ))}
     </div>

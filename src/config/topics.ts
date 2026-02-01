@@ -8,7 +8,7 @@ export const TOPICS = [
   { slug: "film-visuals", label: "phim thị ảnh", icon: "🎬", color: "#f59ab1" },
   { slug: "random-numbers", label: "Những con số ngẫu nhiên", icon: "🔢", color: "#f97316" },
   { slug: "screenshots", label: "Screenshot", icon: "📸", color: "#60a5fa" },
-  { slug: "trash-bin", label: "Thùng rác", icon: "🗑️", color: "#94a3b8" },
+  { slug: "trash-bin", label: "Thùng rác cảm xúc", icon: "🗑️", color: "#94a3b8" },
 ] as const;
 
 export type TopicSlug = (typeof TOPICS)[number]["slug"];
