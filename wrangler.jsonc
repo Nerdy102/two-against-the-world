@@ -26,11 +26,6 @@
     "PUBLIC_TURNSTILE_SITE_KEY": ""
   },
 
-  "routes": [
-    { "pattern": "tinyeu.blog/*", "zone_name": "tinyeu.blog" },
-    { "pattern": "www.tinyeu.blog/*", "zone_name": "tinyeu.blog" }
-  ],
-
   "workers_dev": true,
   "preview_urls": true
 }
