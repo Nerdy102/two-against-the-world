@@ -30,6 +30,22 @@ export const prerender = false;
           <h2 class="text-lg font-semibold">Soạn bài</h2>
           <span class="text-xs text-black/50" data-post-status>Chưa chọn bài</span>
         </div>
+        <div class="mt-4 space-y-3" data-admin-lock>
+          <p class="text-xs text-black/60">
+            Nhập mật khẩu để mở khóa soạn bài & upload. Trạng thái: <span data-admin-status>Đang khóa</span>
+          </p>
+          <div class="flex flex-wrap items-center gap-3">
+            <input
+              class="input"
+              type="password"
+              name="admin_password"
+              placeholder="Nhập mật khẩu"
+              data-admin-password
+            />
+            <button class="btn" type="button" data-admin-unlock>Mở khóa</button>
+          </div>
+        </div>
+
         <form class="mt-4 space-y-4" data-post-form>
           <p class="text-xs text-black/60">Trường có <span class="text-red-500">*</span> là bắt buộc.</p>
           <input type="hidden" name="id" />
@@ -143,8 +159,14 @@ export const prerender = false;
           </label>
 
           <label class="compose-field">
-            <span>Nội dung (Markdown)</span>
-            <textarea class="input compose-textarea" name="content_md" rows={12} placeholder="Viết nội dung..."></textarea>
+            <span>Nội dung (Markdown) <span class="text-red-500">*</span></span>
+            <textarea
+              class="input compose-textarea"
+              name="content_md"
+              rows={12}
+              placeholder="Viết nội dung..."
+              required
+            ></textarea>
           </label>
 
           <div class="compose-field">
@@ -166,6 +188,7 @@ export const prerender = false;
 
           <div class="flex flex-wrap gap-3">
             <button class="btn" type="submit" data-save-post>Lưu</button>
+            <button class="btn" type="button" data-submit-post>Đăng bài ngay</button>
             <button class="btn" type="button" data-publish-post>Publish</button>
             <button class="btn" type="button" data-unpublish-post>Gỡ publish</button>
           </div>
@@ -195,6 +218,17 @@ export const prerender = false;
     const newBtn = document.querySelector("[data-new-post]");
     const publishBtn = document.querySelector("[data-publish-post]");
     const unpublishBtn = document.querySelector("[data-unpublish-post]");
+    const submitBtn = document.querySelector("[data-submit-post]");
+    const coverBtn = document.querySelector("[data-upload-cover]");
+    const coverNote = document.querySelector("[data-cover-note]");
+    const uploadBtn = document.querySelector("[data-upload-photos]");
+    const uploadNote = document.querySelector("[data-upload-note]");
+    const lockWrap = document.querySelector("[data-admin-lock]");
+    const lockStatus = document.querySelector("[data-admin-status]");
+    const lockInput = document.querySelector("[data-admin-password]");
+    const unlockBtn = document.querySelector("[data-admin-unlock]");
+    const ADMIN_PASSWORD = "hoayeuuyen";
+    const LOCK_KEY = "twaw_admin_unlocked";
 
     const state = {
       posts: [],
@@ -205,6 +239,49 @@ export const prerender = false;
     const markDirty = () => {
       state.dirty = true;
     };
+
+    const setLocked = (locked) => {
+      if (lockStatus) {
+        lockStatus.textContent = locked ? "Đang khóa" : "Đã mở khóa";
+      }
+      lockWrap?.classList.toggle("opacity-60", locked);
+      const controls = [
+        newBtn,
+        publishBtn,
+        unpublishBtn,
+        submitBtn,
+        coverBtn,
+        uploadBtn,
+        ...(form ? Array.from(form.querySelectorAll("input, textarea, select, button")) : []),
+      ].filter(Boolean);
+      controls.forEach((el) => {
+        if (el?.hasAttribute("data-admin-unlock") || el?.hasAttribute("data-admin-password")) return;
+        el.disabled = locked;
+      });
+    };
+
+    const isUnlocked = () => {
+      if (typeof localStorage === "undefined") return false;
+      return localStorage.getItem(LOCK_KEY) === "1";
+    };
+
+    const unlock = () => {
+      if (lockInput?.value !== ADMIN_PASSWORD) {
+        lockStatus.textContent = "Sai mật khẩu";
+        return;
+      }
+      localStorage?.setItem(LOCK_KEY, "1");
+      lockInput.value = "";
+      setLocked(false);
+    };
+
+    unlockBtn?.addEventListener("click", unlock);
+    lockInput?.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        unlock();
+      }
+    });
 
     const fields = [
       "id",
@@ -291,8 +368,14 @@ export const prerender = false;
       });
     });
 
+    const requiredFields = ["title", "slug", "content_md"];
+
     const savePost = async ({ silent = false } = {}) => {
       if (!form) return false;
+      if (!isUnlocked()) {
+        note.textContent = "Cần mở khóa để lưu bài.";
+        return false;
+      }
       if (!silent) note.textContent = "Đang lưu...";
       const data = {};
       fields.forEach((name) => {
@@ -305,17 +388,37 @@ export const prerender = false;
         data[name] = input.type === "number" ? Number(input.value || 0) : input.value;
       });
 
+      const missingField = requiredFields.find((name) => {
+        const value = typeof data[name] === "string" ? data[name].trim() : "";
+        return !value;
+      });
+      if (missingField) {
+        const label = {
+          title: "Tiêu đề",
+          slug: "Đường dẫn",
+          content_md: "Nội dung",
+        }[missingField];
+        note.textContent = `Thiếu ${label}.`;
+        const input = form.querySelector(`[name="${missingField}"]`);
+        input?.focus();
+        return false;
+      }
+
       const isNew = !data.id;
       const res = await fetch(isNew ? "/api/admin/posts" : `/api/admin/posts/${data.id}`, {
         method: isNew ? "POST" : "PUT",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(data),
       });
+      const payload = await res.json().catch(() => ({}));
       if (!res.ok) {
-        if (!silent) note.textContent = "Lưu chưa được, thử lại nhé.";
+        if (!silent) {
+          note.textContent = payload?.error
+            ? `Lưu lỗi: ${payload.error}`
+            : "Lưu chưa được, thử lại nhé.";
+        }
         return false;
       }
-      const payload = await res.json().catch(() => ({}));
       if (isNew) {
         data.id = payload.id;
       }
@@ -342,7 +445,10 @@ export const prerender = false;
       const id = form?.querySelector("[name='id']")?.value;
       if (!id) return;
       const res = await fetch(`/api/admin/posts/${id}/publish`, { method: "POST" });
-      if (!res.ok) return;
+      if (!res.ok) {
+        note.textContent = "Publish lỗi, thử lại nhé.";
+        return;
+      }
       await loadPosts();
       state.active = state.posts.find((p) => p.id === id);
       fillForm(state.active);
@@ -352,18 +458,32 @@ export const prerender = false;
       const id = form?.querySelector("[name='id']")?.value;
       if (!id) return;
       const res = await fetch(`/api/admin/posts/${id}/unpublish`, { method: "POST" });
-      if (!res.ok) return;
+      if (!res.ok) {
+        note.textContent = "Gỡ publish lỗi, thử lại nhé.";
+        return;
+      }
       await loadPosts();
       state.active = state.posts.find((p) => p.id === id);
       fillForm(state.active);
     });
 
-    loadPosts();
+    submitBtn?.addEventListener("click", async () => {
+      const saved = await savePost();
+      if (!saved) return;
+      const id = form?.querySelector("[name='id']")?.value;
+      if (!id) return;
+      const res = await fetch(`/api/admin/posts/${id}/publish`, { method: "POST" });
+      if (!res.ok) {
+        note.textContent = "Publish lỗi, thử lại nhé.";
+        return;
+      }
+      await loadPosts();
+      state.active = state.posts.find((p) => p.id === id);
+      fillForm(state.active);
+      note.textContent = "Đã đăng bài.";
+    });
 
-    const coverBtn = document.querySelector("[data-upload-cover]");
-    const coverNote = document.querySelector("[data-cover-note]");
-    const uploadBtn = document.querySelector("[data-upload-photos]");
-    const uploadNote = document.querySelector("[data-upload-note]");
+    loadPosts();
 
     const isHeic = (file) => {
       const name = file?.name?.toLowerCase() || "";
@@ -417,11 +537,20 @@ export const prerender = false;
     };
 
     coverBtn?.addEventListener("click", async () => {
+      if (!isUnlocked()) {
+        coverNote.textContent = "Cần mở khóa để upload.";
+        return;
+      }
       const input = form?.querySelector("input[name='cover_upload']");
       const file = input?.files?.[0];
       if (!file) return;
       coverNote.textContent = "Đang xử lý ảnh cover...";
-      const slug = form?.querySelector("[name='slug']")?.value || "untitled";
+      const slugValue = form?.querySelector("[name='slug']")?.value;
+      if (!slugValue) {
+        coverNote.textContent = "Hãy nhập đường dẫn trước khi upload cover.";
+        return;
+      }
+      const slug = slugValue || "untitled";
       const safeSlug = slugify(slug);
       const filenameBase = file.name.replace(/\.[^.]+$/, "");
       const filename = `${filenameBase || "cover"}-${Date.now()}.jpg`;
@@ -446,10 +575,19 @@ export const prerender = false;
     });
 
     uploadBtn?.addEventListener("click", async () => {
+      if (!isUnlocked()) {
+        uploadNote.textContent = "Cần mở khóa để upload.";
+        return;
+      }
       const input = form?.querySelector("input[name='upload_photos']");
       if (!input?.files?.length) return;
       uploadNote.textContent = "Đang xử lý ảnh...";
-      const slug = form?.querySelector("[name='slug']")?.value || "untitled";
+      const slugValue = form?.querySelector("[name='slug']")?.value;
+      if (!slugValue) {
+        uploadNote.textContent = "Hãy nhập đường dẫn trước khi upload ảnh.";
+        return;
+      }
+      const slug = slugValue || "untitled";
       const safeSlug = slugify(slug);
       const date = new Date().toISOString().slice(0, 10);
       let successCount = 0;
@@ -472,5 +610,7 @@ export const prerender = false;
       uploadNote.textContent = `Đã upload ${successCount} ảnh.`;
       input.value = "";
     });
+
+    setLocked(!isUnlocked());
   </script>
 </BaseLayout>

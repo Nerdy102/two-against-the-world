@@ -5,21 +5,29 @@ import FrameWall from "../../components/FrameWall.astro";
 import { formatDate } from "../../lib/formatDate";
 import { topicLabel, topicMeta } from "../../config/topics";
 import { getDb, type PostRecord } from "../../lib/d1";
+import { getHybridPostBySlug } from "../../lib/posts";
 import { marked } from "marked";
 
 export const prerender = false;
 
 const { slug } = Astro.params;
-const db = getDb(Astro.locals);
-const post = await db
-  .prepare(
-    `SELECT *
-     FROM posts
-     WHERE slug = ? AND status = 'published'
-     LIMIT 1`
-  )
-  .bind(slug)
-  .first<PostRecord>();
+let post: PostRecord | null = null;
+try {
+  const db = getDb(Astro.locals);
+  post = await db
+    .prepare(
+      `SELECT *
+       FROM posts
+       WHERE slug = ? AND status = 'published'
+       LIMIT 1`
+    )
+    .bind(slug)
+    .first<PostRecord>();
+  post = await getHybridPostBySlug(post, slug);
+} catch (err) {
+  console.warn("Using content post fallback:", err);
+  post = await getHybridPostBySlug(null, slug);
+}
 if (!post) throw new Error(`Post not found: ${slug}`);
 
 const contentHtml = marked.parse(post.content_md ?? "");
