@@ -20,16 +20,15 @@ sideNote: ""
 
 Link tổng hợp winners mình lưu lại: https://www.theguardian.com/music/2026/feb/01/grammy-awards-2026-winners
 
-Năm nay đúng kiểu bài mình thích thì thắng. Messy của Lola Young thắng - nhớ đợt đầu năm bảo mọi người trong Lab thì mn đều kiểu 'm tìm ra đâu bài này thế' - tôi thấy những nguời nghe nhạc trước khi nó nổi, đặc biệt là nổi tiktok đều tự cho và được quyền cho gu nghe nhạc của mình thượng đẳng hơn người khác. 
+Năm nay đúng kiểu bài mình thích thì thắng. Messy của Lola Young thắng - nhớ đợt đầu năm bảo mọi người trong Lab thì mn đều kiểu 'm tìm ra đâu bài này thế' - tôi thấy những nguời nghe nhạc trước khi nó nổi, đặc biệt là trước nổi tiktok đều tự cho và được quyền cho rằng gu nghe nhạc của mình 'thượng đẳng' hơn người khác, lmaoo. 
 
 Billie và anh trai cứ thắng liên tục thôi – kiểu cô em 2k1 này hầu như năm nào có sản phẩm đều có giải và đề cử. Giải to lớn bé gì cũng thắng hết. Chúc mừng em, em siêu siêu xứng đáng, nghe từ album đầu tiên, hồi đó vẫn là trên YanTV, và bài Bellyache thời đó hitttt me HARDDD (and soft), biết ngay là cô bé này sẽ là gì đó, nhưng mà không biết là bao giờ vì kiểu emo girl và nhạc dị thế này thì sao mà thuyết phục được số đông!? But yah, she made it
 
 
-Năm ngoái *Wildflower* không được chọn tranh cử vì *Bird of the Feather* có vẻ sáng cửa hơn, mà cuối cùng “the og” *Not Like Us* của Kendrick lại ôm hết, cả **Song** và **Record**. Năm nay hội đồng lại pick *Wildflower* ra tiếp và lại thắng giải – sợ thật.
+Năm ngoái *Wildflower* không được chọn tranh cử vì *Bird of the Feather* có vẻ sáng cửa hơn, mà cuối cùng “the og” *Not Like Us* của Kendrick lại ôm hết, cả **Song** và **Record**. Năm nay hội đồng lại pick *Wildflower* ra tiếp và lại thắng giải - sợ thật. Miu kiểu: Billie okvl, năm nào có sản phẩm cũng có giải. Đỉnh quá đỉnh.
 
-Miu kiểu: Billie okvl, năm nào có sản phẩm cũng có giải. Đỉnh quá đỉnh.
-
-Tất nhiên rồi, là Luther của kendrick tiếp tục thắng giải, tại sao không chứ, mình đã nhìn visual bản phối của nó và nó khoảng trên dưới 100 layer và khuôn nhạc mixing khác nhau - năm thứ 2 liên tiếp của kendrick rồi, cụ quá đỉnh. Cụ còn thắng rap album và mấy giải liên quan đến rap khác, nói chung là có tên cụ là được giải. Phá đảo như năm ngoái, tiếc là k dc album of the year thôi.
+Tất nhiên rồi, là Luther của kendrick tiếp tục thắng giải, tại sao không chứ, mình đã nhìn visual, cái ảnh  bản phối mà producer up lên và nó khoảng trên dưới 100 layer và khuôn nhạc mixing khác nhau - năm thứ 2 liên tiếp của kendrick rồi, cụ quá đỉnh, hình như cũng 4-5 ngừoi cùng phối vl, lmao, ngày xưa những người được giải này thường thì 1 mình t cân tất, điển hình là Mai cồ Jackson.
+Cụ còn thắng rap album và mấy giải liên quan đến rap khác, nói chung là có tên cụ là được giải. Phá đảo như năm ngoái, tiếc là k dc album of the year thôi.
 Anw, spam luther từ lúc mới ra, lmao, hình như mình và Miu cũng hát bài này với nhau rồi, lên phím 1 để up bản memo cover lên đây nhé ^^
 
 Không ấn tượng về Mayhem của Gaga lắm, sorry, mặc dù vẫn vớt vát được giải best pop vocal album và best dance-pop recording cho bài úm ba la xì bùa .. uây nhưng chị xinh, và nay mặc đẹp 
