@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
-import { getDb } from "../../../lib/d1";
-import { isAdminAuthorized } from "../../../lib/adminAuth";
+import { ensurePostMediaSchema, ensurePostsSchema, getDb } from "../../../lib/d1";
+import { requireAdminSession, verifyCsrf } from "../../../lib/adminAuth";
 
 export const prerender = false;
 
@@ -28,7 +28,10 @@ const buildKey = (slug: string, filename: string) => {
 };
 
 export const POST: APIRoute = async ({ locals, request }) => {
-  if (!(await isAdminAuthorized(request, locals))) {
+  if (!(await requireAdminSession(request, locals))) {
+    return json({ error: "Unauthorized" }, 401);
+  }
+  if (!verifyCsrf(request)) {
     return json({ error: "Unauthorized" }, 401);
   }
   const form = await request.formData().catch(() => null);
@@ -61,6 +64,12 @@ export const POST: APIRoute = async ({ locals, request }) => {
   const url = baseUrl ? `${baseUrl}/${key}` : key;
 
   const db = getDb(locals);
+  await ensurePostsSchema(db);
+  await ensurePostMediaSchema(db);
+  const post = await db
+    .prepare(`SELECT id FROM posts WHERE slug = ? LIMIT 1`)
+    .bind(slug)
+    .first<{ id: string }>();
   await db
     .prepare(
       `INSERT INTO media (id, url, type, meta_json, uploaded_by)
@@ -68,6 +77,29 @@ export const POST: APIRoute = async ({ locals, request }) => {
     )
     .bind(crypto.randomUUID(), url, "image", meta, "admin")
     .run();
+  if (post?.id) {
+    let parsedMeta: { width?: number; height?: number; sort_order?: number } | null = null;
+    try {
+      parsedMeta = meta ? JSON.parse(meta) : null;
+    } catch {
+      parsedMeta = null;
+    }
+    await db
+      .prepare(
+        `INSERT INTO post_media (id, post_id, r2_key, url, width, height, sort_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`
+      )
+      .bind(
+        crypto.randomUUID(),
+        post.id,
+        key,
+        url,
+        parsedMeta?.width ?? null,
+        parsedMeta?.height ?? null,
+        parsedMeta?.sort_order ?? 0
+      )
+      .run();
+  }
 
   return json({ ok: true, url, key });
 };

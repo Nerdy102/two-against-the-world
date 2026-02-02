@@ -78,79 +78,22 @@ for (const p of allPosts) {
         {posts.length === 0 ? (
         <p class="text-white/70">Chưa có bài nào.</p>
       ) : (
-        <div class={`lock-wrap ${isLocked ? "is-locked" : ""}`} data-lock-wrap>
-          <div class="pinterest-grid lock-content" data-lock-content>
-            {posts.map((p) => (
-              <FeedCard
-                href={`/entries/${p.slug}`}
-                image={p.cover_url ?? "/noise.svg"}
-                title={p.title}
-                description={p.summary ?? ""}
-                date={p.published_at ?? ""}
-                topic={p.topic ?? undefined}
-                locked={isLocked}
-                pinned={Boolean(p.pinned)}
-              />
-            ))}
-          </div>
-
-          {isLocked && (
-            <div class="lock-panel" data-lock-panel>
-              <div class="lock-card">
-                <div class="kicker text-xs text-white/60">ĐÃ KHÓA</div>
-                <h3 class="lock-title">Thùng rác cảm xúc</h3>
-                <p class="lock-desc">Nhập mật khẩu để mở kho lưu trữ bí mật.</p>
-                <form class="lock-form" data-lock-form>
-                  <input class="input" type="password" name="passcode" placeholder="Mật khẩu" autocomplete="off" />
-                  <button class="btn" type="submit">Mở khóa</button>
-                </form>
-                <p class="lock-hint" data-lock-error></p>
-              </div>
-            </div>
-          )}
+        <div class="pinterest-grid">
+          {posts.map((p) => (
+            <FeedCard
+              href={`/entries/${p.slug}`}
+              image={p.cover_url ?? "/noise.svg"}
+              title={p.title}
+              description={p.summary ?? ""}
+              date={p.published_at ?? ""}
+              topic={p.topic ?? undefined}
+              locked={isLocked}
+              pinned={Boolean(p.pinned)}
+            />
+          ))}
         </div>
       )}
     </section>
   </main>
 
-  {isLocked && (
-    <script is:inline>
-      const PASS = "281225";
-      const KEY = "tatw-trash-pass";
-
-      const initLock = () => {
-        const wrap = document.querySelector("[data-lock-wrap]");
-        const panel = document.querySelector("[data-lock-panel]");
-        const form = document.querySelector("[data-lock-form]");
-        const err = document.querySelector("[data-lock-error]");
-
-        if (!wrap || !panel || !form) return;
-        if (form.dataset.bound === "1") return;
-        form.dataset.bound = "1";
-
-        const unlock = () => {
-          wrap.classList.add("is-unlocked");
-          panel.classList.add("is-hidden");
-        };
-
-        if (localStorage.getItem(KEY) === PASS) unlock();
-
-        form.addEventListener("submit", (e) => {
-          e.preventDefault();
-          const input = form.querySelector("input[name='passcode']");
-          const val = input?.value?.trim();
-          if (val === PASS) {
-            localStorage.setItem(KEY, PASS);
-            unlock();
-            if (err) err.textContent = "";
-          } else {
-            if (err) err.textContent = "Sai mật khẩu rồi.";
-          }
-        });
-      };
-
-      initLock();
-      document.addEventListener("astro:page-load", initLock);
-    </script>
-  )}
 </BaseLayout>

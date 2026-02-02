@@ -15,10 +15,10 @@ try {
   await ensurePostsSchema(db);
   const { results = [] } = await db
     .prepare(
-      `SELECT id, slug, title, summary, cover_url, status, author, topic, published_at, pinned
+      `SELECT id, slug, title, summary, cover_url, status, author, topic, published_at, pinned, sort_order
        FROM posts
        WHERE status = 'published'
-       ORDER BY pinned DESC, datetime(published_at) DESC`
+       ORDER BY pinned DESC, sort_order DESC, datetime(published_at) DESC`
     )
     .all<PostRecord>();
   const contentPosts = await getPublishedPostsFromContent();

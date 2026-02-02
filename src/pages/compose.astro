@@ -2,7 +2,6 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import RansomTitle from "../components/RansomTitle.astro";
 import { TOPICS } from "../config/topics";
-import { PASSCODE } from "../config/secrets";
 ---
 
 <BaseLayout title="Soạn bài — Two Against The World" active="entries" description="Soạn bài trực tiếp trên web">
@@ -19,20 +18,7 @@ import { PASSCODE } from "../config/secrets";
     </section>
 
     <section class="mt-10" aria-label="Soạn bài">
-      <div class="lock-panel" data-compose-lock>
-        <div class="lock-card">
-          <div class="kicker text-xs text-white/60">XÁC THỰC</div>
-          <h3 class="lock-title">Mở khóa khu soạn bài</h3>
-          <p class="lock-desc">Nhập mật khẩu để dùng trình soạn bài.</p>
-          <form class="lock-form" data-compose-form>
-            <input class="input" type="password" name="passcode" placeholder="Mật khẩu" autocomplete="off" />
-            <button class="btn" type="submit">Mở khóa</button>
-          </form>
-          <p class="lock-hint" data-compose-error></p>
-        </div>
-      </div>
-
-      <div class="paper edge-torn p-6 sm:p-10 compose-wrap" data-compose-wrap>
+      <div class="paper edge-torn p-6 sm:p-10 compose-wrap">
         <div class="kicker text-xs text-black/50">NỘI DUNG</div>
         <div class="compose-grid">
           <label class="compose-field">
@@ -132,43 +118,15 @@ import { PASSCODE } from "../config/secrets";
   </main>
 
   <script is:inline>
-    const PASS = "281225";
-    const KEY = "tatw-compose-pass";
-
     const initCompose = () => {
-      const lock = document.querySelector("[data-compose-lock]");
-      const wrap = document.querySelector("[data-compose-wrap]");
-      const form = document.querySelector("[data-compose-form]");
-      const err = document.querySelector("[data-compose-error]");
+      const wrap = document.querySelector(".compose-wrap");
       const preview = document.querySelector("[data-compose-preview]");
       const output = document.querySelector("[data-compose-output]");
       const genBtn = document.querySelector("[data-compose-generate]");
       const dlBtn = document.querySelector("[data-compose-download]");
       const exportBtn = document.querySelector("[data-compose-export]");
 
-      if (!lock || !wrap || !form || !genBtn || !dlBtn || !exportBtn) return;
-      if (form.dataset.bound === "1") return;
-      form.dataset.bound = "1";
-
-      const unlock = () => {
-        lock.classList.add("is-hidden");
-        wrap.classList.add("is-unlocked");
-      };
-
-      if (localStorage.getItem(KEY) === PASS) unlock();
-
-      form.addEventListener("submit", (e) => {
-        e.preventDefault();
-        const input = form.querySelector("input[name='passcode']");
-        const val = input?.value?.trim();
-        if (val === PASS) {
-          localStorage.setItem(KEY, PASS);
-          unlock();
-          if (err) err.textContent = "";
-        } else {
-          if (err) err.textContent = "Sai mật khẩu rồi.";
-        }
-      });
+      if (!wrap || !genBtn || !dlBtn || !exportBtn) return;
 
       const slugify = (s = "") =>
         s

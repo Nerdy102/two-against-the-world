@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
 import { ensurePostsSchema, getDb, type PostRecord } from "../../../../lib/d1";
-import { isAdminAuthorized } from "../../../../lib/adminAuth";
+import { requireAdminSession, verifyCsrf } from "../../../../lib/adminAuth";
 
 export const prerender = false;
 
@@ -11,19 +11,25 @@ const json = (data: unknown, status = 200) =>
   });
 
 export const GET: APIRoute = async ({ locals, request }) => {
-  if (!(await isAdminAuthorized(request, locals))) {
+  if (!(await requireAdminSession(request, locals))) {
     return json({ error: "Unauthorized" }, 401);
   }
   const db = getDb(locals);
   await ensurePostsSchema(db);
   const { results } = await db
-    .prepare(`SELECT * FROM posts ORDER BY datetime(updated_at) DESC`)
+    .prepare(
+      `SELECT * FROM posts
+       ORDER BY pinned DESC, sort_order DESC, datetime(updated_at) DESC`
+    )
     .all<PostRecord>();
   return json({ posts: results ?? [] });
 };
 
 export const POST: APIRoute = async ({ locals, request }) => {
-  if (!(await isAdminAuthorized(request, locals))) {
+  if (!(await requireAdminSession(request, locals))) {
+    return json({ error: "Unauthorized" }, 401);
+  }
+  if (!verifyCsrf(request)) {
     return json({ error: "Unauthorized" }, 401);
   }
   const payload = await request.json().catch(() => null);
@@ -40,11 +46,44 @@ export const POST: APIRoute = async ({ locals, request }) => {
   const id = crypto.randomUUID();
   const db = getDb(locals);
   await ensurePostsSchema(db);
+  const existingSlug = await db
+    .prepare(`SELECT id FROM posts WHERE slug = ? LIMIT 1`)
+    .bind(slug)
+    .first<{ id: string }>();
+  if (existingSlug?.id) {
+    return json({ error: "Slug already exists" }, 409);
+  }
+
+  const tagsJson =
+    payload.tags_json ??
+    (payload.tags_csv
+      ? JSON.stringify(
+          String(payload.tags_csv)
+            .split(",")
+            .map((tag: string) => tag.trim())
+            .filter(Boolean)
+        )
+      : null);
+  const status = payload.status === "published" ? "published" : "draft";
+  const publishedAt =
+    status === "published"
+      ? payload.published_at ?? new Date().toISOString()
+      : payload.published_at ?? null;
 
   await db
     .prepare(
-      `INSERT INTO posts (id, slug, title, summary, content_md, cover_url, status, author, topic, location, event_time, written_at, photo_time, tags_csv, side_note, voice_memo, voice_memo_title, photo_dir, photo_count, pinned)
-       VALUES (?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO posts (
+        id, slug, title, summary, content_md, body_markdown, tags_json, cover_key, cover_url,
+        status, author, topic, location, event_time, written_at, photo_time, tags_csv,
+        side_note, voice_memo, voice_memo_title, photo_dir, photo_count, pinned, layout,
+        sort_order, published_at
+      )
+      VALUES (
+        ?, ?, ?, ?, ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?, ?, ?,
+        ?, ?
+      )`
     )
     .bind(
       id,
@@ -52,7 +91,11 @@ export const POST: APIRoute = async ({ locals, request }) => {
       title,
       payload.summary ?? null,
       payload.content_md ?? null,
+      payload.body_markdown ?? payload.content_md ?? null,
+      tagsJson,
+      payload.cover_key ?? null,
       payload.cover_url ?? null,
+      status,
       payload.author ?? null,
       payload.topic ?? null,
       payload.location ?? null,
@@ -65,7 +108,10 @@ export const POST: APIRoute = async ({ locals, request }) => {
       payload.voice_memo_title ?? null,
       payload.photo_dir ?? null,
       payload.photo_count ?? 0,
-      Number(payload.pinned ?? 0) === 1 ? 1 : 0
+      Number(payload.pinned ?? 0) === 1 ? 1 : 0,
+      payload.layout ?? "normal",
+      payload.sort_order ?? 0,
+      publishedAt
     )
     .run();
 

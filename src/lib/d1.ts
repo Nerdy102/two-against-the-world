@@ -18,6 +18,14 @@ type PostColumnDefinition = {
 };
 
 const POST_COLUMNS: PostColumnDefinition[] = [
+  { name: "summary", sql: "summary TEXT" },
+  { name: "content_md", sql: "content_md TEXT" },
+  { name: "body_markdown", sql: "body_markdown TEXT" },
+  { name: "tags_json", sql: "tags_json TEXT" },
+  { name: "cover_key", sql: "cover_key TEXT" },
+  { name: "cover_url", sql: "cover_url TEXT" },
+  { name: "status", sql: "status TEXT NOT NULL DEFAULT 'draft'" },
+  { name: "author", sql: "author TEXT" },
   { name: "topic", sql: "topic TEXT" },
   { name: "location", sql: "location TEXT" },
   { name: "event_time", sql: "event_time TEXT" },
@@ -30,11 +38,22 @@ const POST_COLUMNS: PostColumnDefinition[] = [
   { name: "photo_dir", sql: "photo_dir TEXT" },
   { name: "photo_count", sql: "photo_count INTEGER DEFAULT 0" },
   { name: "pinned", sql: "pinned INTEGER DEFAULT 0" },
+  { name: "layout", sql: "layout TEXT DEFAULT 'normal'" },
+  { name: "sort_order", sql: "sort_order INTEGER DEFAULT 0" },
+  { name: "published_at", sql: "published_at TEXT" },
+];
+
+const COMMENT_COLUMNS: PostColumnDefinition[] = [
+  { name: "post_id", sql: "post_id TEXT" },
+  { name: "user_agent_hash", sql: "user_agent_hash TEXT" },
+  { name: "status", sql: "status TEXT NOT NULL DEFAULT 'approved'" },
 ];
 
 let postsSchemaReady: Promise<void> | null = null;
 let commentsSchemaReady: Promise<void> | null = null;
 let reactionsSchemaReady: Promise<void> | null = null;
+let postMediaSchemaReady: Promise<void> | null = null;
+let adminSchemaReady: Promise<void> | null = null;
 
 export async function ensurePostsSchema(db: D1Database): Promise<void> {
   if (postsSchemaReady) {
@@ -44,11 +63,53 @@ export async function ensurePostsSchema(db: D1Database): Promise<void> {
     const { results } = await db
       .prepare("PRAGMA table_info(posts)")
       .all<{ name: string }>();
+    if (!results?.length) {
+      await db
+        .prepare(
+          `CREATE TABLE IF NOT EXISTS posts (
+            id TEXT PRIMARY KEY,
+            slug TEXT NOT NULL UNIQUE,
+            title TEXT NOT NULL,
+            summary TEXT,
+            content_md TEXT,
+            body_markdown TEXT,
+            tags_json TEXT,
+            cover_key TEXT,
+            cover_url TEXT,
+            status TEXT NOT NULL DEFAULT 'draft',
+            author TEXT,
+            topic TEXT,
+            location TEXT,
+            event_time TEXT,
+            written_at TEXT,
+            photo_time TEXT,
+            tags_csv TEXT,
+            side_note TEXT,
+            voice_memo TEXT,
+            voice_memo_title TEXT,
+            photo_dir TEXT,
+            photo_count INTEGER DEFAULT 0,
+            pinned INTEGER DEFAULT 0,
+            layout TEXT DEFAULT 'normal',
+            sort_order INTEGER DEFAULT 0,
+            published_at TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+          )`
+        )
+        .run();
+    }
     const existing = new Set((results ?? []).map((row) => row.name));
     for (const column of POST_COLUMNS) {
       if (existing.has(column.name)) continue;
       await db.prepare(`ALTER TABLE posts ADD COLUMN ${column.sql}`).run();
     }
+    await db
+      .prepare(
+        `CREATE INDEX IF NOT EXISTS idx_posts_status_published_at
+         ON posts(status, published_at)`
+      )
+      .run();
   })();
   return postsSchemaReady;
 }
@@ -58,6 +119,10 @@ export async function ensureCommentsSchema(db: D1Database): Promise<void> {
     return commentsSchemaReady;
   }
   commentsSchemaReady = (async () => {
+    const { results } = await db
+      .prepare("PRAGMA table_info(comments)")
+      .all<{ name: string }>();
+    if (!results?.length) {
     await db
       .prepare(
         `CREATE TABLE IF NOT EXISTS comments (
@@ -66,12 +131,20 @@ export async function ensureCommentsSchema(db: D1Database): Promise<void> {
           parent_id TEXT,
           display_name TEXT NOT NULL,
           body TEXT NOT NULL,
-          status TEXT NOT NULL DEFAULT 'visible',
+          status TEXT NOT NULL DEFAULT 'approved',
           ip_hash TEXT,
+          user_agent_hash TEXT,
+          post_id TEXT,
           created_at TEXT NOT NULL DEFAULT (datetime('now'))
         )`
       )
       .run();
+    }
+    const existing = new Set((results ?? []).map((row) => row.name));
+    for (const column of COMMENT_COLUMNS) {
+      if (existing.has(column.name)) continue;
+      await db.prepare(`ALTER TABLE comments ADD COLUMN ${column.sql}`).run();
+    }
     await db
       .prepare(
         `CREATE INDEX IF NOT EXISTS idx_comments_post_slug_created_at
@@ -112,12 +185,91 @@ export async function ensureReactionsSchema(db: D1Database): Promise<void> {
   return reactionsSchemaReady;
 }
 
+export async function ensurePostMediaSchema(db: D1Database): Promise<void> {
+  if (postMediaSchemaReady) {
+    return postMediaSchemaReady;
+  }
+  postMediaSchemaReady = (async () => {
+    await db
+      .prepare(
+        `CREATE TABLE IF NOT EXISTS post_media (
+          id TEXT PRIMARY KEY,
+          post_id TEXT NOT NULL,
+          r2_key TEXT NOT NULL,
+          url TEXT NOT NULL,
+          width INTEGER,
+          height INTEGER,
+          sort_order INTEGER DEFAULT 0,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )`
+      )
+      .run();
+    await db
+      .prepare(
+        `CREATE INDEX IF NOT EXISTS idx_post_media_post_id
+         ON post_media(post_id, sort_order)`
+      )
+      .run();
+  })();
+  return postMediaSchemaReady;
+}
+
+export async function ensureAdminSchema(db: D1Database): Promise<void> {
+  if (adminSchemaReady) {
+    return adminSchemaReady;
+  }
+  adminSchemaReady = (async () => {
+    await db
+      .prepare(
+        `CREATE TABLE IF NOT EXISTS admin_users (
+          id TEXT PRIMARY KEY,
+          username TEXT NOT NULL UNIQUE,
+          password_hash TEXT NOT NULL,
+          password_salt TEXT NOT NULL,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )`
+      )
+      .run();
+    await db
+      .prepare(
+        `CREATE TABLE IF NOT EXISTS admin_sessions (
+          id TEXT PRIMARY KEY,
+          session_token_hash TEXT NOT NULL,
+          admin_user_id TEXT NOT NULL,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          expires_at TEXT NOT NULL
+        )`
+      )
+      .run();
+    await db
+      .prepare(
+        `CREATE INDEX IF NOT EXISTS idx_admin_sessions_token
+         ON admin_sessions(session_token_hash)`
+      )
+      .run();
+    await db
+      .prepare(
+        `CREATE TABLE IF NOT EXISTS comment_bans (
+          id TEXT PRIMARY KEY,
+          ip_hash TEXT NOT NULL UNIQUE,
+          reason TEXT,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )`
+      )
+      .run();
+  })();
+  return adminSchemaReady;
+}
+
 export type PostRecord = {
   id: string;
   slug: string;
   title: string;
   summary: string | null;
   content_md: string | null;
+  body_markdown?: string | null;
+  tags_json?: string | null;
+  cover_key?: string | null;
   cover_url: string | null;
   status: "draft" | "published";
   author: string | null;
@@ -133,6 +285,8 @@ export type PostRecord = {
   photo_dir: string | null;
   photo_count: number | null;
   pinned: number | null;
+  layout?: "normal" | "long" | null;
+  sort_order?: number | null;
   published_at: string | null;
   created_at: string;
   updated_at: string;
@@ -141,12 +295,14 @@ export type PostRecord = {
 export type CommentRecord = {
   id: string;
   post_slug: string;
+  post_id?: string | null;
   parent_id: string | null;
   display_name: string;
   body: string;
-  status: "visible" | "pending" | "hidden";
+  status: "approved" | "pending" | "hidden" | "visible";
   created_at: string;
   ip_hash?: string | null;
+  user_agent_hash?: string | null;
 };
 
 export type ReactionRecord = {

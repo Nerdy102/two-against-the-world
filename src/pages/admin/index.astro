@@ -30,19 +30,29 @@ export const prerender = false;
           <h2 class="text-lg font-semibold">Soạn bài</h2>
           <span class="text-xs text-black/50" data-post-status>Chưa chọn bài</span>
         </div>
-        <div class="mt-4 space-y-3" data-admin-lock>
-          <p class="text-xs text-black/60">
-            Nhập mật khẩu để mở khóa soạn bài & upload. Trạng thái: <span data-admin-status>Đang khóa</span>
-          </p>
-          <div class="flex flex-wrap items-center gap-3">
-            <input
-              class="input"
-              type="password"
-              name="admin_password"
-              placeholder="Nhập mật khẩu"
-              data-admin-password
-            />
-            <button class="btn" type="button" data-admin-unlock>Mở khóa</button>
+        <div class="mt-4 space-y-3" data-admin-auth>
+          <div data-auth-locked>
+            <p class="text-xs text-black/60">
+              Đăng nhập để mở khóa soạn bài & upload. Trạng thái:
+              <span data-admin-status>Đang khóa</span>
+            </p>
+            <div class="flex flex-wrap items-center gap-3">
+              <input class="input" type="text" name="admin_username" placeholder="Username" data-admin-username />
+              <input
+                class="input"
+                type="password"
+                name="admin_password"
+                placeholder="Password"
+                data-admin-password
+              />
+              <button class="btn" type="button" data-admin-login>Đăng nhập</button>
+            </div>
+          </div>
+          <div class="hidden" data-auth-unlocked>
+            <p class="text-xs text-black/60">
+              Đã đăng nhập. <span data-admin-status>Đã mở khóa</span>
+            </p>
+            <button class="btn" type="button" data-admin-logout>Đăng xuất</button>
           </div>
         </div>
 
@@ -70,6 +80,7 @@ export const prerender = false;
 
           <div class="compose-field">
             <span>Ảnh cover (upload)</span>
+            <input type="hidden" name="cover_key" />
             <input type="hidden" name="cover_url" />
             <input
               class="input"
@@ -126,6 +137,11 @@ export const prerender = false;
           </label>
 
           <label class="compose-field">
+            <span>Ngày publish</span>
+            <input class="input" name="published_at" placeholder="2026-02-02T10:00:00Z" />
+          </label>
+
+          <label class="compose-field">
             <span>Ghi chú thêm</span>
             <input class="input" name="side_note" placeholder="Một câu thêm" />
           </label>
@@ -159,6 +175,27 @@ export const prerender = false;
           </label>
 
           <label class="compose-field">
+            <span>Layout</span>
+            <select class="input" name="layout">
+              <option value="normal">Normal</option>
+              <option value="long">Long</option>
+            </select>
+          </label>
+
+          <label class="compose-field">
+            <span>Thứ tự hiển thị</span>
+            <input class="input" name="sort_order" type="number" min="-9999" max="9999" placeholder="0" />
+          </label>
+
+          <label class="compose-field">
+            <span>Trạng thái</span>
+            <select class="input" name="status">
+              <option value="draft">Draft</option>
+              <option value="published">Published</option>
+            </select>
+          </label>
+
+          <label class="compose-field">
             <span>Nội dung (Markdown) <span class="text-red-500">*</span></span>
             <textarea
               class="input compose-textarea"
@@ -168,6 +205,10 @@ export const prerender = false;
               required
             ></textarea>
           </label>
+          <div class="compose-field">
+            <button class="btn" type="button" data-preview-toggle>Xem preview</button>
+            <div class="mt-3 hidden prose prose-scrap max-w-none" data-preview></div>
+          </div>
 
           <div class="compose-field">
             <span>Upload ảnh iPhone (tối ưu)</span>
@@ -191,15 +232,39 @@ export const prerender = false;
             <button class="btn" type="button" data-submit-post>Đăng bài ngay</button>
             <button class="btn" type="button" data-publish-post>Publish</button>
             <button class="btn" type="button" data-unpublish-post>Gỡ publish</button>
+            <button class="btn" type="button" data-delete-post>Xóa</button>
           </div>
           <p class="text-xs text-black/50" data-form-note></p>
         </form>
+      </div>
+    </section>
+
+    <section class="mt-10 grid gap-8 lg:grid-cols-[1fr_2fr]">
+      <div class="paper edge-torn p-6 sm:p-8" data-reveal>
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold">Bình luận</h2>
+          <select class="input text-sm" data-comment-filter>
+            <option value="pending">Chờ duyệt</option>
+            <option value="approved">Đã duyệt</option>
+            <option value="hidden">Ẩn</option>
+            <option value="">Tất cả</option>
+          </select>
+        </div>
+        <div class="mt-4 space-y-3" data-comment-list></div>
+      </div>
+      <div class="paper edge-torn p-6 sm:p-8" data-reveal>
+        <h2 class="text-lg font-semibold">Moderation</h2>
+        <p class="mt-2 text-xs text-black/60">
+          Chọn trạng thái để duyệt/ẩn comment. Comment có link hoặc dài sẽ vào pending tự động.
+        </p>
+        <p class="mt-4 text-xs text-black/50" data-comment-note></p>
       </div>
     </section>
   </main>
 
   <script>
     import heic2any from "heic2any";
+    import { marked } from "marked";
 
     const slugify = (s = "") =>
       s
@@ -219,14 +284,24 @@ export const prerender = false;
     const publishBtn = document.querySelector("[data-publish-post]");
     const unpublishBtn = document.querySelector("[data-unpublish-post]");
     const submitBtn = document.querySelector("[data-submit-post]");
+    const deleteBtn = document.querySelector("[data-delete-post]");
     const coverBtn = document.querySelector("[data-upload-cover]");
     const coverNote = document.querySelector("[data-cover-note]");
     const uploadBtn = document.querySelector("[data-upload-photos]");
     const uploadNote = document.querySelector("[data-upload-note]");
-    const lockWrap = document.querySelector("[data-admin-lock]");
+    const authWrap = document.querySelector("[data-admin-auth]");
     const lockStatus = document.querySelector("[data-admin-status]");
-    const lockInput = document.querySelector("[data-admin-password]");
-    const unlockBtn = document.querySelector("[data-admin-unlock]");
+    const usernameInput = document.querySelector("[data-admin-username]");
+    const passwordInput = document.querySelector("[data-admin-password]");
+    const loginBtn = document.querySelector("[data-admin-login]");
+    const logoutBtn = document.querySelector("[data-admin-logout]");
+    const authLocked = document.querySelector("[data-auth-locked]");
+    const authUnlocked = document.querySelector("[data-auth-unlocked]");
+    const previewToggle = document.querySelector("[data-preview-toggle]");
+    const previewEl = document.querySelector("[data-preview]");
+    const commentList = document.querySelector("[data-comment-list]");
+    const commentFilter = document.querySelector("[data-comment-filter]");
+    const commentNote = document.querySelector("[data-comment-note]");
     let unlocked = false;
 
     const state = {
@@ -243,47 +318,58 @@ export const prerender = false;
       if (lockStatus) {
         lockStatus.textContent = locked ? "Đang khóa" : "Đã mở khóa";
       }
-      lockWrap?.classList.toggle("opacity-60", locked);
+      authWrap?.classList.toggle("opacity-60", locked);
+      authLocked?.classList.toggle("hidden", !locked);
+      authUnlocked?.classList.toggle("hidden", locked);
       const controls = [
         newBtn,
         publishBtn,
         unpublishBtn,
         submitBtn,
+        deleteBtn,
         coverBtn,
         uploadBtn,
         ...(form ? Array.from(form.querySelectorAll("input, textarea, select, button")) : []),
       ].filter(Boolean);
       controls.forEach((el) => {
-        if (el?.hasAttribute("data-admin-unlock") || el?.hasAttribute("data-admin-password")) return;
+        if (
+          el?.hasAttribute("data-admin-login") ||
+          el?.hasAttribute("data-admin-logout") ||
+          el?.hasAttribute("data-admin-password") ||
+          el?.hasAttribute("data-admin-username")
+        )
+          return;
         el.disabled = locked;
       });
     };
 
     const isUnlocked = () => unlocked;
 
-    const unlock = async () => {
-      if (!lockInput?.value) {
-        lockStatus.textContent = "Nhập mật khẩu";
+    const getCsrfToken = () => {
+      const match = document.cookie.match(/(?:^|; )twaw_admin_csrf=([^;]+)/);
+      return match ? decodeURIComponent(match[1]) : "";
+    };
+
+    const login = async () => {
+      if (!usernameInput?.value || !passwordInput?.value) {
+        lockStatus.textContent = "Nhập username + password";
         return;
       }
-      const res = await fetch("/api/admin/unlock", {
+      const res = await fetch("/api/admin/login", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ password: lockInput.value }),
+        body: JSON.stringify({ username: usernameInput.value, password: passwordInput.value }),
       });
       if (!res.ok) {
-        lockStatus.textContent = "Sai mật khẩu";
+        lockStatus.textContent = "Sai thông tin đăng nhập";
         return;
       }
-      const data = await res.json().catch(() => ({}));
-      if (!data?.unlocked) {
-        lockStatus.textContent = "Sai mật khẩu";
-        return;
-      }
+      await res.json().catch(() => ({}));
       unlocked = true;
-      lockInput.value = "";
+      passwordInput.value = "";
       setLocked(false);
       await loadPosts();
+      await loadComments();
     };
 
     const checkSession = async () => {
@@ -294,17 +380,25 @@ export const prerender = false;
         return;
       }
       const data = await res.json().catch(() => ({}));
-      unlocked = Boolean(data?.unlocked);
+      unlocked = Boolean(data?.authenticated);
       setLocked(!unlocked);
-      if (unlocked) await loadPosts();
+      if (unlocked) {
+        await loadPosts();
+        await loadComments();
+      }
     };
 
-    unlockBtn?.addEventListener("click", unlock);
-    lockInput?.addEventListener("keydown", (event) => {
+    loginBtn?.addEventListener("click", login);
+    passwordInput?.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
         event.preventDefault();
-        unlock();
+        login();
       }
+    });
+    logoutBtn?.addEventListener("click", async () => {
+      await fetch("/api/admin/logout", { method: "POST" });
+      unlocked = false;
+      setLocked(true);
     });
 
     const fields = [
@@ -312,6 +406,7 @@ export const prerender = false;
       "title",
       "slug",
       "summary",
+      "cover_key",
       "cover_url",
       "topic",
       "author",
@@ -320,12 +415,16 @@ export const prerender = false;
       "written_at",
       "photo_time",
       "tags_csv",
+      "published_at",
       "side_note",
       "voice_memo",
       "voice_memo_title",
       "photo_dir",
       "photo_count",
       "pinned",
+      "layout",
+      "sort_order",
+      "status",
       "content_md",
     ];
 
@@ -382,6 +481,71 @@ export const prerender = false;
       renderList();
     };
 
+    const loadComments = async () => {
+      if (!commentList || !isUnlocked()) return;
+      const filter = commentFilter?.value ?? "pending";
+      const res = await fetch(`/api/admin/comments?status=${encodeURIComponent(filter)}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const items = data.comments || [];
+      const escapeHtml = (value = "") =>
+        String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      if (!items.length) {
+        commentList.innerHTML = "<p class='text-sm text-black/50'>Chưa có comment.</p>";
+        return;
+      }
+      commentList.innerHTML = items
+        .map(
+          (item) => `
+            <div class="comment-card">
+              <div class="comment-meta">
+                <span class="comment-name">${escapeHtml(item.display_name || "Ẩn danh")}</span>
+                <span class="comment-time">${new Date(item.created_at).toLocaleString("vi-VN")}</span>
+                <span class="comment-nick">${escapeHtml(item.post_slug)}</span>
+              </div>
+              <p class="comment-body">${escapeHtml(item.body)}</p>
+              <div class="mt-3 flex flex-wrap gap-2">
+                <button class="btn text-xs" data-comment-action="approved" data-comment-id="${item.id}">Duyệt</button>
+                <button class="btn text-xs" data-comment-action="hidden" data-comment-id="${item.id}">Ẩn</button>
+                <button class="btn text-xs" data-comment-action="delete" data-comment-id="${item.id}">Xóa</button>
+              </div>
+            </div>
+          `
+        )
+        .join("");
+      commentList.querySelectorAll("[data-comment-action]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const id = btn.dataset.commentId;
+          const action = btn.dataset.commentAction;
+          if (!id || !action) return;
+          commentNote.textContent = "Đang xử lý comment...";
+          const csrf = getCsrfToken();
+          const res =
+            action === "delete"
+              ? await fetch(`/api/admin/comments/${id}`, {
+                  method: "DELETE",
+                  headers: { "x-csrf-token": csrf },
+                })
+              : await fetch(`/api/admin/comments/${id}`, {
+                  method: "PUT",
+                  headers: { "content-type": "application/json", "x-csrf-token": csrf },
+                  body: JSON.stringify({ status: action }),
+                });
+          if (!res.ok) {
+            commentNote.textContent = "Lỗi xử lý comment.";
+            return;
+          }
+          commentNote.textContent = "Đã cập nhật comment.";
+          await loadComments();
+        });
+      });
+    };
+
     newBtn?.addEventListener("click", () => {
       state.active = null;
       fillForm({});
@@ -418,6 +582,14 @@ export const prerender = false;
         }
         data[name] = input.type === "number" ? Number(input.value || 0) : input.value;
       });
+      if (data.tags_csv) {
+        data.tags_json = JSON.stringify(
+          String(data.tags_csv)
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean)
+        );
+      }
 
       const missingField = requiredFields.find((name) => {
         const value = typeof data[name] === "string" ? data[name].trim() : "";
@@ -438,7 +610,7 @@ export const prerender = false;
       const isNew = !data.id;
       const res = await fetch(isNew ? "/api/admin/posts" : `/api/admin/posts/${data.id}`, {
         method: isNew ? "POST" : "PUT",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", "x-csrf-token": getCsrfToken() },
         body: JSON.stringify(data),
       });
       const payload = await res.json().catch(() => ({}));
@@ -481,7 +653,10 @@ export const prerender = false;
     publishBtn?.addEventListener("click", async () => {
       const id = form?.querySelector("[name='id']")?.value;
       if (!id) return;
-      const res = await fetch(`/api/admin/posts/${id}/publish`, { method: "POST" });
+      const res = await fetch(`/api/admin/posts/${id}/publish`, {
+        method: "POST",
+        headers: { "x-csrf-token": getCsrfToken() },
+      });
       if (!res.ok) {
         if (res.status === 401) {
           unlocked = false;
@@ -500,7 +675,10 @@ export const prerender = false;
     unpublishBtn?.addEventListener("click", async () => {
       const id = form?.querySelector("[name='id']")?.value;
       if (!id) return;
-      const res = await fetch(`/api/admin/posts/${id}/unpublish`, { method: "POST" });
+      const res = await fetch(`/api/admin/posts/${id}/unpublish`, {
+        method: "POST",
+        headers: { "x-csrf-token": getCsrfToken() },
+      });
       if (!res.ok) {
         if (res.status === 401) {
           unlocked = false;
@@ -521,7 +699,10 @@ export const prerender = false;
       if (!saved) return;
       const id = form?.querySelector("[name='id']")?.value;
       if (!id) return;
-      const res = await fetch(`/api/admin/posts/${id}/publish`, { method: "POST" });
+      const res = await fetch(`/api/admin/posts/${id}/publish`, {
+        method: "POST",
+        headers: { "x-csrf-token": getCsrfToken() },
+      });
       if (!res.ok) {
         if (res.status === 401) {
           unlocked = false;
@@ -537,6 +718,37 @@ export const prerender = false;
       fillForm(state.active);
       note.textContent = "Đã đăng bài.";
     });
+
+    deleteBtn?.addEventListener("click", async () => {
+      const id = form?.querySelector("[name='id']")?.value;
+      if (!id) return;
+      if (!confirm("Xóa bài này?")) return;
+      const res = await fetch(`/api/admin/posts/${id}`, {
+        method: "DELETE",
+        headers: { "x-csrf-token": getCsrfToken() },
+      });
+      if (!res.ok) {
+        note.textContent = "Xóa lỗi, thử lại nhé.";
+        return;
+      }
+      note.textContent = "Đã xóa.";
+      await loadPosts();
+      fillForm({});
+    });
+
+    previewToggle?.addEventListener("click", () => {
+      if (!previewEl) return;
+      previewEl.classList.toggle("hidden");
+      const content = form?.querySelector("[name='content_md']")?.value ?? "";
+      previewEl.innerHTML = marked.parse(content);
+    });
+
+    form?.querySelector("[name='content_md']")?.addEventListener("input", () => {
+      if (!previewEl || previewEl.classList.contains("hidden")) return;
+      previewEl.innerHTML = marked.parse(form.querySelector("[name='content_md']").value || "");
+    });
+
+    commentFilter?.addEventListener("change", loadComments);
 
     checkSession();
 
@@ -585,6 +797,7 @@ export const prerender = false;
       );
       const res = await fetch("/api/admin/upload", {
         method: "POST",
+        headers: { "x-csrf-token": getCsrfToken() },
         body: formData,
       });
       if (!res.ok) {
@@ -619,9 +832,14 @@ export const prerender = false;
       try {
         const payload = await uploadImage({ file, slug: safeSlug, filename });
         const coverInput = form?.querySelector("[name='cover_url']");
+        const coverKeyInput = form?.querySelector("[name='cover_key']");
         if (payload.url && coverInput) {
           coverInput.value = payload.url;
           coverInput.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+        if (payload.key && coverKeyInput) {
+          coverKeyInput.value = payload.key;
+          coverKeyInput.dispatchEvent(new Event("input", { bubbles: true }));
         }
         const contentField = form?.querySelector("[name='content_md']");
         if (payload.url && contentField && !contentField.value.includes(payload.url)) {
