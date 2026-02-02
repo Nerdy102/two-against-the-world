@@ -13,7 +13,7 @@ const posts = defineCollection({
     description: z.string().default(""),
     pubDate: z.coerce.date(),
 
-    // Cover image (usually in /public/photos/<photoDir>/cover.jpg)
+    // Cover image (usually in /public/photos/<photoDir>/cover.jpg or cover.png)
     cover: z.string(),
 
     // Drop your images in /public/photos/<photoDir>/01.jpg .. N
