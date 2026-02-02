@@ -31,7 +31,7 @@
       "binding": "BUCKET",
       "bucket_name": "twaw-media"
     }
-  ]
+  ],
 
   // Secrets are not stored here.
   // Use:

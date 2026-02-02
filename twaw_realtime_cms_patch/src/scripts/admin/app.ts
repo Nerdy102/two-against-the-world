@@ -263,9 +263,11 @@ function renderApp(root: HTMLElement, posts: DbPost[]) {
       btn.type = "button";
       btn.className = "twaw-admin-post";
       btn.dataset.id = p.id;
+      const safeTitle = escapeHTML(p.title);
+      const safeSlug = escapeHTML(p.slug);
       btn.innerHTML = `
-        <div class="twaw-admin-post__title">${escapeHTML(p.title)}</div>
-        <div class="twaw-admin-post__meta">${p.draft ? "draft" : "published"} • ${p.slug}</div>
+        <div class="twaw-admin-post__title">${safeTitle}</div>
+        <div class="twaw-admin-post__meta">${p.draft ? "draft" : "published"} • ${safeSlug}</div>
       `;
       btn.addEventListener("click", () => setEditor(p));
       postListEl.appendChild(btn);
