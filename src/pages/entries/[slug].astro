@@ -65,6 +65,7 @@ const wallImages = [
   { src: post.cover_url ?? "/noise.svg", alt: `${post.title} — cover` },
   ...photos.map((src, i) => ({ src, alt: `${post.title} — photo ${i + 1}` })),
 ];
+const useBlendedStory = photos.length === 0;
 ---
 
 <BaseLayout title={post.title} description={post.summary ?? ""}>
@@ -81,7 +82,7 @@ const wallImages = [
         </p>
       )}
 
-      <div class="mt-5 flex flex-wrap items-center gap-3 text-[12px] text-black/60">
+      <div class="entry-meta mt-5 flex flex-wrap items-center gap-3 text-[12px] text-black/60">
         <span>Chủ đề: {topicLabel(post.topic ?? undefined)}</span>
         <span>•</span>
         <span>{formatDate(post.published_at ?? post.created_at)}</span>
@@ -89,9 +90,11 @@ const wallImages = [
     </div>
 
     {/* PHOTO WALL */}
-    <section class="mt-10" aria-label="Bức tường ảnh">
-      <FrameWall images={wallImages} seed={post.slug} />
-    </section>
+    {!useBlendedStory && (
+      <section class="mt-10" aria-label="Bức tường ảnh">
+        <FrameWall images={wallImages} seed={post.slug} />
+      </section>
+    )}
 
     {/* MEDIA */}
     {voiceMemo && (
@@ -111,9 +114,20 @@ const wallImages = [
 
     {/* NOTES / BODY */}
     <section class="mt-10" aria-label="Ghi chú" data-reveal>
-      <div class="paper edge-torn p-6 sm:p-10 prose prose-scrap max-w-none">
-        <div set:html={contentHtml} />
-      </div>
+      {useBlendedStory ? (
+        <div class="paper edge-torn post-blend">
+          <div class="post-blend__media">
+            <FrameWall images={wallImages} seed={post.slug} />
+          </div>
+          <div class="post-blend__body p-6 sm:p-10 prose prose-scrap max-w-none">
+            <div set:html={contentHtml} />
+          </div>
+        </div>
+      ) : (
+        <div class="paper edge-torn p-6 sm:p-10 prose prose-scrap max-w-none">
+          <div set:html={contentHtml} />
+        </div>
+      )}
     </section>
 
     {/* COMMENTS */}
@@ -183,19 +197,26 @@ const wallImages = [
           <button class="share-btn" type="button" data-share-link aria-label="Chia sẻ bài viết" title="Chia sẻ">
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <path
-                d="M21.5 2.5L11 13l-2.5 8.5 3.5-6.5L21.5 2.5Z"
-                fill="currentColor"
+                d="M21 3L10.5 13.5"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
               />
               <path
-                d="M21.5 2.5L11 13l-4-1.5 14.5-9Z"
-                fill="currentColor"
-                opacity="0.6"
+                d="M21 3l-7.5 18-3.2-6.3L4 11.5 21 3z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
               />
             </svg>
             <span class="sr-only">Copy link</span>
           </button>
           <span class="text-xs text-black/50" data-reaction-state>Chọn icon để thả cảm xúc.</span>
-          <span class="text-xs text-black/50" data-share-state></span>
+          <span class="share-toast" data-share-state role="status" aria-live="polite" aria-atomic="true"></span>
         </div>
 
         <form class="comment-form mt-6" data-comment-form data-comment-slug={post.slug}>
@@ -230,7 +251,7 @@ const wallImages = [
 
     {/* META GRID */}
     <section class="mt-10" aria-label="Chi tiết bài viết" data-reveal>
-      <div class="paper paper--alt edge-torn p-6 sm:p-10">
+      <div class="paper paper--alt edge-torn p-6 sm:p-10 entry-meta-wrap">
         <div class="kicker text-xs text-black/50">CHUYỆN LẮT NHẮT ✨</div>
         <h2 class="mt-3 text-[26px] sm:text-[32px] font-semibold text-black/80">Chuyện nhỏ xíu ✨</h2>
 
@@ -449,12 +470,36 @@ const wallImages = [
         });
       });
 
+      let shareTimeout = null;
+      const showShareToast = (message, variant = "success") => {
+        if (!shareState) return;
+        shareState.textContent = message;
+        shareState.dataset.state = variant;
+        shareState.classList.add("is-visible");
+        if (shareTimeout) window.clearTimeout(shareTimeout);
+        shareTimeout = window.setTimeout(() => {
+          shareState.classList.remove("is-visible");
+          shareState.textContent = "";
+          shareState.dataset.state = "";
+        }, 1200);
+      };
+
       shareBtn?.addEventListener("click", async () => {
-        try {
-          await navigator.clipboard.writeText(window.location.href);
-          if (shareState) shareState.textContent = "Đã copy link!";
-        } catch (error) {
-          if (shareState) shareState.textContent = "Không copy được, thử lại.";
+        const url = window.location.href;
+        if (navigator.clipboard?.writeText) {
+          try {
+            await navigator.clipboard.writeText(url);
+            showShareToast("Đã sao chép liên kết");
+            return;
+          } catch (error) {
+            // fall through to manual copy prompt
+          }
+        }
+        const manual = window.prompt("Sao chép liên kết:", url);
+        if (manual !== null) {
+          showShareToast("Đã mở hộp sao chép");
+        } else {
+          showShareToast("Không sao chép được", "error");
         }
       });
 

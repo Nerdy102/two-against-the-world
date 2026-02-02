@@ -37,13 +37,6 @@
 		"PUBLIC_ENABLE_PINNED_FIELDS": "true",
 		"PUBLIC_ENABLE_UPLOAD_HELPERS": "true"
 	},
-	"kv_namespaces": [
-		{
-			"binding": "SESSION",
-			"id": "ece9e673958e4eb988af227bed336363",
-			"preview_id": "d229ecb7f05d4797b5aa16a99514c7b2"
-		}
-	],
 	"workers_dev": true,
 	"preview_urls": true
 }

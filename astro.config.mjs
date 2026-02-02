@@ -4,6 +4,9 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   adapter: cloudflare(),
+  session: {
+    driver: "memory",
+  },
   image: {
     serviceEntryPoint: "astro/assets/services/compile",
   },
