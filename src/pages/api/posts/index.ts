@@ -1,10 +1,11 @@
 import type { APIRoute } from "astro";
-import { getDb, type PostRecord } from "../../../lib/d1";
+import { ensurePostsSchema, getDb, type PostRecord } from "../../../lib/d1";
 
 export const prerender = false;
 
 export const GET: APIRoute = async ({ locals }) => {
   const db = getDb(locals);
+  await ensurePostsSchema(db);
   const { results } = await db
     .prepare(
       `SELECT id, slug, title, summary, cover_url, status, author, topic, published_at, created_at, updated_at

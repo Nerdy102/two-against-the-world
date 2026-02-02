@@ -3,11 +3,12 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import RansomTitle from "../../components/RansomTitle.astro";
 import TopicCard from "../../components/TopicCard.astro";
 import { TOPICS } from "../../config/topics";
-import { getDb, type PostRecord } from "../../lib/d1";
+import { ensurePostsSchema, getDb, type PostRecord } from "../../lib/d1";
 
 export const prerender = false;
 
 const db = getDb(Astro.locals);
+await ensurePostsSchema(db);
 const { results: posts = [] } = await db
   .prepare(
     `SELECT topic

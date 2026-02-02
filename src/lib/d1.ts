@@ -12,6 +12,45 @@ export function getDb(locals: App.Locals): D1Database {
   return db;
 }
 
+type PostColumnDefinition = {
+  name: string;
+  sql: string;
+};
+
+const POST_COLUMNS: PostColumnDefinition[] = [
+  { name: "topic", sql: "topic TEXT" },
+  { name: "location", sql: "location TEXT" },
+  { name: "event_time", sql: "event_time TEXT" },
+  { name: "written_at", sql: "written_at TEXT" },
+  { name: "photo_time", sql: "photo_time TEXT" },
+  { name: "tags_csv", sql: "tags_csv TEXT" },
+  { name: "side_note", sql: "side_note TEXT" },
+  { name: "voice_memo", sql: "voice_memo TEXT" },
+  { name: "voice_memo_title", sql: "voice_memo_title TEXT" },
+  { name: "photo_dir", sql: "photo_dir TEXT" },
+  { name: "photo_count", sql: "photo_count INTEGER DEFAULT 0" },
+  { name: "pinned", sql: "pinned INTEGER DEFAULT 0" },
+];
+
+let postsSchemaReady: Promise<void> | null = null;
+
+export async function ensurePostsSchema(db: D1Database): Promise<void> {
+  if (postsSchemaReady) {
+    return postsSchemaReady;
+  }
+  postsSchemaReady = (async () => {
+    const { results } = await db
+      .prepare("PRAGMA table_info(posts)")
+      .all<{ name: string }>();
+    const existing = new Set((results ?? []).map((row) => row.name));
+    for (const column of POST_COLUMNS) {
+      if (existing.has(column.name)) continue;
+      await db.prepare(`ALTER TABLE posts ADD COLUMN ${column.sql}`).run();
+    }
+  })();
+  return postsSchemaReady;
+}
+
 export type PostRecord = {
   id: string;
   slug: string;
