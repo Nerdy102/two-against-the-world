@@ -31,16 +31,20 @@ export const prerender = false;
           <span class="text-xs text-black/50" data-post-status>Chưa chọn bài</span>
         </div>
         <form class="mt-4 space-y-4" data-post-form>
+          <p class="text-xs text-black/60">Trường có <span class="text-red-500">*</span> là bắt buộc.</p>
           <input type="hidden" name="id" />
 
           <label class="compose-field">
-            <span>Tiêu đề</span>
+            <span>Tiêu đề <span class="text-red-500">*</span></span>
             <input class="input" name="title" placeholder="Tiêu đề bài viết" required />
           </label>
 
           <label class="compose-field">
-            <span>Slug</span>
-            <input class="input" name="slug" placeholder="slug-bai-viet" required />
+            <span>Đường dẫn bài viết <span class="text-red-500">*</span></span>
+            <input class="input" name="slug" placeholder="vi-du-duong-dan-bai-viet" required />
+            <p class="mt-2 text-xs text-black/50">
+              Gợi ý: Tự tạo từ tiêu đề (tiếng Việt), sẽ bỏ dấu và thay khoảng trắng bằng dấu gạch ngang.
+            </p>
           </label>
 
           <label class="compose-field">
@@ -48,10 +52,22 @@ export const prerender = false;
             <input class="input" name="summary" placeholder="Một câu giới thiệu ngắn" />
           </label>
 
-          <label class="compose-field">
-            <span>Ảnh cover (URL)</span>
-            <input class="input" name="cover_url" placeholder="https://..." />
-          </label>
+          <div class="compose-field">
+            <span>Ảnh cover (upload)</span>
+            <input type="hidden" name="cover_url" />
+            <input
+              class="input"
+              type="file"
+              name="cover_upload"
+              accept="image/*,image/heic,image/heif"
+              capture="environment"
+            />
+            <p class="mt-2 text-xs text-black/50">
+              Chọn ảnh từ iPhone (HEIC/HEIF sẽ được tự tối ưu sang JPG). Ảnh cover sẽ tự chèn vào bài.
+            </p>
+            <button class="btn mt-3" type="button" data-upload-cover>Upload ảnh cover</button>
+            <p class="text-xs text-black/50" data-cover-note></p>
+          </div>
 
           <label class="compose-field">
             <span>Chủ đề</span>
@@ -133,9 +149,16 @@ export const prerender = false;
 
           <div class="compose-field">
             <span>Upload ảnh iPhone (tối ưu)</span>
-            <input class="input" type="file" name="upload_photos" accept="image/*" multiple />
+            <input
+              class="input"
+              type="file"
+              name="upload_photos"
+              accept="image/*,image/heic,image/heif"
+              multiple
+            />
             <p class="mt-2 text-xs text-black/50">
-              HEIC có thể không upload được. Nếu lỗi, vào Camera → Formats → chọn “Most Compatible”.
+              Tối ưu kích thước và nén nhẹ để đăng nhanh. Nếu ảnh HEIC lỗi, hãy chọn “Most Compatible” trong
+              Camera → Formats.
             </p>
             <button class="btn mt-3" type="button" data-upload-photos>Upload ảnh</button>
             <p class="text-xs text-black/50" data-upload-note></p>
@@ -152,10 +175,13 @@ export const prerender = false;
     </section>
   </main>
 
-  <script is:inline>
+  <script>
+    import heic2any from "heic2any";
+
     const slugify = (s = "") =>
       s
         .toLowerCase()
+        .replace(/đ/g, "d")
         .normalize("NFKD")
         .replace(/[^\w\s-]/g, "")
         .trim()
@@ -174,6 +200,10 @@ export const prerender = false;
       posts: [],
       active: null,
       dirty: false,
+    };
+
+    const markDirty = () => {
+      state.dirty = true;
     };
 
     const fields = [
@@ -330,14 +360,25 @@ export const prerender = false;
 
     loadPosts();
 
+    const coverBtn = document.querySelector("[data-upload-cover]");
+    const coverNote = document.querySelector("[data-cover-note]");
     const uploadBtn = document.querySelector("[data-upload-photos]");
     const uploadNote = document.querySelector("[data-upload-note]");
 
+    const isHeic = (file) => {
+      const name = file?.name?.toLowerCase() || "";
+      return file?.type === "image/heic" || file?.type === "image/heif" || name.endsWith(".heic");
+    };
+
+    const toJpegBlob = async (file, quality = 0.82) => {
+      if (!isHeic(file)) return file;
+      const blob = await heic2any({ blob: file, toType: "image/jpeg", quality });
+      return blob instanceof Blob ? blob : new Blob([blob], { type: "image/jpeg" });
+    };
+
     const resizeImage = async (file, maxSize = 2048, quality = 0.82) => {
-      if (file.type === "image/heic" || file.name.toLowerCase().endsWith(".heic")) {
-        throw new Error("HEIC_NOT_SUPPORTED");
-      }
-      const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+      const source = await toJpegBlob(file, quality);
+      const bitmap = await createImageBitmap(source, { imageOrientation: "from-image" });
       const ratio = Math.min(1, maxSize / Math.max(bitmap.width, bitmap.height));
       const targetWidth = Math.round(bitmap.width * ratio);
       const targetHeight = Math.round(bitmap.height * ratio);
@@ -352,6 +393,58 @@ export const prerender = false;
       return { blob, width: targetWidth, height: targetHeight };
     };
 
+    const uploadImage = async ({ file, slug, filename }) => {
+      const { blob, width, height } = await resizeImage(file);
+      const formData = new FormData();
+      formData.append("file", blob, filename);
+      formData.append("slug", slug);
+      formData.append(
+        "meta",
+        JSON.stringify({
+          width,
+          height,
+          size: blob.size,
+          originalName: file.name,
+          fileName: filename,
+        })
+      );
+      const res = await fetch("/api/admin/upload", {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) throw new Error("UPLOAD_FAILED");
+      return res.json();
+    };
+
+    coverBtn?.addEventListener("click", async () => {
+      const input = form?.querySelector("input[name='cover_upload']");
+      const file = input?.files?.[0];
+      if (!file) return;
+      coverNote.textContent = "Đang xử lý ảnh cover...";
+      const slug = form?.querySelector("[name='slug']")?.value || "untitled";
+      const safeSlug = slugify(slug);
+      const filenameBase = file.name.replace(/\.[^.]+$/, "");
+      const filename = `${filenameBase || "cover"}-${Date.now()}.jpg`;
+      try {
+        const payload = await uploadImage({ file, slug: safeSlug, filename });
+        const coverInput = form?.querySelector("[name='cover_url']");
+        if (payload.url && coverInput) {
+          coverInput.value = payload.url;
+          coverInput.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+        const contentField = form?.querySelector("[name='content_md']");
+        if (payload.url && contentField && !contentField.value.includes(payload.url)) {
+          contentField.value = `![cover](${payload.url})\n\n${contentField.value}`.trim();
+          contentField.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+        coverNote.textContent = "Đã upload ảnh cover.";
+        input.value = "";
+        markDirty();
+      } catch (error) {
+        coverNote.textContent = "Upload ảnh cover lỗi. Thử lại hoặc đổi định dạng ảnh.";
+      }
+    });
+
     uploadBtn?.addEventListener("click", async () => {
       const input = form?.querySelector("input[name='upload_photos']");
       if (!input?.files?.length) return;
@@ -362,38 +455,18 @@ export const prerender = false;
       let successCount = 0;
       for (const [index, file] of Array.from(input.files).entries()) {
         try {
-          const { blob, width, height } = await resizeImage(file);
-          const formData = new FormData();
           const paddedIndex = String(index + 1).padStart(3, "0");
           const filename = `${date}_${safeSlug}_${paddedIndex}.jpg`;
-          formData.append("file", blob, filename);
-          formData.append("slug", safeSlug);
-          formData.append(
-            "meta",
-            JSON.stringify({
-              width,
-              height,
-              size: blob.size,
-              originalName: file.name,
-              fileName: filename,
-            })
-          );
-          const res = await fetch("/api/admin/upload", {
-            method: "POST",
-            body: formData,
-          });
-          if (!res.ok) throw new Error("UPLOAD_FAILED");
-          const payload = await res.json();
+          const payload = await uploadImage({ file, slug: safeSlug, filename });
           const contentField = form?.querySelector("[name='content_md']");
           if (payload.url && contentField) {
             contentField.value += `\n\n![${filename}](${payload.url})`;
+            contentField.dispatchEvent(new Event("input", { bubbles: true }));
+            markDirty();
           }
           successCount += 1;
         } catch (error) {
-          if (error?.message === "HEIC_NOT_SUPPORTED") {
-            uploadNote.textContent = "Ảnh HEIC chưa hỗ trợ. Hãy đổi Camera → Formats → Most Compatible.";
-            return;
-          }
+          uploadNote.textContent = "Có ảnh upload lỗi. Thử lại hoặc đổi định dạng ảnh.";
         }
       }
       uploadNote.textContent = `Đã upload ${successCount} ảnh.`;
