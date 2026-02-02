@@ -4,18 +4,27 @@ import RansomTitle from "../../components/RansomTitle.astro";
 import TopicCard from "../../components/TopicCard.astro";
 import { TOPICS } from "../../config/topics";
 import { ensurePostsSchema, getDb, type PostRecord } from "../../lib/d1";
+import { getPublishedPostsFromContent, mergePostsBySlug } from "../../lib/posts";
 
 export const prerender = false;
 
-const db = getDb(Astro.locals);
-await ensurePostsSchema(db);
-const { results: posts = [] } = await db
-  .prepare(
-    `SELECT topic
-     FROM posts
-     WHERE status = 'published'`
-  )
-  .all<PostRecord>();
+let posts: PostRecord[] = [];
+try {
+  const db = getDb(Astro.locals);
+  await ensurePostsSchema(db);
+  const { results = [] } = await db
+    .prepare(
+      `SELECT id, slug, title, summary, cover_url, topic, published_at, created_at, pinned
+       FROM posts
+       WHERE status = 'published'`
+    )
+    .all<PostRecord>();
+  const contentPosts = await getPublishedPostsFromContent();
+  posts = mergePostsBySlug(results, contentPosts);
+} catch (err) {
+  console.warn("Using content posts fallback:", err);
+  posts = await getPublishedPostsFromContent();
+}
 
 const counts: Record<string, number> = {};
 for (const p of posts) {
