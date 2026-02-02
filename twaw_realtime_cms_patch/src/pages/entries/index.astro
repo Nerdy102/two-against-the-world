@@ -1,0 +1,114 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getCollection } from "astro:content";
+import { getPublishedPosts } from "../../lib/server/posts";
+
+const env = Astro.locals.runtime.env as Env;
+
+// DB posts (published)
+const dbPosts = await getPublishedPosts(env.DB, 200);
+
+// File-based posts (existing) — keep them working.
+const contentPosts = await getCollection("posts");
+
+type AnyPost = {
+  source: "db" | "content";
+  slug: string;
+  title: string;
+  excerpt: string;
+  dateMs: number;
+  pinned: boolean;
+  topic: string | null;
+  author: string | null;
+};
+
+function asMs(d: any): number {
+  if (!d) return 0;
+  if (d instanceof Date) return d.getTime();
+  const t = new Date(String(d)).getTime();
+  return Number.isFinite(t) ? t : 0;
+}
+
+const normalized: AnyPost[] = [
+  ...dbPosts.map((p) => ({
+    source: "db",
+    slug: p.slug,
+    title: p.title,
+    excerpt: p.excerpt ?? "",
+    dateMs: p.published_at ?? p.created_at,
+    pinned: Boolean(p.pinned),
+    topic: p.topic ?? null,
+    author: p.author ?? null,
+  })),
+  ...contentPosts.map((p: any) => {
+    const data = p.data ?? {};
+    const dateMs = asMs(data.postedAt ?? data.pubDate ?? data.date ?? data.createdAt);
+    return {
+      source: "content",
+      slug: p.slug,
+      title: String(data.title ?? p.slug),
+      excerpt: String(data.description ?? data.excerpt ?? ""),
+      dateMs,
+      pinned: Boolean(data.pinned),
+      topic: data.topic ? String(data.topic) : null,
+      author: data.author ? String(data.author) : null,
+    } as AnyPost;
+  }),
+];
+
+const posts = normalized
+  // Remove drafts from content if you have a draft flag
+  .filter((p: any) => {
+    if (p.source !== "content") return true;
+    const src = contentPosts.find((x: any) => x.slug === p.slug);
+    return !src?.data?.draft;
+  })
+  .sort((a, b) => {
+    if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+    return (b.dateMs ?? 0) - (a.dateMs ?? 0);
+  });
+
+const title = "Entries";
+---
+
+<BaseLayout title={title}>
+  <main class="twaw-entries">
+    <header class="twaw-entries__header">
+      <h1>Entries</h1>
+      <p class="twaw-muted">New posts published from <a href="/admin">/admin</a> show up here instantly.</p>
+    </header>
+
+    <ul class="twaw-entries__list">
+      {posts.map((p) => (
+        <li class="twaw-entry" data-source={p.source}>
+          <a href={`/entries/${p.slug}`} class="twaw-entry__link">
+            <div class="twaw-entry__top">
+              <h2 class="twaw-entry__title">
+                {p.title}
+                {p.pinned ? <span class="twaw-badge">pinned</span> : null}
+              </h2>
+              <div class="twaw-entry__meta">
+                {p.dateMs ? new Date(p.dateMs).toLocaleDateString() : ""}
+                {p.topic ? <span> • {p.topic}</span> : null}
+                {p.author ? <span> • {p.author}</span> : null}
+              </div>
+            </div>
+            {p.excerpt ? <p class="twaw-entry__excerpt">{p.excerpt}</p> : null}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </main>
+
+  <style>
+    .twaw-entries{max-width: 850px; margin: 0 auto; padding: 1rem;}
+    .twaw-muted{opacity:.75}
+    .twaw-entries__header h1{margin:0}
+    .twaw-entries__list{list-style:none; padding:0; margin:1rem 0 0; display:flex; flex-direction:column; gap:0.75rem}
+    .twaw-entry__link{display:block; padding:0.9rem; border-radius:14px; border:1px solid rgba(0,0,0,.12); text-decoration:none}
+    .twaw-entry__title{margin:0; font-size:1.1rem; display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap}
+    .twaw-entry__meta{opacity:.7; font-size:0.9rem; margin-top:0.3rem}
+    .twaw-entry__excerpt{margin:0.6rem 0 0; opacity:.85}
+    .twaw-badge{font-size:0.75rem; padding:0.12rem 0.45rem; border-radius:999px; border:1px solid rgba(0,0,0,.12); opacity:.85}
+  </style>
+</BaseLayout>

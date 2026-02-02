@@ -1,0 +1,157 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getEntry } from "astro:content";
+import { getPostBySlug } from "../../lib/server/posts";
+import { renderMarkdown } from "../../lib/server/markdown";
+
+import commentsScript from "../../scripts/comments";
+import reactionsScript from "../../scripts/reactions";
+
+const env = Astro.locals.runtime.env as Env;
+const slug = String(Astro.params.slug || "");
+
+const dbPost = slug ? await getPostBySlug(env.DB, slug) : null;
+
+let title = "Not found";
+let excerpt: string | null = null;
+let topic: string | null = null;
+let author: string | null = null;
+let dateMs: number = 0;
+let pinned = false;
+let coverUrl: string | null = null;
+let html: string | null = null;
+let Content: any = null;
+
+if (dbPost && !dbPost.draft) {
+  title = dbPost.title;
+  excerpt = dbPost.excerpt;
+  topic = dbPost.topic;
+  author = dbPost.author;
+  dateMs = dbPost.published_at ?? dbPost.created_at;
+  pinned = Boolean(dbPost.pinned);
+  coverUrl = dbPost.cover_key ? `/media/${dbPost.cover_key}` : null;
+  html = renderMarkdown(dbPost.content_md);
+} else {
+  const entry = slug ? await getEntry("posts", slug) : null;
+  if (!entry) {
+    throw new Response("Not found", { status: 404 });
+  }
+  const data: any = entry.data ?? {};
+  title = String(data.title ?? slug);
+  excerpt = (data.description ?? data.excerpt ?? null) ? String(data.description ?? data.excerpt) : null;
+  topic = data.topic ? String(data.topic) : null;
+  author = data.author ? String(data.author) : null;
+  dateMs = data.postedAt instanceof Date ? data.postedAt.getTime() : new Date(String(data.postedAt ?? data.pubDate ?? data.date ?? Date.now())).getTime();
+  pinned = Boolean(data.pinned);
+  // coverUrl: if your content posts have a cover image field, set it here.
+  // coverUrl = data.cover ? String(data.cover) : null;
+
+  const rendered = await entry.render();
+  Content = rendered.Content;
+}
+
+const pageTitle = title;
+const turnstileSiteKey = env.TURNSTILE_SITE_KEY ?? null;
+---
+
+<BaseLayout title={pageTitle}>
+  <article class="twaw-post">
+    <header class="twaw-post__header">
+      <a class="twaw-post__back" href="/entries">← Back</a>
+
+      <h1 class="twaw-post__title">
+        {title}
+        {pinned ? <span class="twaw-badge">pinned</span> : null}
+      </h1>
+
+      <div class="twaw-post__meta">
+        {dateMs ? new Date(dateMs).toLocaleDateString() : ""}
+        {topic ? <span> • {topic}</span> : null}
+        {author ? <span> • {author}</span> : null}
+      </div>
+
+      {excerpt ? <p class="twaw-post__excerpt">{excerpt}</p> : null}
+
+      {coverUrl ? <img class="twaw-post__cover" src={coverUrl} alt="cover" loading="lazy" /> : null}
+    </header>
+
+    <div class="twaw-post__content">
+      {html ? <div set:html={html} /> : Content ? <Content /> : null}
+    </div>
+
+    <hr class="twaw-divider" />
+
+    <!-- Reactions -->
+    <section class="twaw-reactions" data-reactions data-slug={slug}>
+      <button class="twaw-heart" type="button" data-heart-button aria-pressed="false">
+        ❤️ <span data-heart-count>0</span>
+      </button>
+      <span class="twaw-muted">Tap heart to react</span>
+    </section>
+
+    <!-- Comments -->
+    <section class="twaw-comments" data-comments data-slug={slug}>
+      <h2>Comments</h2>
+
+      <form class="twaw-comment-form" data-comment-form>
+        <label>
+          <span>Name</span>
+          <input name="name" required maxlength="32" />
+        </label>
+
+        <label>
+          <span>Message</span>
+          <textarea name="message" rows="4" required maxlength="1200"></textarea>
+        </label>
+
+        {turnstileSiteKey ? (
+          <div class="twaw-turnstile">
+            <div class="cf-turnstile" data-sitekey={turnstileSiteKey}></div>
+          </div>
+        ) : null}
+
+        <button type="submit">Send</button>
+        <p class="twaw-comment-status" data-comment-status></p>
+      </form>
+
+      <ul class="twaw-comment-list" data-comment-list></ul>
+    </section>
+  </article>
+
+  {turnstileSiteKey ? (
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  ) : null}
+
+  <script type="module" src={reactionsScript}></script>
+  <script type="module" src={commentsScript}></script>
+
+  <style>
+    .twaw-post{max-width: 850px; margin: 0 auto; padding: 1rem;}
+    .twaw-post__back{opacity:.7; text-decoration:none}
+    .twaw-post__title{margin:0.6rem 0 0; font-size: 1.8rem; line-height:1.2; display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center}
+    .twaw-post__meta{opacity:.7; margin-top:0.35rem}
+    .twaw-post__excerpt{opacity:.85; margin:0.75rem 0 0}
+    .twaw-post__cover{width:100%; border-radius: 18px; border: 1px solid rgba(0,0,0,.12); margin-top:1rem}
+    .twaw-post__content{margin-top: 1.2rem}
+    .twaw-divider{margin: 2rem 0; opacity:.35}
+    .twaw-badge{font-size:0.75rem; padding:0.12rem 0.45rem; border-radius:999px; border:1px solid rgba(0,0,0,.12); opacity:.85}
+    .twaw-muted{opacity:.7}
+
+    .twaw-reactions{display:flex; align-items:center; gap:0.75rem}
+    .twaw-heart{border:1px solid rgba(0,0,0,.16); border-radius: 999px; padding:0.45rem 0.75rem; cursor:pointer; background: transparent}
+    .twaw-heart[data-reacted="1"]{border-color: rgba(255,0,120,.55)}
+
+    .twaw-comments{margin-top: 1.5rem}
+    .twaw-comment-form{display:flex; flex-direction:column; gap:0.75rem; border:1px solid rgba(0,0,0,.12); padding:0.9rem; border-radius: 16px}
+    .twaw-comment-form label{display:flex; flex-direction:column; gap:0.35rem}
+    .twaw-comment-form input, .twaw-comment-form textarea{padding:0.55rem 0.65rem; border:1px solid rgba(0,0,0,.16); border-radius: 12px; width:100%}
+    .twaw-comment-form button{padding:0.55rem 0.85rem; border-radius: 12px; border:1px solid rgba(0,0,0,.16); cursor:pointer}
+    .twaw-comment-status{min-height:1.25rem; margin:0; opacity:.8}
+
+    .twaw-comment-list{list-style:none; padding:0; margin:1rem 0 0; display:flex; flex-direction:column; gap:0.75rem}
+    .twaw-comment{border:1px solid rgba(0,0,0,.12); border-radius: 16px; padding:0.75rem}
+    .twaw-comment__header{display:flex; flex-wrap:wrap; align-items:baseline; gap:0.25rem}
+    .twaw-comment__time{opacity:.7; font-size:0.85rem}
+    .twaw-comment__msg{margin:0.55rem 0 0; white-space:pre-wrap}
+  </style>
+</BaseLayout>

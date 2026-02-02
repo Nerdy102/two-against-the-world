@@ -1,0 +1,45 @@
+{
+  // NOTE:
+  // - Keep your existing name/compatibility_date.
+  // - Add D1 + R2 bindings + secrets.
+  // - If you switch to Astro SSR (output: "server" + @astrojs/cloudflare),
+  //   Astro will build a Worker entry at ./dist/_worker.js.
+  "name": "two-against-the-world",
+  "compatibility_date": "2026-01-31",
+
+  // Astro SSR output (Cloudflare adapter) puts the Worker entry here.
+  // If your build output differs, update this path.
+  "main": "./dist/_worker.js",
+
+  // Static assets (Astro client assets & images) live in dist as well.
+  "assets": {
+    "directory": "./dist"
+  },
+
+  // ----- D1 (comments, reactions, posts) -----
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "twaw-db",
+      "database_id": "PUT_YOUR_D1_DATABASE_ID_HERE"
+    }
+  ],
+
+  // ----- R2 (uploads) -----
+  "r2_buckets": [
+    {
+      "binding": "BUCKET",
+      "bucket_name": "twaw-media"
+    }
+  ]
+
+  // Secrets are not stored here.
+  // Use:
+  //   wrangler secret put ADMIN_PASSWORD_HASH
+  //   wrangler secret put SESSION_SECRET
+  //   wrangler secret put IP_HASH_SALT
+  // Optional anti-spam:
+  //   wrangler secret put TURNSTILE_SECRET_KEY
+  // And (non-secret) var (or secret):
+  //   wrangler secret put TURNSTILE_SITE_KEY
+}
