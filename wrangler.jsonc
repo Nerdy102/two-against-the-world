@@ -33,6 +33,11 @@
     "preview_id": "d229ecb7f05d4797b5aa16a99514c7b2"
   } 
   ],
+  "assets": {
+  "directory": "./dist",
+  "binding": "ASSETS"
+  },
+
 	"workers_dev": true,
 	"preview_urls": true,
 	"kv_namespaces": [
