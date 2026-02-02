@@ -1,24 +1,28 @@
 ---
-import { getCollection, getEntryBySlug } from "astro:content";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import RansomTitle from "../../components/RansomTitle.astro";
 import FrameWall from "../../components/FrameWall.astro";
 import { formatDate } from "../../lib/formatDate";
 import { topicLabel, topicMeta } from "../../config/topics";
-import { PASSCODE } from "../../config/secrets";
+import { getDb, type PostRecord } from "../../lib/d1";
+import { marked } from "marked";
 
-export async function getStaticPaths() {
-  const posts = await getCollection("posts");
-  return posts.map((post) => ({
-    params: { slug: post.slug },
-  }));
-}
+export const prerender = false;
 
 const { slug } = Astro.params;
-const post = await getEntryBySlug("posts", slug!);
+const db = getDb(Astro.locals);
+const post = await db
+  .prepare(
+    `SELECT *
+     FROM posts
+     WHERE slug = ? AND status = 'published'
+     LIMIT 1`
+  )
+  .bind(slug)
+  .first<PostRecord>();
 if (!post) throw new Error(`Post not found: ${slug}`);
 
-const { Content } = await post.render();
+const contentHtml = marked.parse(post.content_md ?? "");
 
 // Safe helpers (avoid blank rendering)
 const s = (v: unknown) => (typeof v === "string" ? v.trim() : "");
@@ -26,18 +30,20 @@ const joinTags = (tags: unknown) =>
   Array.isArray(tags) ? tags.filter(Boolean).join(", ") : "";
 
 // Pull meta fields (your schema provides defaults, but this keeps it robust)
-const author = s(post.data.author);
-const location = s(post.data.location);
-const eventTime = s(post.data.eventTime);
-const writtenAt = s(post.data.writtenAt);
-const photoTime = s(post.data.photoTime);
-const sideNote = s(post.data.sideNote);
-const tagsText = joinTags(post.data.tags);
-const voiceMemo = s(post.data.voiceMemo);
-const voiceMemoTitle = s(post.data.voiceMemoTitle);
-const videoUrl = s(post.data.videoUrl);
-const videoPoster = s(post.data.videoPoster);
-const isLocked = post.data.topic === "trash-bin";
+const author = s(post.author);
+const location = s(post.location);
+const eventTime = s(post.event_time);
+const writtenAt = s(post.written_at);
+const photoTime = s(post.photo_time);
+const sideNote = s(post.side_note);
+const tagsText = joinTags(
+  post.tags_csv ? post.tags_csv.split(",").map((t) => t.trim()).filter(Boolean) : []
+);
+const voiceMemo = s(post.voice_memo);
+const voiceMemoTitle = s(post.voice_memo_title);
+const videoUrl = s(post.video_url);
+const videoPoster = s(post.video_poster);
+const isLocked = post.topic === "trash-bin";
 
 const toEmbedUrl = (url: string) => {
   if (url.includes("youtube.com/watch")) {
@@ -60,19 +66,22 @@ const videoIsFile = /\.(mp4|webm|ogg)$/i.test(videoUrl);
 const videoEmbedUrl = videoUrl ? toEmbedUrl(videoUrl) : "";
 
 // Build photo list: /public/photos/<photoDir>/01.jpg..N
-const count = Number(post.data.photoCount ?? 0);
-const photos = Array.from({ length: Math.max(0, count) }, (_, i) => {
-  const n = String(i + 1).padStart(2, "0");
-  return `/photos/${post.data.photoDir}/${n}.jpg`;
-});
+const count = Number(post.photo_count ?? 0);
+const photos =
+  post.photo_dir && count > 0
+    ? Array.from({ length: Math.max(0, count) }, (_, i) => {
+        const n = String(i + 1).padStart(2, "0");
+        return `/photos/${post.photo_dir}/${n}.jpg`;
+      })
+    : [];
 
 const wallImages = [
-  { src: post.data.cover, alt: `${post.data.title} — cover` },
-  ...photos.map((src, i) => ({ src, alt: `${post.data.title} — photo ${i + 1}` })),
+  { src: post.cover_url ?? "/noise.svg", alt: `${post.title} — cover` },
+  ...photos.map((src, i) => ({ src, alt: `${post.title} — photo ${i + 1}` })),
 ];
 ---
 
-<BaseLayout title={post.data.title} description={post.data.description}>
+<BaseLayout title={post.title} description={post.summary ?? ""}>
   <main class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-10">
     {isLocked && (
       <div class="lock-panel" data-lock-panel>
@@ -95,23 +104,18 @@ const wallImages = [
     <div class="paper edge-torn p-6 sm:p-10" data-reveal>
       <div class="kicker text-xs text-[rgba(0,0,0,0.58)]">Emotional Anchor</div>
 
-      <RansomTitle
-        text={post.data.title}
-        as="h1"
-        stampEvery={0}
-        class="mt-3 text-[40px] sm:text-[56px]"
-      />
+      <RansomTitle text={post.title} as="h1" stampEvery={0} class="mt-3 text-[40px] sm:text-[56px]" />
 
-      {post.data.description && (
+      {post.summary && (
         <p class="mt-4 text-[rgba(0,0,0,0.70)] max-w-2xl">
-          {post.data.description}
+          {post.summary}
         </p>
       )}
 
       <div class="mt-5 flex flex-wrap items-center gap-3 text-[12px] text-black/60">
-        <span>Chủ đề: {topicLabel(post.data.topic)}</span>
+        <span>Chủ đề: {topicLabel(post.topic ?? undefined)}</span>
         <span>•</span>
-        <span>{formatDate(post.data.pubDate)}</span>
+        <span>{formatDate(post.published_at ?? post.created_at)}</span>
       </div>
     </div>
 
@@ -162,7 +166,7 @@ const wallImages = [
     {/* NOTES / BODY */}
     <section class="mt-10" aria-label="Ghi chú" data-reveal>
       <div class="paper edge-torn p-6 sm:p-10 prose prose-scrap max-w-none">
-        <Content />
+        <div set:html={contentHtml} />
       </div>
     </section>
 
@@ -172,6 +176,13 @@ const wallImages = [
         <div class="kicker text-xs text-black/50">💬</div>
         <h2 class="mt-3 text-[26px] sm:text-[32px] font-semibold text-black/80">Để lại lời nhắn xàm xí</h2>
         <p class="mt-2 text-black/60">Nhập biệt danh rồi thả vài dòng nha.</p>
+
+        <div class="mt-4 flex items-center gap-3">
+          <button class="btn" type="button" data-reaction-btn>
+            ❤️ <span data-reaction-count>0</span>
+          </button>
+          <span class="text-xs text-black/50" data-reaction-state>Thả tim ở đây.</span>
+        </div>
 
         <form class="comment-form mt-6" data-comment-form data-comment-slug={post.slug}>
           <label class="comment-field">
@@ -199,13 +210,15 @@ const wallImages = [
         <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div class="meta-card">
             <div class="meta-k">Ngày đăng</div>
-            <div class="meta-v">{formatDate(post.data.pubDate)}</div>
+            <div class="meta-v">{formatDate(post.published_at ?? post.created_at)}</div>
           </div>
 
           <div class="meta-card">
             <div class="meta-k">Chủ đề</div>
             <div class="meta-v">
-              <span style={`color:${topicMeta(post.data.topic).color};`}>{topicLabel(post.data.topic)}</span>
+              <span style={`color:${topicMeta(post.topic ?? undefined).color};`}>
+                {topicLabel(post.topic ?? undefined)}
+              </span>
             </div>
           </div>
 
@@ -309,23 +322,7 @@ const wallImages = [
       form.dataset.bound = "1";
 
       const slug = form.dataset.commentSlug || "unknown";
-      const key = `tatw-comments-${slug}`;
-
-      const load = () => {
-        try {
-          const raw = localStorage.getItem(key);
-          return raw ? JSON.parse(raw) : [];
-        } catch {
-          return [];
-        }
-      };
-
-      const save = (items) => {
-        localStorage.setItem(key, JSON.stringify(items));
-      };
-
-      const render = () => {
-        const items = load();
+      const render = (items = []) => {
         if (!items.length) {
           list.innerHTML = "<p class='text-black/60 text-sm'>Chưa có lời nhắn nào.</p>";
           return;
@@ -335,17 +332,29 @@ const wallImages = [
             (item) => `
               <div class="comment-card">
                 <div class="comment-meta">
-                  <span class="comment-name">${item.nickname || item.name || "Ẩn danh"}</span>
-                  <span class="comment-time">${item.time}</span>
+                  <span class="comment-name">${item.display_name || "Ẩn danh"}</span>
+                  <span class="comment-time">${new Date(item.created_at).toLocaleString("vi-VN")}</span>
                 </div>
-                <p class="comment-body">${item.message}</p>
+                <p class="comment-body">${item.body}</p>
               </div>
             `
           )
           .join("");
       };
 
-      render();
+      const refresh = async () => {
+        try {
+          const res = await fetch(`/api/comments?slug=${encodeURIComponent(slug)}`);
+          if (!res.ok) throw new Error("Failed");
+          const data = await res.json();
+          render(data.comments || []);
+        } catch (error) {
+          if (err) err.textContent = "Chưa tải được lời nhắn.";
+        }
+      };
+
+      refresh();
+      const poll = setInterval(refresh, 5000);
 
       form.addEventListener("submit", (e) => {
         e.preventDefault();
@@ -355,20 +364,75 @@ const wallImages = [
           if (err) err.textContent = "Nhập biệt danh + lời nhắn mới được nhé!";
           return;
         }
-        const items = load();
-        items.unshift({
-          nickname,
-          message,
-          time: new Date().toLocaleString("vi-VN"),
-        });
-        save(items.slice(0, 50));
-        form.reset();
-        if (err) err.textContent = "";
-        render();
+        fetch("/api/comments", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            slug,
+            displayName: nickname,
+            body: message,
+          }),
+        })
+          .then((res) => {
+            if (!res.ok) throw new Error("Failed");
+            form.reset();
+            if (err) err.textContent = "";
+            refresh();
+          })
+          .catch(() => {
+            if (err) err.textContent = "Gửi chưa được, thử lại sau nha.";
+          });
       });
+
+      document.addEventListener("astro:before-swap", () => clearInterval(poll), { once: true });
     };
 
     initComments();
     document.addEventListener("astro:page-load", initComments);
+  </script>
+
+  <script is:inline>
+    const initReactions = () => {
+      const btn = document.querySelector("[data-reaction-btn]");
+      const countEl = document.querySelector("[data-reaction-count]");
+      const stateEl = document.querySelector("[data-reaction-state]");
+      const form = document.querySelector("[data-comment-form]");
+      if (!btn || !countEl || !form) return;
+      if (btn.dataset.bound === "1") return;
+      btn.dataset.bound = "1";
+
+      const slug = form.dataset.commentSlug || "unknown";
+
+      const render = ({ count = 0, reacted = false }) => {
+        countEl.textContent = count;
+        btn.classList.toggle("is-active", reacted);
+        if (stateEl) {
+          stateEl.textContent = reacted ? "Đã thả tim." : "Thả tim ở đây.";
+        }
+      };
+
+      const load = async () => {
+        const res = await fetch(`/api/reactions?slug=${encodeURIComponent(slug)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        render(data);
+      };
+
+      btn.addEventListener("click", async () => {
+        const res = await fetch("/api/reactions", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ slug, kind: "heart" }),
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        render(data);
+      });
+
+      load();
+    };
+
+    initReactions();
+    document.addEventListener("astro:page-load", initReactions);
   </script>
 </BaseLayout>

@@ -1,6 +1,13 @@
 {
     "name": "two-against-the-world",
     "compatibility_date": "2026-01-31",
-    "assets": { "directory": "./dist" }
+    "assets": { "directory": "./dist" },
+    "d1_databases": [
+      {
+        "binding": "DB",
+        "database_name": "two-against-the-world",
+        "database_id": "REPLACE_WITH_D1_ID"
+      }
+    ]
   }
   

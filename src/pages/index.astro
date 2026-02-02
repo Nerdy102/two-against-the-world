@@ -3,22 +3,24 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import RansomTitle from "../components/RansomTitle.astro";
 import FeedCard from "../components/FeedCard.astro";
 import TopicCard from "../components/TopicCard.astro";
-import { getCollection } from "astro:content";
 import { TOPICS } from "../config/topics";
-import { formatDate } from "../lib/formatDate";
+import { getDb, type PostRecord } from "../lib/d1";
 
-const posts = (await getCollection("posts"))
-  .filter((p) => !p.data.draft)
-  .sort((a, b) => {
-    const pinnedA = a.data.pinned ? 1 : 0;
-    const pinnedB = b.data.pinned ? 1 : 0;
-    if (pinnedA !== pinnedB) return pinnedB - pinnedA;
-    return b.data.pubDate.valueOf() - a.data.pubDate.valueOf();
-  });
+export const prerender = false;
+
+const db = getDb(Astro.locals);
+const { results: posts = [] } = await db
+  .prepare(
+    `SELECT id, slug, title, summary, cover_url, status, author, topic, published_at, pinned
+     FROM posts
+     WHERE status = 'published'
+     ORDER BY pinned DESC, datetime(published_at) DESC`
+  )
+  .all<PostRecord>();
 
 const counts: Record<string, number> = {};
 for (const p of posts) {
-  const t = p.data.topic ?? "two-of-us";
+  const t = p.topic ?? "two-of-us";
   counts[t] = (counts[t] ?? 0) + 1;
 }
 
@@ -76,13 +78,13 @@ const entriesCard = {
       {posts.map((post) => (
         <FeedCard
           href={`/entries/${post.slug}`}
-          image={post.data.cover}
-          title={post.data.title}
-          description={post.data.description}
-          date={post.data.pubDate}
-          topic={post.data.topic}
-          locked={post.data.topic === "trash-bin"}
-          pinned={post.data.pinned}
+          image={post.cover_url ?? "/noise.svg"}
+          title={post.title}
+          description={post.summary ?? ""}
+          date={post.published_at ?? ""}
+          topic={post.topic ?? undefined}
+          locked={post.topic === "trash-bin"}
+          pinned={Boolean(post.pinned)}
         />
       ))}
     </div>
