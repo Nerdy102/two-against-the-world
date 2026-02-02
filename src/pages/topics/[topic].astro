@@ -5,6 +5,7 @@ import FeedCard from "../../components/FeedCard.astro";
 import TopicCard from "../../components/TopicCard.astro";
 import { TOPICS, topicLabel, TOPIC_COPY } from "../../config/topics";
 import { ensurePostsSchema, getDb, type PostRecord } from "../../lib/d1";
+import { getPublishedPostsFromContent, mergePostsBySlug } from "../../lib/posts";
 
 export const prerender = false;
 
@@ -12,15 +13,23 @@ const { topic = "two-of-us" } = Astro.params;
 const label = topicLabel(topic);
 const isLocked = topic === "trash-bin";
 
-const db = getDb(Astro.locals);
-await ensurePostsSchema(db);
-const { results: allPosts = [] } = await db
-  .prepare(
-    `SELECT id, slug, title, summary, cover_url, topic, published_at, pinned, status
-     FROM posts
-     WHERE status = 'published'`
-  )
-  .all<PostRecord>();
+let allPosts: PostRecord[] = [];
+try {
+  const db = getDb(Astro.locals);
+  await ensurePostsSchema(db);
+  const { results = [] } = await db
+    .prepare(
+      `SELECT id, slug, title, summary, cover_url, topic, published_at, pinned, status
+       FROM posts
+       WHERE status = 'published'`
+    )
+    .all<PostRecord>();
+  const contentPosts = await getPublishedPostsFromContent();
+  allPosts = mergePostsBySlug(results, contentPosts);
+} catch (err) {
+  console.warn("Using content posts fallback:", err);
+  allPosts = await getPublishedPostsFromContent();
+}
 
 const posts = allPosts
   .filter((p) => (p.topic ?? "two-of-us") === topic)
