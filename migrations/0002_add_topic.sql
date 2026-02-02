@@ -1,0 +1,1 @@
+ALTER TABLE posts ADD COLUMN topic TEXT NOT NULL DEFAULT 'two-of-us';
