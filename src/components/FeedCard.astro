@@ -34,7 +34,12 @@ const {
 
 const meta = topicMeta(topic);
 const showPinBadge = pinned && import.meta.env.PUBLIC_ENABLE_PINNED_BADGE !== "false";
-const pinLabel = pinnedStyle ? `${pinnedStyle}` : "Ghim";
+const pinLabelMap: Record<string, string> = {
+  event: "Sự kiện",
+  announcement: "Thông báo",
+  memory: "Kỷ niệm",
+};
+const pinLabel = pinnedStyle && pinLabelMap[pinnedStyle] ? pinLabelMap[pinnedStyle] : "Ghim";
 ---
 
 <a

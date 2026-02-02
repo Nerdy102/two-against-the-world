@@ -269,6 +269,16 @@ export async function ensureAdminSchema(db: D1Database): Promise<void> {
         )`
       )
       .run();
+    await db
+      .prepare(
+        `CREATE TABLE IF NOT EXISTS admin_login_attempts (
+          ip_hash TEXT PRIMARY KEY,
+          failed_count INTEGER NOT NULL DEFAULT 0,
+          last_attempt TEXT NOT NULL,
+          locked_until TEXT
+        )`
+      )
+      .run();
   })();
   return adminSchemaReady;
 }

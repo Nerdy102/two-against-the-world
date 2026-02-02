@@ -5,12 +5,21 @@ const ADMIN_SESSION_COOKIE = "twaw_admin_session";
 const ADMIN_CSRF_COOKIE = "twaw_admin_csrf";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
 const PBKDF2_ITERATIONS = 120000;
+const LOGIN_WINDOW_MS = 10 * 60 * 1000;
+const LOGIN_LOCK_MS = 15 * 60 * 1000;
+const LOGIN_MAX_FAILURES = 5;
 
 type AdminUser = {
   id: string;
   username: string;
   password_hash: string;
   password_salt: string;
+};
+
+type AdminLoginAttempt = {
+  failedCount: number;
+  lastAttempt: string;
+  lockedUntil: string | null;
 };
 
 const parseCookies = (cookieHeader: string | null) => {
@@ -56,14 +65,99 @@ const pbkdf2Hash = async (password: string, salt: string) => {
     .join("");
 };
 
+const getClientIp = (request: Request) => {
+  const cfIp = request.headers.get("cf-connecting-ip");
+  if (cfIp) return cfIp.trim();
+  const forwarded = request.headers.get("x-forwarded-for");
+  if (!forwarded) return "";
+  return forwarded.split(",")[0]?.trim() ?? "";
+};
+
+export const checkAdminLoginRateLimit = async (request: Request, locals: APIContext["locals"]) => {
+  const ip = getClientIp(request);
+  if (!ip) return { allowed: true };
+  const ipHash = await sha256(ip);
+  const db = getDb(locals);
+  await ensureAdminSchema(db);
+  const record = await db
+    .prepare(
+      `SELECT failed_count as failedCount, last_attempt as lastAttempt, locked_until as lockedUntil
+       FROM admin_login_attempts
+       WHERE ip_hash = ? LIMIT 1`
+    )
+    .bind(ipHash)
+    .first<AdminLoginAttempt>();
+  if (!record) return { allowed: true };
+  const now = Date.now();
+  if (record.lockedUntil) {
+    const lockedUntilMs = new Date(record.lockedUntil).getTime();
+    if (lockedUntilMs > now) {
+      return { allowed: false, retryAfter: Math.ceil((lockedUntilMs - now) / 1000) };
+    }
+    await db.prepare(`DELETE FROM admin_login_attempts WHERE ip_hash = ?`).bind(ipHash).run();
+    return { allowed: true };
+  }
+  if (record.lastAttempt) {
+    const lastAttemptMs = new Date(record.lastAttempt).getTime();
+    if (now - lastAttemptMs > LOGIN_WINDOW_MS) {
+      await db.prepare(`DELETE FROM admin_login_attempts WHERE ip_hash = ?`).bind(ipHash).run();
+    }
+  }
+  return { allowed: true };
+};
+
+export const recordAdminLoginFailure = async (request: Request, locals: APIContext["locals"]) => {
+  const ip = getClientIp(request);
+  if (!ip) return;
+  const ipHash = await sha256(ip);
+  const db = getDb(locals);
+  await ensureAdminSchema(db);
+  const existing = await db
+    .prepare(
+      `SELECT failed_count as failedCount, last_attempt as lastAttempt, locked_until as lockedUntil
+       FROM admin_login_attempts
+       WHERE ip_hash = ? LIMIT 1`
+    )
+    .bind(ipHash)
+    .first<AdminLoginAttempt>();
+  const now = Date.now();
+  let failedCount = existing?.failedCount ?? 0;
+  if (existing?.lastAttempt) {
+    const lastAttemptMs = new Date(existing.lastAttempt).getTime();
+    if (now - lastAttemptMs > LOGIN_WINDOW_MS) {
+      failedCount = 0;
+    }
+  }
+  failedCount += 1;
+  const lockedUntil =
+    failedCount >= LOGIN_MAX_FAILURES ? new Date(now + LOGIN_LOCK_MS).toISOString() : null;
+  await db
+    .prepare(
+      `INSERT INTO admin_login_attempts (ip_hash, failed_count, last_attempt, locked_until)
+       VALUES (?, ?, ?, ?)
+       ON CONFLICT(ip_hash) DO UPDATE SET
+         failed_count = excluded.failed_count,
+         last_attempt = excluded.last_attempt,
+         locked_until = excluded.locked_until`
+    )
+    .bind(ipHash, failedCount, new Date(now).toISOString(), lockedUntil)
+    .run();
+};
+
+export const clearAdminLoginFailures = async (request: Request, locals: APIContext["locals"]) => {
+  const ip = getClientIp(request);
+  if (!ip) return;
+  const ipHash = await sha256(ip);
+  const db = getDb(locals);
+  await ensureAdminSchema(db);
+  await db.prepare(`DELETE FROM admin_login_attempts WHERE ip_hash = ?`).bind(ipHash).run();
+};
+
 export const getAdminCredentials = (locals: APIContext["locals"]) => {
   const username = locals.runtime?.env?.ADMIN_USERNAME ?? null;
   const password = locals.runtime?.env?.ADMIN_PASSWORD ?? null;
   return { username, password };
 };
-
-export const getAdminPassword = (locals: APIContext["locals"]) =>
-  locals.runtime?.env?.ADMIN_PASSWORD ?? null;
 
 export const getAdminPassword = (locals: APIContext["locals"]) =>
   locals.runtime?.env?.ADMIN_PASSWORD ?? null;
@@ -197,6 +291,17 @@ export const getCsrfTokenFromCookies = (request: Request) => {
 };
 
 export const verifyCsrf = (request: Request) => {
+  const requestOrigin = new URL(request.url).origin;
+  const originHeader = request.headers.get("origin");
+  if (originHeader && originHeader !== requestOrigin) return false;
+  const refererHeader = request.headers.get("referer");
+  if (refererHeader) {
+    try {
+      if (new URL(refererHeader).origin !== requestOrigin) return false;
+    } catch {
+      return false;
+    }
+  }
   const headerToken = request.headers.get("x-csrf-token") ?? "";
   const cookies = parseCookies(request.headers.get("cookie"));
   const cookieToken = cookies.get(ADMIN_CSRF_COOKIE) ?? "";

@@ -938,7 +938,7 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
 
     coverCancel?.addEventListener("click", () => {
       coverController?.abort();
-      coverProgress?.textContent = "";
+      if (coverProgress) coverProgress.textContent = "";
       coverCancel?.classList.add("hidden");
     });
 
@@ -951,10 +951,10 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
       const file = input?.files?.[0];
       if (!file) return;
       coverNote.textContent = "";
-      coverProgress?.textContent = "Đang xử lý ảnh cover...";
+      if (coverProgress) coverProgress.textContent = "Đang xử lý ảnh cover...";
       const slugValue = form?.querySelector("[name='slug']")?.value;
       if (!slugValue) {
-        coverProgress?.textContent = "";
+        if (coverProgress) coverProgress.textContent = "";
         coverNote.textContent = "Hãy nhập đường dẫn trước khi upload cover.";
         return;
       }
@@ -988,7 +988,7 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
           contentField.value = `![cover](${payload.url})\n\n${contentField.value}`.trim();
           contentField.dispatchEvent(new Event("input", { bubbles: true }));
         }
-        coverProgress?.textContent = "";
+        if (coverProgress) coverProgress.textContent = "";
         coverNote.textContent = "Đã upload ảnh cover.";
         input.value = "";
         markDirty();
@@ -999,7 +999,7 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
           coverNote.textContent =
             "Upload ảnh cover lỗi. Thử lại, chọn ảnh khác, hoặc bật Camera → Formats → Most Compatible.";
         }
-        coverProgress?.textContent = "";
+        if (coverProgress) coverProgress.textContent = "";
       } finally {
         coverCancel?.classList.add("hidden");
         coverController = null;
@@ -1008,7 +1008,7 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
 
     uploadCancel?.addEventListener("click", () => {
       uploadController?.abort();
-      uploadProgress?.textContent = "";
+      if (uploadProgress) uploadProgress.textContent = "";
       uploadCancel?.classList.add("hidden");
     });
 
@@ -1024,10 +1024,10 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
         return;
       }
       uploadNote.textContent = "";
-      uploadProgress?.textContent = "Đang xử lý ảnh...";
+      if (uploadProgress) uploadProgress.textContent = "Đang xử lý ảnh...";
       const slugValue = form?.querySelector("[name='slug']")?.value;
       if (!slugValue) {
-        uploadProgress?.textContent = "";
+        if (uploadProgress) uploadProgress.textContent = "";
         uploadNote.textContent = "Hãy nhập đường dẫn trước khi upload ảnh.";
         return;
       }
@@ -1043,7 +1043,9 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
           if (uploadController.signal.aborted) break;
           const paddedIndex = String(index + 1).padStart(3, "0");
           const filename = `${date}_${safeSlug}_${paddedIndex}.jpg`;
-          uploadProgress?.textContent = `Đang upload ${index + 1}/${input.files.length}...`;
+          if (uploadProgress) {
+            uploadProgress.textContent = `Đang upload ${index + 1}/${input.files.length}...`;
+          }
           const payload = await uploadImage({
             file,
             slug: safeSlug,
@@ -1067,7 +1069,7 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
           }
         }
       }
-      uploadProgress?.textContent = "";
+      if (uploadProgress) uploadProgress.textContent = "";
       if (!uploadController?.signal?.aborted) {
         uploadNote.textContent = `Đã upload ${successCount} ảnh.`;
       }

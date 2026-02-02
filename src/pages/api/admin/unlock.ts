@@ -1,8 +1,11 @@
 import type { APIRoute } from "astro";
 import {
   buildAdminSessionCookies,
+  checkAdminLoginRateLimit,
+  clearAdminLoginFailures,
   createAdminSession,
   getAdminCredentials,
+  recordAdminLoginFailure,
   verifyAdminLogin,
 } from "../../../lib/adminAuth";
 
@@ -29,11 +32,22 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return json({ error: "Missing credentials" }, 400);
   }
 
+  const rateLimit = await checkAdminLoginRateLimit(request, locals);
+  if (!rateLimit.allowed) {
+    const headers = new Headers({ "content-type": "application/json" });
+    if (rateLimit.retryAfter) {
+      headers.set("retry-after", String(rateLimit.retryAfter));
+    }
+    return json({ error: "Too many attempts. Try again later." }, 429, headers);
+  }
+
   const user = await verifyAdminLogin(locals, username, password);
   if (!user) {
+    await recordAdminLoginFailure(request, locals);
     return json({ error: "Invalid credentials" }, 401);
   }
 
+  await clearAdminLoginFailures(request, locals);
   const session = await createAdminSession(locals, user.id);
   const csrfToken = crypto.randomUUID();
   const secure = request.url.startsWith("https://");
