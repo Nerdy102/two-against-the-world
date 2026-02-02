@@ -1,6 +1,6 @@
 ---
 title: "Grammy Awards 2026: vẫn là một năm mà người thắng thì xứng đáng được thắng, còn lại thì thị trường bị saturated bởi nhạc tiktok và mỳ ăn liền và nhạc làm lại ???"
-description: "Toàn bài mình thích thắng giải."
+description: "Nói chung năm nay ok, tạm ổn."
 pubDate: 2026-02-03
 topic: sad-music
 cover: "/photos/2026-02-03-grammy-awards-2026-winners/cover.png"
