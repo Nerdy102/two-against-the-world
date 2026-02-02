@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { getDb, type CommentRecord } from "../../../lib/d1";
+import { ensureCommentsSchema, getDb, type CommentRecord } from "../../../lib/d1";
 
 export const prerender = false;
 
@@ -36,6 +36,7 @@ export const GET: APIRoute = async ({ locals, url }) => {
     return json({ error: "Missing slug" }, 400);
   }
   const db = getDb(locals);
+  await ensureCommentsSchema(db);
   const { results } = await db
     .prepare(
       `SELECT id, post_slug, parent_id, display_name, body, status, created_at
@@ -71,6 +72,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
   }
 
   const db = getDb(locals);
+  await ensureCommentsSchema(db);
   const id = crypto.randomUUID();
   const post = await db
     .prepare(`SELECT status FROM posts WHERE slug = ? LIMIT 1`)

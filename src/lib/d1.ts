@@ -33,6 +33,8 @@ const POST_COLUMNS: PostColumnDefinition[] = [
 ];
 
 let postsSchemaReady: Promise<void> | null = null;
+let commentsSchemaReady: Promise<void> | null = null;
+let reactionsSchemaReady: Promise<void> | null = null;
 
 export async function ensurePostsSchema(db: D1Database): Promise<void> {
   if (postsSchemaReady) {
@@ -49,6 +51,65 @@ export async function ensurePostsSchema(db: D1Database): Promise<void> {
     }
   })();
   return postsSchemaReady;
+}
+
+export async function ensureCommentsSchema(db: D1Database): Promise<void> {
+  if (commentsSchemaReady) {
+    return commentsSchemaReady;
+  }
+  commentsSchemaReady = (async () => {
+    await db
+      .prepare(
+        `CREATE TABLE IF NOT EXISTS comments (
+          id TEXT PRIMARY KEY,
+          post_slug TEXT NOT NULL,
+          parent_id TEXT,
+          display_name TEXT NOT NULL,
+          body TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'visible',
+          ip_hash TEXT,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )`
+      )
+      .run();
+    await db
+      .prepare(
+        `CREATE INDEX IF NOT EXISTS idx_comments_post_slug_created_at
+         ON comments(post_slug, created_at)`
+      )
+      .run();
+    await db
+      .prepare(`CREATE INDEX IF NOT EXISTS idx_comments_parent_id ON comments(parent_id)`)
+      .run();
+  })();
+  return commentsSchemaReady;
+}
+
+export async function ensureReactionsSchema(db: D1Database): Promise<void> {
+  if (reactionsSchemaReady) {
+    return reactionsSchemaReady;
+  }
+  reactionsSchemaReady = (async () => {
+    await db
+      .prepare(
+        `CREATE TABLE IF NOT EXISTS reactions (
+          id TEXT PRIMARY KEY,
+          post_slug TEXT NOT NULL,
+          kind TEXT NOT NULL,
+          visitor_id TEXT NOT NULL,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          UNIQUE(post_slug, kind, visitor_id)
+        )`
+      )
+      .run();
+    await db
+      .prepare(
+        `CREATE INDEX IF NOT EXISTS idx_reactions_post_slug_kind
+         ON reactions(post_slug, kind)`
+      )
+      .run();
+  })();
+  return reactionsSchemaReady;
 }
 
 export type PostRecord = {
