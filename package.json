@@ -11,13 +11,13 @@
     "sync:photos": "node scripts/sync-photos.mjs"
   },
   "dependencies": {
+    "@fontsource/be-vietnam-pro": "latest",
     "@fontsource/bebas-neue": "latest",
     "@fontsource/ibm-plex-mono": "latest",
     "@fontsource/oswald": "latest",
     "@fontsource/special-elite": "latest",
     "lenis": "latest",
-    "motion": "latest",
-    "@fontsource/be-vietnam-pro": "latest"
+    "motion": "latest"
   },
   "devDependencies": {
     "@astrojs/check": "latest",
@@ -25,6 +25,7 @@
     "@tailwindcss/vite": "latest",
     "astro": "latest",
     "tailwindcss": "latest",
-    "typescript": "latest"
+    "typescript": "latest",
+    "wrangler": "^4.61.1"
   }
 }
