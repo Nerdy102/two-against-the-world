@@ -16,13 +16,14 @@
     "@fontsource/ibm-plex-mono": "latest",
     "@fontsource/oswald": "latest",
     "@fontsource/special-elite": "latest",
-    "marked": "latest",
+    "heic2any": "^0.0.4",
     "lenis": "latest",
+    "marked": "^17.0.1",
     "motion": "latest"
   },
   "devDependencies": {
-    "@astrojs/check": "latest",
-    "@astrojs/cloudflare": "latest",
+    "@astrojs/check": "^0.9.2",
+    "@astrojs/cloudflare": "^12.6.5",
     "@cloudflare/workers-types": "latest",
     "@tailwindcss/typography": "latest",
     "@tailwindcss/vite": "latest",
