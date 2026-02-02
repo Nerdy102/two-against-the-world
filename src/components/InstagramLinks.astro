@@ -1,0 +1,85 @@
+---
+const embedUrl = import.meta.env.PUBLIC_IG_EMBED_URL ?? "";
+const enableEmbed = import.meta.env.PUBLIC_ENABLE_IG_EMBED === "true" && Boolean(embedUrl);
+const showLinks = import.meta.env.PUBLIC_ENABLE_IG_LINKS !== "false" || enableEmbed;
+const cards = [
+  {
+    label: "Owner",
+    handle: "@n.e.r.d_1eyelid",
+    url: "https://www.instagram.com/n.e.r.d_1eyelid/",
+  },
+  {
+    label: "Miu",
+    handle: "@lovebabymiu",
+    url: "https://www.instagram.com/lovebabymiu/",
+  },
+];
+---
+
+{(enableEmbed || showLinks) && (
+  <div class="ig-links" data-ig-links>
+    {enableEmbed && (
+      <div class="ig-embed" data-ig-embed data-ig-permalink={embedUrl}>
+        <blockquote
+          class="instagram-media"
+          data-instgrm-permalink={embedUrl}
+          data-instgrm-version="14"
+          data-instgrm-captioned
+        ></blockquote>
+      </div>
+    )}
+
+    {showLinks && (
+      <div class="ig-cards">
+        {cards.map((card) => (
+          <a class="ig-card" href={card.url} target="_blank" rel="noopener noreferrer">
+            <div class="ig-card__label">{card.label}</div>
+            <div class="ig-card__handle">{card.handle}</div>
+            <div class="ig-card__cta">Xem Instagram →</div>
+          </a>
+        ))}
+      </div>
+    )}
+  </div>
+)}
+
+{enableEmbed && (
+  <script is:inline>
+    const initInstagramEmbed = () => {
+      const wrap = document.querySelector("[data-ig-embed]");
+      if (!wrap || wrap.dataset.bound === "1") return;
+      wrap.dataset.bound = "1";
+      const loadScript = () => {
+        if (window.instgrm) {
+          window.instgrm.Embeds.process();
+          return;
+        }
+        const script = document.createElement("script");
+        script.async = true;
+        script.defer = true;
+        script.src = "https://www.instagram.com/embed.js";
+        script.onload = () => window.instgrm?.Embeds?.process?.();
+        document.body.appendChild(script);
+      };
+      if (!("IntersectionObserver" in window)) {
+        loadScript();
+        return;
+      }
+      const io = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              loadScript();
+              io.disconnect();
+            }
+          });
+        },
+        { rootMargin: "120px" }
+      );
+      io.observe(wrap);
+    };
+
+    initInstagramEmbed();
+    document.addEventListener("astro:page-load", initInstagramEmbed);
+  </script>
+)}

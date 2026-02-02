@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { getDb } from "../../../lib/d1";
+import { ensureReactionsSchema, getDb } from "../../../lib/d1";
 
 export const prerender = false;
 
@@ -27,38 +27,74 @@ const getVisitorId = (request: Request) => {
 
 export const GET: APIRoute = async ({ locals, request, url }) => {
   const slug = url.searchParams.get("slug");
-  const kind = url.searchParams.get("kind") ?? "heart";
+  const kind = url.searchParams.get("kind");
   if (!slug) {
     return json({ error: "Missing slug" }, 400);
   }
 
   const db = getDb(locals);
-  const { results } = await db
-    .prepare(
-      `SELECT COUNT(*) as count
-       FROM reactions
-       WHERE post_slug = ? AND kind = ?`
-    )
-    .bind(slug, kind)
-    .all<{ count: number }>();
-  const count = Number(results?.[0]?.count ?? 0);
-
-  const visitorId = getVisitorId(request);
-  let reacted = false;
-  if (visitorId) {
-    const existing = await db
+  await ensureReactionsSchema(db);
+  if (kind) {
+    const { results } = await db
       .prepare(
-        `SELECT id
+        `SELECT COUNT(*) as count
          FROM reactions
-         WHERE post_slug = ? AND kind = ? AND visitor_id = ?
-         LIMIT 1`
+         WHERE post_slug = ? AND kind = ?`
       )
-      .bind(slug, kind, visitorId)
-      .first<{ id: string }>();
-    reacted = Boolean(existing?.id);
+      .bind(slug, kind)
+      .all<{ count: number }>();
+    const count = Number(results?.[0]?.count ?? 0);
+
+    const visitorId = getVisitorId(request);
+    let reacted = false;
+    if (visitorId) {
+      const existing = await db
+        .prepare(
+          `SELECT id
+           FROM reactions
+           WHERE post_slug = ? AND kind = ? AND visitor_id = ?
+           LIMIT 1`
+        )
+        .bind(slug, kind, visitorId)
+        .first<{ id: string }>();
+      reacted = Boolean(existing?.id);
+    }
+
+    return json({ count, reacted });
   }
 
-  return json({ count, reacted });
+  const { results } = await db
+    .prepare(
+      `SELECT kind, COUNT(*) as count
+       FROM reactions
+       WHERE post_slug = ?
+       GROUP BY kind`
+    )
+    .bind(slug)
+    .all<{ kind: string; count: number }>();
+
+  const counts = results?.reduce<Record<string, number>>((acc, row) => {
+    acc[row.kind] = Number(row.count ?? 0);
+    return acc;
+  }, {}) ?? {};
+
+  const visitorId = getVisitorId(request);
+  let reactedKinds: string[] = [];
+  if (visitorId) {
+    const { results: reactedRows } = await db
+      .prepare(
+        `SELECT kind
+         FROM reactions
+         WHERE post_slug = ? AND visitor_id = ?`
+      )
+      .bind(slug, visitorId)
+      .all<{ kind: string }>();
+    reactedKinds = reactedRows?.map((row) => row.kind) ?? [];
+  }
+
+  const total = Object.values(counts).reduce((sum, value) => sum + Number(value || 0), 0);
+
+  return json({ counts, reactedKinds, total });
 };
 
 export const POST: APIRoute = async ({ locals, request }) => {
@@ -68,12 +104,16 @@ export const POST: APIRoute = async ({ locals, request }) => {
   }
 
   const slug = typeof payload.slug === "string" ? payload.slug.trim() : "";
-  const kind = typeof payload.kind === "string" ? payload.kind.trim() : "heart";
+  const kind = typeof payload.kind === "string" ? payload.kind.trim() : "";
   if (!slug) {
     return json({ error: "Missing slug" }, 400);
   }
+  if (!kind) {
+    return json({ error: "Missing kind" }, 400);
+  }
 
   const db = getDb(locals);
+  await ensureReactionsSchema(db);
   let visitorId = getVisitorId(request);
   let setCookieHeader: string | undefined;
   if (!visitorId) {
@@ -108,15 +148,34 @@ export const POST: APIRoute = async ({ locals, request }) => {
 
   const { results } = await db
     .prepare(
-      `SELECT COUNT(*) as count
+      `SELECT kind, COUNT(*) as count
        FROM reactions
-       WHERE post_slug = ? AND kind = ?`
+       WHERE post_slug = ?
+       GROUP BY kind`
     )
-    .bind(slug, kind)
-    .all<{ count: number }>();
+    .bind(slug)
+    .all<{ kind: string; count: number }>();
 
-  const count = Number(results?.[0]?.count ?? 0);
-  const reacted = !existing?.id;
+  const counts = results?.reduce<Record<string, number>>((acc, row) => {
+    acc[row.kind] = Number(row.count ?? 0);
+    return acc;
+  }, {}) ?? {};
 
-  return json({ count, reacted }, 200, setCookieHeader ? { "set-cookie": setCookieHeader } : undefined);
+  const { results: reactedRows } = await db
+    .prepare(
+      `SELECT kind
+       FROM reactions
+       WHERE post_slug = ? AND visitor_id = ?`
+    )
+    .bind(slug, visitorId)
+    .all<{ kind: string }>();
+
+  const reactedKinds = reactedRows?.map((row) => row.kind) ?? [];
+  const total = Object.values(counts).reduce((sum, value) => sum + Number(value || 0), 0);
+
+  return json(
+    { counts, reactedKinds, total },
+    200,
+    setCookieHeader ? { "set-cookie": setCookieHeader } : undefined
+  );
 };

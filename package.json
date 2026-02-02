@@ -8,7 +8,11 @@
     "preview": "astro preview",
     "check": "astro check",
     "new:entry": "node scripts/new-entry.mjs",
-    "sync:photos": "node scripts/sync-photos.mjs"
+    "sync:photos": "node scripts/sync-photos.mjs",
+    "import:posts": "tsx scripts/import-posts-to-d1.ts",
+    "export:posts": "tsx scripts/export-posts-from-d1.ts",
+    "sync:media": "tsx scripts/sync-media.ts",
+    "download:media": "tsx scripts/download-media.ts"
   },
   "dependencies": {
     "@fontsource/be-vietnam-pro": "latest",
@@ -16,6 +20,7 @@
     "@fontsource/ibm-plex-mono": "latest",
     "@fontsource/oswald": "latest",
     "@fontsource/special-elite": "latest",
+    "gray-matter": "^4.0.3",
     "heic2any": "^0.0.4",
     "lenis": "latest",
     "marked": "^17.0.1",
@@ -30,6 +35,11 @@
     "astro": "latest",
     "tailwindcss": "latest",
     "typescript": "latest",
-    "wrangler": "^4.61.1"
+    "wrangler": "^4.61.1",
+    "tsx": "^4.19.2"
+  },
+  "overrides": {
+    "lodash": "^4.17.21",
+    "undici": "^7.20.0"
   }
 }
