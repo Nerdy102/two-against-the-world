@@ -131,9 +131,11 @@ import { PASSCODE } from "../config/secrets";
     </section>
   </main>
 
-  <script is:inline>
+  <script type="module">
     const PASS = "281225";
     const KEY = "tatw-compose-pass";
+    const MAX_DIMENSION = 2048;
+    const JPEG_QUALITY = 0.82;
 
     const initCompose = () => {
       const lock = document.querySelector("[data-compose-lock]");
@@ -145,8 +147,23 @@ import { PASSCODE } from "../config/secrets";
       const genBtn = document.querySelector("[data-compose-generate]");
       const dlBtn = document.querySelector("[data-compose-download]");
       const exportBtn = document.querySelector("[data-compose-export]");
+      const photoInput = wrap.querySelector("input[name='photos']");
+      const coverSelect = wrap.querySelector("select[name='coverIndex']");
+      let optimizedFiles = [];
+      let isOptimizing = false;
 
-      if (!lock || !wrap || !form || !genBtn || !dlBtn || !exportBtn) return;
+      if (
+        !lock ||
+        !wrap ||
+        !form ||
+        !genBtn ||
+        !dlBtn ||
+        !exportBtn ||
+        !photoInput ||
+        !coverSelect
+      ) {
+        return;
+      }
       if (form.dataset.bound === "1") return;
       form.dataset.bound = "1";
 
@@ -184,8 +201,9 @@ import { PASSCODE } from "../config/secrets";
         wrap.querySelectorAll("input, select, textarea").forEach((el) => {
           if (el.name && el.type !== "file") data[el.name] = el.value?.trim?.() ?? "";
         });
-        const files = wrap.querySelector("input[name='photos']")?.files ?? [];
-        const coverIndex = Number(wrap.querySelector("select[name='coverIndex']")?.value ?? 0);
+        const rawFiles = photoInput.files ?? [];
+        const files = optimizedFiles.length ? optimizedFiles : Array.from(rawFiles);
+        const coverIndex = Number(coverSelect.value ?? 0);
         return { data, files, coverIndex };
       };
 
@@ -202,9 +220,95 @@ import { PASSCODE } from "../config/secrets";
         });
       };
 
+      const isHeic = (file) => /image\/heic|image\/heif/i.test(file.type) || /\.heic$|\.heif$/i.test(file.name);
+      let heicLoader = null;
+
+      const loadHeicConverter = () => {
+        if (heicLoader) return heicLoader;
+        heicLoader = import("https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.js").then(
+          (mod) => mod.default ?? mod
+        );
+        return heicLoader;
+      };
+
+      const rasterizeToJpeg = async (blob, filename) => {
+        const bitmap = await createImageBitmap(blob);
+        const maxSide = Math.max(bitmap.width, bitmap.height);
+        const scale = maxSide > MAX_DIMENSION ? MAX_DIMENSION / maxSide : 1;
+        const width = Math.max(1, Math.round(bitmap.width * scale));
+        const height = Math.max(1, Math.round(bitmap.height * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d", { alpha: false });
+        if (!ctx) {
+          bitmap.close();
+          return new File([blob], filename, { type: blob.type || "image/jpeg" });
+        }
+        ctx.drawImage(bitmap, 0, 0, width, height);
+        bitmap.close();
+
+        const outputBlob = await new Promise((resolve) =>
+          canvas.toBlob(resolve, "image/jpeg", JPEG_QUALITY)
+        );
+        if (!outputBlob) {
+          return new File([blob], filename, { type: blob.type || "image/jpeg" });
+        }
+        return new File([outputBlob], filename, { type: "image/jpeg" });
+      };
+
+      const optimizeFile = async (file) => {
+        const safeName = file.name || `photo-${Date.now()}.jpg`;
+        if (isHeic(file)) {
+          const heic2any = await loadHeicConverter();
+          const converted = await heic2any({
+            blob: file,
+            toType: "image/jpeg",
+            quality: JPEG_QUALITY,
+          });
+          const heicBlob = Array.isArray(converted) ? converted[0] : converted;
+          const baseName = safeName.replace(/\.(heic|heif)$/i, "");
+          return rasterizeToJpeg(heicBlob, `${baseName}.jpg`);
+        }
+        const normalizedName = safeName.replace(/\.\w+$/, ".jpg");
+        return rasterizeToJpeg(file, normalizedName);
+      };
+
+      const optimizeImages = async (files) => {
+        isOptimizing = true;
+        if (err) err.textContent = "Đang tối ưu ảnh (HEIC → JPEG, resize 2048px)...";
+        const results = [];
+        for (const file of files) {
+          results.push(await optimizeFile(file));
+        }
+        isOptimizing = false;
+        if (err) err.textContent = `Đã tối ưu ${results.length} ảnh.`;
+        return results;
+      };
+
+      photoInput.addEventListener("change", async () => {
+        const files = Array.from(photoInput.files || []);
+        if (!files.length) {
+          optimizedFiles = [];
+          renderPreview([], 0);
+          return;
+        }
+        optimizedFiles = await optimizeImages(files);
+        renderPreview(optimizedFiles, Number(coverSelect.value ?? 0));
+      });
+
+      coverSelect.addEventListener("change", () => {
+        const files = optimizedFiles.length ? optimizedFiles : Array.from(photoInput.files || []);
+        renderPreview(files, Number(coverSelect.value ?? 0));
+      });
+
       const generateMarkdown = () => {
         const { data, files, coverIndex } = getFormData();
         renderPreview(files, coverIndex);
+        if (isOptimizing) {
+          if (err) err.textContent = "Ảnh đang tối ưu, chờ chút nhé.";
+          return { md: "", slug: "", files };
+        }
         const required = [
           "title",
           "description",

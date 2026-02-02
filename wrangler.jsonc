@@ -1,24 +1,27 @@
 {
-    "name": "two-against-the-world1",
-    "compatibility_date": "2026-01-31",
-    "assets": { "directory": "./dist" },
-    "d1_databases": [
-      {
-        "binding": "DB",
-        "database_name": "two-against-the-world",
-        "database_id": "REPLACE_WITH_D1_ID"
-      }
-    ],
-    "r2_buckets": [
-      {
-        "binding": "MEDIA",
-        "bucket_name": "two-against-the-world-media"
-      }
-    ],
-    "vars": {
-      "PUBLIC_R2_BASE_URL": "https://example.com",
-      "PUBLIC_TURNSTILE_SITE_KEY": "",
-      "TURNSTILE_SECRET": ""
-    ]
+  "name": "two-against-the-world",
+  "compatibility_date": "2026-01-31",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "./dist/_worker.js",
+  "assets": {
+    "directory": "./dist"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "two-against-the-world",
+      "database_id": "REPLACE_WITH_D1_ID"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "two-against-the-world-media"
+    }
+  ],
+  "vars": {
+    "PUBLIC_R2_BASE_URL": "https://example.com",
+    "PUBLIC_TURNSTILE_SITE_KEY": "",
+    "TURNSTILE_SECRET": ""
   }
-  
+}
