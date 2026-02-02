@@ -3,7 +3,8 @@ import path from "node:path";
 import { execSync } from "node:child_process";
 import matter from "gray-matter";
 
-const OUTPUT_DIR = path.join(process.cwd(), "export", "posts");
+const OUTPUT_ROOT = path.join(process.cwd(), "export");
+const OUTPUT_DIR = path.join(OUTPUT_ROOT, "posts");
 const WRANGLER_FILE = path.join(process.cwd(), "wrangler.jsonc");
 
 const readWranglerDbName = async () => {
@@ -67,6 +68,16 @@ const main = async () => {
     `SELECT * FROM posts ORDER BY datetime(published_at) DESC`,
     local
   );
+  const comments = runWranglerQuery(
+    dbName,
+    `SELECT * FROM comments ORDER BY datetime(created_at) DESC`,
+    local
+  );
+  const media = runWranglerQuery(
+    dbName,
+    `SELECT * FROM post_media ORDER BY datetime(created_at) DESC`,
+    local
+  );
 
   for (const row of rows) {
     const slug = row.slug || row.id;
@@ -78,6 +89,9 @@ const main = async () => {
       photoDir: row.photo_dir ?? "",
       photoCount: Number(row.photo_count ?? 0),
       pinned: Boolean(row.pinned ?? 0),
+      pinnedPriority: Number(row.pinned_priority ?? 0),
+      pinnedUntil: row.pinned_until ?? null,
+      pinnedStyle: row.pinned_style ?? null,
       topic: row.topic ?? "two-of-us",
       author: row.author ?? "",
       location: row.location ?? "",
@@ -109,6 +123,20 @@ const main = async () => {
       process.stdout.write(`-- ${filepath}\n`);
     } else {
       await fs.writeFile(filepath, output, "utf8");
+    }
+  }
+
+  const manifests = [
+    { name: "posts.json", data: rows },
+    { name: "comments.json", data: comments },
+    { name: "media.json", data: media },
+  ];
+  for (const manifest of manifests) {
+    const filePath = path.join(OUTPUT_ROOT, manifest.name);
+    if (dryRun) {
+      process.stdout.write(`-- ${filePath}\n`);
+    } else {
+      await fs.writeFile(filePath, JSON.stringify(manifest.data, null, 2), "utf8");
     }
   }
 };

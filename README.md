@@ -23,6 +23,16 @@ Thiết lập trong Cloudflare Dashboard (Workers → Settings → Variables):
 - `PUBLIC_R2_BASE_URL`: base URL để render ảnh từ R2 (ví dụ `https://tinyeu.blog/media`).
 - `PUBLIC_TURNSTILE_SITE_KEY`: public site key cho Turnstile.
 - `TURNSTILE_SECRET`: secret key cho Turnstile.
+- `PUBLIC_ENABLE_CONTENT_FALLBACK`: bật fallback từ Markdown khi D1 rỗng (`true`/`false`).
+- `PUBLIC_ENABLE_PINNED_BADGE`: hiển thị huy hiệu ghim trên card bài viết.
+- `PUBLIC_ENABLE_SITE_CREDITS`: hiển thị credits ở footer.
+- `PUBLIC_ENABLE_IG_LINKS`: bật Instagram link cards.
+- `PUBLIC_ENABLE_IG_EMBED`: bật embed 1 post IG (lazy load).
+- `PUBLIC_IG_EMBED_URL`: URL embed 1 post IG.
+- `PUBLIC_ENABLE_ADMIN_DRAFT_SAVE`: lưu draft cục bộ trong Admin.
+- `PUBLIC_ENABLE_COMPOSE_PAGE`: bật trang `/compose` (mặc định tắt).
+- `PUBLIC_ENABLE_PINNED_FIELDS`: bật trường ghim bài trong Admin.
+- `PUBLIC_ENABLE_UPLOAD_HELPERS`: bật UI hỗ trợ upload (progress/cancel).
 
 ## D1 migrations
 
@@ -37,6 +47,8 @@ wrangler d1 migrations apply two-against-the-world --local
 ```bash
 wrangler d1 migrations apply two-against-the-world
 ```
+
+Lưu ý: thêm migration pinning (`0004_pinned_fields.sql`) trước khi bật ghim bài.
 
 ## Hybrid data workflow (Markdown ↔ D1)
 
@@ -54,6 +66,10 @@ Export D1 → Markdown (default export ra `./export/posts`):
 npm run export:posts -- --local
 ```
 
+Export comments/media manifests:
+- `./export/comments.json`
+- `./export/media.json`
+
 Flags:
 
 - `--dry-run`: chỉ in ra output, không ghi DB / file.
@@ -66,6 +82,12 @@ Flags:
 
 ```bash
 npm run sync:media
+```
+
+## Download media từ R2 (backup)
+
+```bash
+npm run download:media -- --manifest=export/media.json
 ```
 
 ## Admin

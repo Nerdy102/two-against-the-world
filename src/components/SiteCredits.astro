@@ -1,0 +1,18 @@
+---
+const enabled = import.meta.env.PUBLIC_ENABLE_SITE_CREDITS !== "false";
+---
+
+{enabled && (
+  <div class="site-credits">
+    <p>
+      Created by:{" "}
+      <a href="https://www.instagram.com/n.e.r.d_1eyelid/" rel="me noopener noreferrer" target="_blank">
+        IG: n.e.r.d_1eyelid
+      </a>
+    </p>
+    <p>
+      Nếu có câu hỏi hoặc lỗi, nhắn IG hoặc email:{" "}
+      <a href="mailto:nguyenviet.hoa406@gmail.com">nguyenviet.hoa406@gmail.com</a>
+    </p>
+  </div>
+)}

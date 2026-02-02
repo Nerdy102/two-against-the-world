@@ -31,6 +31,9 @@ export const mapContentEntryToPostRecord = (
     photo_dir: entry.data.photoDir || null,
     photo_count: entry.data.photoCount ?? 0,
     pinned: entry.data.pinned ? 1 : 0,
+    pinned_priority: entry.data.pinnedPriority ?? 0,
+    pinned_until: entry.data.pinnedUntil ? String(entry.data.pinnedUntil) : null,
+    pinned_style: entry.data.pinnedStyle ? String(entry.data.pinnedStyle) : null,
     layout: "normal",
     sort_order: 0,
     published_at: publishedAt,
@@ -58,12 +61,30 @@ export const getPostFromContentBySlug = async (
 const getPostDate = (post: PostRecord) =>
   post.published_at ?? post.created_at ?? "";
 
+const isPinnedActive = (post: PostRecord) => {
+  if (Number(post.pinned ?? 0) !== 1) return false;
+  if (!post.pinned_until) return true;
+  const until = new Date(post.pinned_until);
+  if (Number.isNaN(until.getTime())) return true;
+  return until.getTime() > Date.now();
+};
+
 const comparePosts = (a: PostRecord, b: PostRecord) => {
-  if (Number(b.pinned ?? 0) !== Number(a.pinned ?? 0)) {
-    return Number(b.pinned ?? 0) - Number(a.pinned ?? 0);
+  const pinnedA = isPinnedActive(a) ? 1 : 0;
+  const pinnedB = isPinnedActive(b) ? 1 : 0;
+  if (pinnedB !== pinnedA) {
+    return pinnedB - pinnedA;
+  }
+  const priorityA = Number(a.pinned_priority ?? 0);
+  const priorityB = Number(b.pinned_priority ?? 0);
+  if (priorityB !== priorityA) {
+    return priorityB - priorityA;
   }
   return getPostDate(b).localeCompare(getPostDate(a));
 };
+
+export const shouldUseContentFallback = () =>
+  import.meta.env.PUBLIC_ENABLE_CONTENT_FALLBACK !== "false";
 
 export const mergePostsBySlug = (
   dbPosts: PostRecord[],
@@ -86,5 +107,6 @@ export const getHybridPostBySlug = async (
   slug: string
 ): Promise<PostRecord | null> => {
   if (dbPost) return dbPost;
+  if (!shouldUseContentFallback()) return null;
   return getPostFromContentBySlug(slug);
 };

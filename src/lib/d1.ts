@@ -38,6 +38,9 @@ const POST_COLUMNS: PostColumnDefinition[] = [
   { name: "photo_dir", sql: "photo_dir TEXT" },
   { name: "photo_count", sql: "photo_count INTEGER DEFAULT 0" },
   { name: "pinned", sql: "pinned INTEGER DEFAULT 0" },
+  { name: "pinned_priority", sql: "pinned_priority INTEGER DEFAULT 0" },
+  { name: "pinned_until", sql: "pinned_until TEXT" },
+  { name: "pinned_style", sql: "pinned_style TEXT" },
   { name: "layout", sql: "layout TEXT DEFAULT 'normal'" },
   { name: "sort_order", sql: "sort_order INTEGER DEFAULT 0" },
   { name: "published_at", sql: "published_at TEXT" },
@@ -90,6 +93,9 @@ export async function ensurePostsSchema(db: D1Database): Promise<void> {
             photo_dir TEXT,
             photo_count INTEGER DEFAULT 0,
             pinned INTEGER DEFAULT 0,
+            pinned_priority INTEGER DEFAULT 0,
+            pinned_until TEXT,
+            pinned_style TEXT,
             layout TEXT DEFAULT 'normal',
             sort_order INTEGER DEFAULT 0,
             published_at TEXT,
@@ -108,6 +114,12 @@ export async function ensurePostsSchema(db: D1Database): Promise<void> {
       .prepare(
         `CREATE INDEX IF NOT EXISTS idx_posts_status_published_at
          ON posts(status, published_at)`
+      )
+      .run();
+    await db
+      .prepare(
+        `CREATE INDEX IF NOT EXISTS idx_posts_pinned_priority
+         ON posts(pinned, pinned_priority, pinned_until, published_at)`
       )
       .run();
   })();
@@ -285,6 +297,9 @@ export type PostRecord = {
   photo_dir: string | null;
   photo_count: number | null;
   pinned: number | null;
+  pinned_priority?: number | null;
+  pinned_until?: string | null;
+  pinned_style?: string | null;
   layout?: "normal" | "long" | null;
   sort_order?: number | null;
   published_at: string | null;

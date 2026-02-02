@@ -25,7 +25,17 @@
 	"vars": {
 		"PUBLIC_SITE_URL": "https://tinyeu.blog",
 		"PUBLIC_R2_BASE_URL": "https://tinyeu.blog/media",
-		"PUBLIC_TURNSTILE_SITE_KEY": ""
+		"PUBLIC_TURNSTILE_SITE_KEY": "",
+		"PUBLIC_ENABLE_CONTENT_FALLBACK": "true",
+		"PUBLIC_ENABLE_PINNED_BADGE": "true",
+		"PUBLIC_ENABLE_SITE_CREDITS": "true",
+		"PUBLIC_ENABLE_IG_LINKS": "true",
+		"PUBLIC_ENABLE_IG_EMBED": "false",
+		"PUBLIC_IG_EMBED_URL": "",
+		"PUBLIC_ENABLE_ADMIN_DRAFT_SAVE": "true",
+		"PUBLIC_ENABLE_COMPOSE_PAGE": "false",
+		"PUBLIC_ENABLE_PINNED_FIELDS": "true",
+		"PUBLIC_ENABLE_UPLOAD_HELPERS": "true"
 	},
 	"kv_namespaces": [
 		{

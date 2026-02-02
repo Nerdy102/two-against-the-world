@@ -19,7 +19,7 @@ export const GET: APIRoute = async ({ locals, request }) => {
   const { results } = await db
     .prepare(
       `SELECT * FROM posts
-       ORDER BY pinned DESC, sort_order DESC, datetime(updated_at) DESC`
+       ORDER BY pinned DESC, pinned_priority DESC, sort_order DESC, datetime(updated_at) DESC`
     )
     .all<PostRecord>();
   return json({ posts: results ?? [] });
@@ -75,13 +75,13 @@ export const POST: APIRoute = async ({ locals, request }) => {
       `INSERT INTO posts (
         id, slug, title, summary, content_md, body_markdown, tags_json, cover_key, cover_url,
         status, author, topic, location, event_time, written_at, photo_time, tags_csv,
-        side_note, voice_memo, voice_memo_title, photo_dir, photo_count, pinned, layout,
-        sort_order, published_at
+        side_note, voice_memo, voice_memo_title, photo_dir, photo_count, pinned, pinned_priority,
+        pinned_until, pinned_style, layout, sort_order, published_at
       )
       VALUES (
         ?, ?, ?, ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?, ?, ?, ?, ?,
         ?, ?
       )`
     )
@@ -109,6 +109,9 @@ export const POST: APIRoute = async ({ locals, request }) => {
       payload.photo_dir ?? null,
       payload.photo_count ?? 0,
       Number(payload.pinned ?? 0) === 1 ? 1 : 0,
+      Number(payload.pinned_priority ?? 0) || 0,
+      payload.pinned_until ? payload.pinned_until : null,
+      payload.pinned_style ?? null,
       payload.layout ?? "normal",
       payload.sort_order ?? 0,
       publishedAt

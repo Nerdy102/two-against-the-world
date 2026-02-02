@@ -1,4 +1,7 @@
 ---
+import SiteCredits from "./SiteCredits.astro";
+import InstagramLinks from "./InstagramLinks.astro";
+
 const year = new Date().getFullYear();
 ---
 
@@ -7,6 +10,10 @@ const year = new Date().getFullYear();
     <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
       <p class="kicker text-[10px]">© {year} — TWO AGAINST THE WORLD</p>
       <p class="text-[12px]">Tất cả chỉ là xàm xí thôi, đừng take mọi thứ too serious nhé. YÊUUUUU!!!!!</p>
+    </div>
+    <div class="mt-4 border-t border-white/10 pt-4">
+      <InstagramLinks />
+      <SiteCredits />
     </div>
   </div>
 </footer>

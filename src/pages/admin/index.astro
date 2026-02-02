@@ -4,6 +4,9 @@ import RansomTitle from "../../components/RansomTitle.astro";
 import { TOPICS } from "../../config/topics";
 
 export const prerender = false;
+
+const enablePinnedFields = import.meta.env.PUBLIC_ENABLE_PINNED_FIELDS !== "false";
+const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "false";
 ---
 
 <BaseLayout title="Admin — Two Against The World" description="Admin dashboard">
@@ -57,7 +60,10 @@ export const prerender = false;
         </div>
 
         <form class="mt-4 space-y-4" data-post-form>
-          <p class="text-xs text-black/60">Trường có <span class="text-red-500">*</span> là bắt buộc.</p>
+          <p class="text-xs text-black/60">
+            Trường có <span class="text-red-500">*</span> là bắt buộc. Bắt buộc tối thiểu: Tiêu đề, Chủ đề,
+            Ảnh, Nội dung.
+          </p>
           <input type="hidden" name="id" />
 
           <label class="compose-field">
@@ -79,7 +85,7 @@ export const prerender = false;
           </label>
 
           <div class="compose-field">
-            <span>Ảnh cover (upload)</span>
+            <span>Ảnh cover (upload) <span class="text-red-500">*</span></span>
             <input type="hidden" name="cover_key" />
             <input type="hidden" name="cover_url" />
             <input
@@ -92,12 +98,16 @@ export const prerender = false;
             <p class="mt-2 text-xs text-black/50">
               Chọn ảnh từ iPhone (HEIC/HEIF sẽ được tự tối ưu sang JPG). Ảnh cover sẽ tự chèn vào bài.
             </p>
-            <button class="btn mt-3" type="button" data-upload-cover>Upload ảnh cover</button>
+            <div class="mt-3 flex flex-wrap gap-2">
+              <button class="btn" type="button" data-upload-cover>Upload ảnh cover</button>
+              {enableUploadHelpers && <button class="btn hidden" type="button" data-cover-cancel>Hủy</button>}
+            </div>
+            {enableUploadHelpers && <p class="text-xs text-black/50" data-cover-progress></p>}
             <p class="text-xs text-black/50" data-cover-note></p>
           </div>
 
           <label class="compose-field">
-            <span>Chủ đề</span>
+            <span>Chủ đề <span class="text-red-500">*</span></span>
             <select class="input" name="topic">
               <option value="">Chưa phân loại</option>
               {TOPICS.map((t) => (
@@ -166,13 +176,37 @@ export const prerender = false;
             <input class="input" type="number" min="0" name="photo_count" placeholder="0" />
           </label>
 
-          <label class="compose-field">
-            <span>Ghim bài</span>
-            <select class="input" name="pinned">
-              <option value="0">Không</option>
-              <option value="1">Có</option>
-            </select>
-          </label>
+          {enablePinnedFields && (
+            <>
+              <label class="compose-field">
+                <span>Ghim bài</span>
+                <select class="input" name="pinned">
+                  <option value="0">Không</option>
+                  <option value="1">Có</option>
+                </select>
+              </label>
+
+              <label class="compose-field">
+                <span>Độ ưu tiên ghim</span>
+                <input class="input" name="pinned_priority" type="number" min="0" max="999" placeholder="0" />
+              </label>
+
+              <label class="compose-field">
+                <span>Ghim đến (ISO)</span>
+                <input class="input" name="pinned_until" placeholder="2026-02-02T10:00:00Z" />
+              </label>
+
+              <label class="compose-field">
+                <span>Kiểu ghim</span>
+                <select class="input" name="pinned_style">
+                  <option value="">Mặc định</option>
+                  <option value="event">Event</option>
+                  <option value="announcement">Announcement</option>
+                  <option value="memory">Memory</option>
+                </select>
+              </label>
+            </>
+          )}
 
           <label class="compose-field">
             <span>Layout</span>
@@ -220,10 +254,14 @@ export const prerender = false;
               multiple
             />
             <p class="mt-2 text-xs text-black/50">
-              Tối ưu kích thước và nén nhẹ để đăng nhanh. Nếu ảnh HEIC lỗi, hãy chọn “Most Compatible” trong
-              Camera → Formats.
+              Tối ưu kích thước và nén nhẹ để đăng nhanh (tối đa 6 ảnh/lần). Nếu ảnh HEIC lỗi, hãy chọn “Most
+              Compatible” trong Camera → Formats.
             </p>
-            <button class="btn mt-3" type="button" data-upload-photos>Upload ảnh</button>
+            <div class="mt-3 flex flex-wrap gap-2">
+              <button class="btn" type="button" data-upload-photos>Upload ảnh</button>
+              {enableUploadHelpers && <button class="btn hidden" type="button" data-upload-cancel>Hủy</button>}
+            </div>
+            {enableUploadHelpers && <p class="text-xs text-black/50" data-upload-progress></p>}
             <p class="text-xs text-black/50" data-upload-note></p>
           </div>
 
@@ -287,8 +325,12 @@ export const prerender = false;
     const deleteBtn = document.querySelector("[data-delete-post]");
     const coverBtn = document.querySelector("[data-upload-cover]");
     const coverNote = document.querySelector("[data-cover-note]");
+    const coverProgress = document.querySelector("[data-cover-progress]");
+    const coverCancel = document.querySelector("[data-cover-cancel]");
     const uploadBtn = document.querySelector("[data-upload-photos]");
     const uploadNote = document.querySelector("[data-upload-note]");
+    const uploadProgress = document.querySelector("[data-upload-progress]");
+    const uploadCancel = document.querySelector("[data-upload-cancel]");
     const authWrap = document.querySelector("[data-admin-auth]");
     const lockStatus = document.querySelector("[data-admin-status]");
     const usernameInput = document.querySelector("[data-admin-username]");
@@ -303,6 +345,12 @@ export const prerender = false;
     const commentFilter = document.querySelector("[data-comment-filter]");
     const commentNote = document.querySelector("[data-comment-note]");
     let unlocked = false;
+    const enableDraftSave = import.meta.env.PUBLIC_ENABLE_ADMIN_DRAFT_SAVE !== "false";
+    const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "false";
+    const MAX_UPLOAD_FILES = 6;
+    const MAX_FILE_BYTES = 2.5 * 1024 * 1024;
+    let uploadController = null;
+    let coverController = null;
 
     const state = {
       posts: [],
@@ -422,11 +470,51 @@ export const prerender = false;
       "photo_dir",
       "photo_count",
       "pinned",
+      "pinned_priority",
+      "pinned_until",
+      "pinned_style",
       "layout",
       "sort_order",
       "status",
       "content_md",
     ];
+
+    const DRAFT_KEY = "twaw_admin_draft_v1";
+
+    const saveDraft = () => {
+      if (!form || !enableDraftSave) return;
+      if (state.active?.id) return;
+      const data = {};
+      fields.forEach((name) => {
+        const input = form.querySelector(`[name="${name}"]`);
+        if (!input) return;
+        data[name] = input.value;
+      });
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ data, savedAt: Date.now() }));
+    };
+
+    const loadDraft = () => {
+      if (!form || state.active?.id || !enableDraftSave) return;
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      let payload = null;
+      try {
+        payload = JSON.parse(raw);
+      } catch {
+        return;
+      }
+      if (!payload?.data) return;
+      fields.forEach((name) => {
+        const input = form.querySelector(`[name="${name}"]`);
+        if (!input || payload.data[name] === undefined) return;
+        input.value = payload.data[name];
+      });
+      status.textContent = "Đang dùng bản nháp trên máy";
+    };
+
+    const clearDraft = () => {
+      localStorage.removeItem(DRAFT_KEY);
+    };
 
     const fillForm = (post = {}) => {
       fields.forEach((name) => {
@@ -560,10 +648,12 @@ export const prerender = false;
     form?.querySelectorAll("input, textarea, select").forEach((input) => {
       input.addEventListener("input", () => {
         state.dirty = true;
+        saveDraft();
       });
     });
 
     const requiredFields = ["title", "slug", "content_md"];
+    const requiredOnCreate = ["topic"];
 
     const savePost = async ({ silent = false } = {}) => {
       if (!form) return false;
@@ -606,6 +696,24 @@ export const prerender = false;
         input?.focus();
         return false;
       }
+      if (isNew) {
+        const missingOnCreate = requiredOnCreate.find((name) => {
+          const value = typeof data[name] === "string" ? data[name].trim() : "";
+          return !value;
+        });
+        if (missingOnCreate) {
+          note.textContent = "Thiếu Chủ đề.";
+          const input = form.querySelector(`[name="${missingOnCreate}"]`);
+          input?.focus();
+          return false;
+        }
+        const contentValue = String(data.content_md || "");
+        const hasImage = Boolean(data.cover_url) || /!\[.*?\]\(.+?\)/.test(contentValue);
+        if (!hasImage) {
+          note.textContent = "Thiếu ảnh. Hãy upload cover hoặc ảnh trong nội dung.";
+          return false;
+        }
+      }
 
       const isNew = !data.id;
       const res = await fetch(isNew ? "/api/admin/posts" : `/api/admin/posts/${data.id}`, {
@@ -632,6 +740,7 @@ export const prerender = false;
         data.id = payload.id;
       }
       if (!silent) note.textContent = "Đã lưu.";
+      clearDraft();
       await loadPosts();
       state.active = state.posts.find((p) => p.id === data.id);
       fillForm(state.active);
@@ -750,11 +859,17 @@ export const prerender = false;
 
     commentFilter?.addEventListener("change", loadComments);
 
+    loadDraft();
     checkSession();
 
     const isHeic = (file) => {
       const name = file?.name?.toLowerCase() || "";
-      return file?.type === "image/heic" || file?.type === "image/heif" || name.endsWith(".heic");
+      return (
+        file?.type === "image/heic" ||
+        file?.type === "image/heif" ||
+        name.endsWith(".heic") ||
+        name.endsWith(".heif")
+      );
     };
 
     const toJpegBlob = async (file, quality = 0.82) => {
@@ -762,6 +877,9 @@ export const prerender = false;
       const blob = await heic2any({ blob: file, toType: "image/jpeg", quality });
       return blob instanceof Blob ? blob : new Blob([blob], { type: "image/jpeg" });
     };
+
+    const encodeJpeg = (canvas, quality) =>
+      new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
 
     const resizeImage = async (file, maxSize = 2048, quality = 0.82) => {
       const source = await toJpegBlob(file, quality);
@@ -775,12 +893,17 @@ export const prerender = false;
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("NO_CONTEXT");
       ctx.drawImage(bitmap, 0, 0, targetWidth, targetHeight);
-      const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
+      let currentQuality = quality;
+      let blob = await encodeJpeg(canvas, currentQuality);
+      while (blob && blob.size > MAX_FILE_BYTES && currentQuality > 0.5) {
+        currentQuality = Math.max(0.5, currentQuality - 0.1);
+        blob = await encodeJpeg(canvas, currentQuality);
+      }
       if (!blob) throw new Error("NO_BLOB");
       return { blob, width: targetWidth, height: targetHeight };
     };
 
-    const uploadImage = async ({ file, slug, filename }) => {
+    const uploadImage = async ({ file, slug, filename, sortOrder, signal }) => {
       const { blob, width, height } = await resizeImage(file);
       const formData = new FormData();
       formData.append("file", blob, filename);
@@ -793,12 +916,14 @@ export const prerender = false;
           size: blob.size,
           originalName: file.name,
           fileName: filename,
+          sort_order: sortOrder ?? 0,
         })
       );
       const res = await fetch("/api/admin/upload", {
         method: "POST",
         headers: { "x-csrf-token": getCsrfToken() },
         body: formData,
+        signal,
       });
       if (!res.ok) {
         if (res.status === 401) {
@@ -811,6 +936,12 @@ export const prerender = false;
       return res.json();
     };
 
+    coverCancel?.addEventListener("click", () => {
+      coverController?.abort();
+      coverProgress?.textContent = "";
+      coverCancel?.classList.add("hidden");
+    });
+
     coverBtn?.addEventListener("click", async () => {
       if (!isUnlocked()) {
         coverNote.textContent = "Cần mở khóa để upload.";
@@ -819,9 +950,11 @@ export const prerender = false;
       const input = form?.querySelector("input[name='cover_upload']");
       const file = input?.files?.[0];
       if (!file) return;
-      coverNote.textContent = "Đang xử lý ảnh cover...";
+      coverNote.textContent = "";
+      coverProgress?.textContent = "Đang xử lý ảnh cover...";
       const slugValue = form?.querySelector("[name='slug']")?.value;
       if (!slugValue) {
+        coverProgress?.textContent = "";
         coverNote.textContent = "Hãy nhập đường dẫn trước khi upload cover.";
         return;
       }
@@ -829,8 +962,17 @@ export const prerender = false;
       const safeSlug = slugify(slug);
       const filenameBase = file.name.replace(/\.[^.]+$/, "");
       const filename = `${filenameBase || "cover"}-${Date.now()}.jpg`;
+      coverController?.abort();
+      coverController = new AbortController();
+      coverCancel?.classList.remove("hidden");
       try {
-        const payload = await uploadImage({ file, slug: safeSlug, filename });
+        const payload = await uploadImage({
+          file,
+          slug: safeSlug,
+          filename,
+          sortOrder: 0,
+          signal: coverController.signal,
+        });
         const coverInput = form?.querySelector("[name='cover_url']");
         const coverKeyInput = form?.querySelector("[name='cover_key']");
         if (payload.url && coverInput) {
@@ -846,12 +988,28 @@ export const prerender = false;
           contentField.value = `![cover](${payload.url})\n\n${contentField.value}`.trim();
           contentField.dispatchEvent(new Event("input", { bubbles: true }));
         }
+        coverProgress?.textContent = "";
         coverNote.textContent = "Đã upload ảnh cover.";
         input.value = "";
         markDirty();
       } catch (error) {
-        coverNote.textContent = "Upload ảnh cover lỗi. Thử lại hoặc đổi định dạng ảnh.";
+        if (error?.name === "AbortError") {
+          coverNote.textContent = "Đã hủy upload ảnh cover.";
+        } else {
+          coverNote.textContent =
+            "Upload ảnh cover lỗi. Thử lại, chọn ảnh khác, hoặc bật Camera → Formats → Most Compatible.";
+        }
+        coverProgress?.textContent = "";
+      } finally {
+        coverCancel?.classList.add("hidden");
+        coverController = null;
       }
+    });
+
+    uploadCancel?.addEventListener("click", () => {
+      uploadController?.abort();
+      uploadProgress?.textContent = "";
+      uploadCancel?.classList.add("hidden");
     });
 
     uploadBtn?.addEventListener("click", async () => {
@@ -861,9 +1019,15 @@ export const prerender = false;
       }
       const input = form?.querySelector("input[name='upload_photos']");
       if (!input?.files?.length) return;
-      uploadNote.textContent = "Đang xử lý ảnh...";
+      if (input.files.length > MAX_UPLOAD_FILES) {
+        uploadNote.textContent = `Chọn tối đa ${MAX_UPLOAD_FILES} ảnh thôi nha.`;
+        return;
+      }
+      uploadNote.textContent = "";
+      uploadProgress?.textContent = "Đang xử lý ảnh...";
       const slugValue = form?.querySelector("[name='slug']")?.value;
       if (!slugValue) {
+        uploadProgress?.textContent = "";
         uploadNote.textContent = "Hãy nhập đường dẫn trước khi upload ảnh.";
         return;
       }
@@ -871,11 +1035,22 @@ export const prerender = false;
       const safeSlug = slugify(slug);
       const date = new Date().toISOString().slice(0, 10);
       let successCount = 0;
+      uploadController?.abort();
+      uploadController = new AbortController();
+      uploadCancel?.classList.remove("hidden");
       for (const [index, file] of Array.from(input.files).entries()) {
         try {
+          if (uploadController.signal.aborted) break;
           const paddedIndex = String(index + 1).padStart(3, "0");
           const filename = `${date}_${safeSlug}_${paddedIndex}.jpg`;
-          const payload = await uploadImage({ file, slug: safeSlug, filename });
+          uploadProgress?.textContent = `Đang upload ${index + 1}/${input.files.length}...`;
+          const payload = await uploadImage({
+            file,
+            slug: safeSlug,
+            filename,
+            sortOrder: index + 1,
+            signal: uploadController.signal,
+          });
           const contentField = form?.querySelector("[name='content_md']");
           if (payload.url && contentField) {
             contentField.value += `\n\n![${filename}](${payload.url})`;
@@ -884,11 +1059,21 @@ export const prerender = false;
           }
           successCount += 1;
         } catch (error) {
-          uploadNote.textContent = "Có ảnh upload lỗi. Thử lại hoặc đổi định dạng ảnh.";
+          if (error?.name === "AbortError") {
+            uploadNote.textContent = "Đã hủy upload ảnh.";
+          } else {
+            uploadNote.textContent =
+              "Có ảnh upload lỗi. Thử ảnh khác hoặc đổi Camera → Formats → Most Compatible.";
+          }
         }
       }
-      uploadNote.textContent = `Đã upload ${successCount} ảnh.`;
+      uploadProgress?.textContent = "";
+      if (!uploadController?.signal?.aborted) {
+        uploadNote.textContent = `Đã upload ${successCount} ảnh.`;
+      }
       input.value = "";
+      uploadCancel?.classList.add("hidden");
+      uploadController = null;
     });
 
     setLocked(true);

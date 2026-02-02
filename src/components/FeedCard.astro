@@ -11,6 +11,7 @@ type Props = {
   topic?: string;
   locked?: boolean;
   pinned?: boolean;
+  pinnedStyle?: string;
   searchText?: string;
   dateKey?: string;
   anchorId?: string;
@@ -25,12 +26,15 @@ const {
   topic,
   locked = false,
   pinned = false,
+  pinnedStyle,
   searchText,
   dateKey,
   anchorId,
 } = Astro.props as Props;
 
 const meta = topicMeta(topic);
+const showPinBadge = pinned && import.meta.env.PUBLIC_ENABLE_PINNED_BADGE !== "false";
+const pinLabel = pinnedStyle ? `${pinnedStyle}` : "Ghim";
 ---
 
 <a
@@ -48,6 +52,11 @@ const meta = topicMeta(topic);
     </div>
     {date && <div class="feed-card__date">{formatDate(date)}</div>}
   </div>
+  {showPinBadge && (
+    <span class="feed-card__pin" data-pin-style={pinnedStyle ?? "default"} aria-label="Bài ghim">
+      📌 {pinLabel}
+    </span>
+  )}
 
   <h3 class="feed-card__title">{title}</h3>
   {description && !locked && <p class="feed-card__desc">{description}</p>}
