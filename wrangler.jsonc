@@ -1,34 +1,28 @@
 {
-	"name": "two-against-the-world",
-	"compatibility_date": "2026-02-02",
-	"compatibility_flags": [
-		"nodejs_compat"
-	],
-	"main": "./dist/_worker.js",
-	"assets": {
-		"directory": "./dist"
-	},
-	"d1_databases": [
-		{
-			"binding": "DB",
-			"database_name": "two-against-the-world",
-			"database_id": "b06dd002-401c-4e44-bb2f-1e2eef044f14"
-		}
-	],
-	"r2_buckets": [
-		{
-			"binding": "BUCKET",
-			"bucket_name": "two-against-the-world-media"
-		},
-		{
-			"bucket_name": "two-against-the-world-media",
-			"binding": "two_against_the_world_media",
-			"remote": true
-		}
-	],
-	"vars": {
-		"PUBLIC_SITE_URL": "https://tinyeu.blog",
-		"PUBLIC_MEDIA_BASE_PATH": "/media",
-		"PUBLIC_TURNSTILE_SITE_KEY": ""
-	}
+  "name": "two-against-the-world",
+  "compatibility_date": "2026-02-02",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "./dist/_worker.js",
+  "assets": { "directory": "./dist" },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "two-against-the-world",
+      "database_id": "b06dd002-401c-4e44-bb2f-1e2eef044f14"
+    }
+  ],
+
+  "r2_buckets": [
+    {
+      "binding": "BUCKET",
+      "bucket_name": "two-against-the-world-media"
+    }
+  ],
+
+  "vars": {
+    "PUBLIC_SITE_URL": "https://tinyeu.blog",
+    "PUBLIC_MEDIA_BASE_PATH": "/media",
+    "PUBLIC_TURNSTILE_SITE_KEY": ""
+  }
 }
