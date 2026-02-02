@@ -227,8 +227,7 @@ export const prerender = false;
     const lockStatus = document.querySelector("[data-admin-status]");
     const lockInput = document.querySelector("[data-admin-password]");
     const unlockBtn = document.querySelector("[data-admin-unlock]");
-    const ADMIN_PASSWORD = "hoayeuuyen";
-    const LOCK_KEY = "twaw_admin_unlocked";
+    let unlocked = false;
 
     const state = {
       posts: [],
@@ -260,19 +259,44 @@ export const prerender = false;
       });
     };
 
-    const isUnlocked = () => {
-      if (typeof localStorage === "undefined") return false;
-      return localStorage.getItem(LOCK_KEY) === "1";
-    };
+    const isUnlocked = () => unlocked;
 
-    const unlock = () => {
-      if (lockInput?.value !== ADMIN_PASSWORD) {
+    const unlock = async () => {
+      if (!lockInput?.value) {
+        lockStatus.textContent = "Nhập mật khẩu";
+        return;
+      }
+      const res = await fetch("/api/admin/unlock", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ password: lockInput.value }),
+      });
+      if (!res.ok) {
         lockStatus.textContent = "Sai mật khẩu";
         return;
       }
-      localStorage?.setItem(LOCK_KEY, "1");
+      const data = await res.json().catch(() => ({}));
+      if (!data?.unlocked) {
+        lockStatus.textContent = "Sai mật khẩu";
+        return;
+      }
+      unlocked = true;
       lockInput.value = "";
       setLocked(false);
+      await loadPosts();
+    };
+
+    const checkSession = async () => {
+      const res = await fetch("/api/admin/session");
+      if (!res.ok) {
+        unlocked = false;
+        setLocked(true);
+        return;
+      }
+      const data = await res.json().catch(() => ({}));
+      unlocked = Boolean(data?.unlocked);
+      setLocked(!unlocked);
+      if (unlocked) await loadPosts();
     };
 
     unlockBtn?.addEventListener("click", unlock);
@@ -344,8 +368,15 @@ export const prerender = false;
     };
 
     const loadPosts = async () => {
+      if (!isUnlocked()) return;
       const res = await fetch("/api/admin/posts");
-      if (!res.ok) return;
+      if (!res.ok) {
+        if (res.status === 401) {
+          unlocked = false;
+          setLocked(true);
+        }
+        return;
+      }
       const data = await res.json();
       state.posts = data.posts || [];
       renderList();
@@ -412,6 +443,12 @@ export const prerender = false;
       });
       const payload = await res.json().catch(() => ({}));
       if (!res.ok) {
+        if (res.status === 401) {
+          unlocked = false;
+          setLocked(true);
+          note.textContent = "Cần mở khóa để lưu bài.";
+          return false;
+        }
         if (!silent) {
           note.textContent = payload?.error
             ? `Lưu lỗi: ${payload.error}`
@@ -436,7 +473,7 @@ export const prerender = false;
 
     setInterval(async () => {
       const id = form?.querySelector("[name='id']")?.value;
-      if (!id || !state.dirty) return;
+      if (!id || !state.dirty || !isUnlocked()) return;
       const saved = await savePost({ silent: true });
       if (saved) state.dirty = false;
     }, 3000);
@@ -446,6 +483,12 @@ export const prerender = false;
       if (!id) return;
       const res = await fetch(`/api/admin/posts/${id}/publish`, { method: "POST" });
       if (!res.ok) {
+        if (res.status === 401) {
+          unlocked = false;
+          setLocked(true);
+          note.textContent = "Cần mở khóa để publish.";
+          return;
+        }
         note.textContent = "Publish lỗi, thử lại nhé.";
         return;
       }
@@ -459,6 +502,12 @@ export const prerender = false;
       if (!id) return;
       const res = await fetch(`/api/admin/posts/${id}/unpublish`, { method: "POST" });
       if (!res.ok) {
+        if (res.status === 401) {
+          unlocked = false;
+          setLocked(true);
+          note.textContent = "Cần mở khóa để gỡ publish.";
+          return;
+        }
         note.textContent = "Gỡ publish lỗi, thử lại nhé.";
         return;
       }
@@ -474,6 +523,12 @@ export const prerender = false;
       if (!id) return;
       const res = await fetch(`/api/admin/posts/${id}/publish`, { method: "POST" });
       if (!res.ok) {
+        if (res.status === 401) {
+          unlocked = false;
+          setLocked(true);
+          note.textContent = "Cần mở khóa để publish.";
+          return;
+        }
         note.textContent = "Publish lỗi, thử lại nhé.";
         return;
       }
@@ -483,7 +538,7 @@ export const prerender = false;
       note.textContent = "Đã đăng bài.";
     });
 
-    loadPosts();
+    checkSession();
 
     const isHeic = (file) => {
       const name = file?.name?.toLowerCase() || "";
@@ -532,7 +587,14 @@ export const prerender = false;
         method: "POST",
         body: formData,
       });
-      if (!res.ok) throw new Error("UPLOAD_FAILED");
+      if (!res.ok) {
+        if (res.status === 401) {
+          unlocked = false;
+          setLocked(true);
+          throw new Error("UNAUTHORIZED");
+        }
+        throw new Error("UPLOAD_FAILED");
+      }
       return res.json();
     };
 
@@ -611,6 +673,6 @@ export const prerender = false;
       input.value = "";
     });
 
-    setLocked(!isUnlocked());
+    setLocked(true);
   </script>
 </BaseLayout>

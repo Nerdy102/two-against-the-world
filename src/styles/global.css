@@ -1097,6 +1097,25 @@ a { color: inherit; text-decoration: none; }
   font-size: 14px;
 }
 
+.reaction-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.reaction-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.reaction-btn.is-active {
+  background: rgba(0,0,0,0.85);
+  color: #fff;
+  border-color: rgba(0,0,0,0.85);
+}
+
 .lock-card {
   width: min(520px, 92vw);
   padding: 22px;

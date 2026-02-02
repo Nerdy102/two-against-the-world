@@ -141,11 +141,66 @@ const wallImages = [
         <h2 class="mt-3 text-[26px] sm:text-[32px] font-semibold text-black/80">Để lại lời nhắn xàm xí</h2>
         <p class="mt-2 text-black/60">Nhập biệt danh rồi thả vài dòng nha.</p>
 
-        <div class="mt-4 flex items-center gap-3">
-          <button class="btn" type="button" data-reaction-btn>
-            ❤️ <span data-reaction-count>0</span>
-          </button>
-          <span class="text-xs text-black/50" data-reaction-state>Thả tim ở đây.</span>
+        <div class="mt-4 flex flex-wrap items-center gap-3">
+          <div class="reaction-bar" data-reaction-bar>
+            <button class="btn reaction-btn" type="button" data-reaction-kind="🥺">
+              🥺 <span data-reaction-count>0</span>
+            </button>
+            <button class="btn reaction-btn" type="button" data-reaction-kind="🤧">
+              🤧 <span data-reaction-count>0</span>
+            </button>
+            <button class="btn reaction-btn" type="button" data-reaction-kind="😭">
+              😭 <span data-reaction-count>0</span>
+            </button>
+            <button class="btn reaction-btn" type="button" data-reaction-kind="🤡">
+              🤡 <span data-reaction-count>0</span>
+            </button>
+            <button class="btn reaction-btn" type="button" data-reaction-kind="😎">
+              😎 <span data-reaction-count>0</span>
+            </button>
+            <button class="btn reaction-btn" type="button" data-reaction-kind="☺️">
+              ☺️ <span data-reaction-count>0</span>
+            </button>
+            <button class="btn reaction-btn" type="button" data-reaction-kind="😖">
+              😖 <span data-reaction-count>0</span>
+            </button>
+            <button class="btn reaction-btn" type="button" data-reaction-kind="😏">
+              😏 <span data-reaction-count>0</span>
+            </button>
+            <button class="btn reaction-btn" type="button" data-reaction-kind="🥹">
+              🥹 <span data-reaction-count>0</span>
+            </button>
+            <button class="btn reaction-btn" type="button" data-reaction-kind="🤪">
+              🤪 <span data-reaction-count>0</span>
+            </button>
+            <button class="btn reaction-btn" type="button" data-reaction-kind="🤓">
+              🤓 <span data-reaction-count>0</span>
+            </button>
+            <button class="btn reaction-btn" type="button" data-reaction-kind="😈">
+              😈 <span data-reaction-count>0</span>
+            </button>
+            <button class="btn reaction-btn" type="button" data-reaction-kind="😼">
+              😼 <span data-reaction-count>0</span>
+            </button>
+            <button class="btn reaction-btn" type="button" data-reaction-kind="🫶🏻">
+              🫶🏻 <span data-reaction-count>0</span>
+            </button>
+            <button class="btn reaction-btn" type="button" data-reaction-kind="✌🏻">
+              ✌🏻 <span data-reaction-count>0</span>
+            </button>
+            <button class="btn reaction-btn" type="button" data-reaction-kind="🖕🏻">
+              🖕🏻 <span data-reaction-count>0</span>
+            </button>
+            <button class="btn reaction-btn" type="button" data-reaction-kind="💋">
+              💋 <span data-reaction-count>0</span>
+            </button>
+            <button class="btn reaction-btn" type="button" data-reaction-kind="👀">
+              👀 <span data-reaction-count>0</span>
+            </button>
+          </div>
+          <button class="btn" type="button" data-share-link>Share · Copy link</button>
+          <span class="text-xs text-black/50" data-reaction-state>Chọn icon để thả cảm xúc.</span>
+          <span class="text-xs text-black/50" data-share-state></span>
         </div>
 
         <form class="comment-form mt-6" data-comment-form data-comment-slug={post.slug}>
@@ -379,21 +434,31 @@ const wallImages = [
 
   <script is:inline>
     const initReactions = () => {
-      const btn = document.querySelector("[data-reaction-btn]");
-      const countEl = document.querySelector("[data-reaction-count]");
+      const bar = document.querySelector("[data-reaction-bar]");
       const stateEl = document.querySelector("[data-reaction-state]");
+      const shareBtn = document.querySelector("[data-share-link]");
+      const shareState = document.querySelector("[data-share-state]");
       const form = document.querySelector("[data-comment-form]");
-      if (!btn || !countEl || !form) return;
-      if (btn.dataset.bound === "1") return;
-      btn.dataset.bound = "1";
+      if (!bar || !form) return;
+      if (bar.dataset.bound === "1") return;
+      bar.dataset.bound = "1";
 
+      const buttons = Array.from(bar.querySelectorAll("[data-reaction-kind]"));
       const slug = form.dataset.commentSlug || "unknown";
 
-      const render = ({ count = 0, reacted = false }) => {
-        countEl.textContent = count;
-        btn.classList.toggle("is-active", reacted);
+      const render = ({ counts = {}, reactedKinds = [], total = 0 }) => {
+        buttons.forEach((button) => {
+          const kind = button.dataset.reactionKind;
+          if (!kind) return;
+          const countEl = button.querySelector("[data-reaction-count]");
+          const count = Number(counts[kind] ?? 0);
+          if (countEl) countEl.textContent = count;
+          button.classList.toggle("is-active", reactedKinds.includes(kind));
+        });
         if (stateEl) {
-          stateEl.textContent = reacted ? "Đã thả tim." : "Thả tim ở đây.";
+          stateEl.textContent = total
+            ? `Đã thả ${total} cảm xúc.`
+            : "Chọn icon để thả cảm xúc.";
         }
       };
 
@@ -404,15 +469,28 @@ const wallImages = [
         render(data);
       };
 
-      btn.addEventListener("click", async () => {
-        const res = await fetch("/api/reactions", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ slug, kind: "heart" }),
+      buttons.forEach((button) => {
+        button.addEventListener("click", async () => {
+          const kind = button.dataset.reactionKind;
+          if (!kind) return;
+          const res = await fetch("/api/reactions", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ slug, kind }),
+          });
+          if (!res.ok) return;
+          const data = await res.json();
+          render(data);
         });
-        if (!res.ok) return;
-        const data = await res.json();
-        render(data);
+      });
+
+      shareBtn?.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(window.location.href);
+          if (shareState) shareState.textContent = "Đã copy link!";
+        } catch (error) {
+          if (shareState) shareState.textContent = "Không copy được, thử lại.";
+        }
       });
 
       load();
