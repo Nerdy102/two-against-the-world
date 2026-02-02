@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { ensurePostsSchema, getDb, type PostRecord } from "../../../../lib/d1";
+import { isAdminAuthorized } from "../../../../lib/adminAuth";
 
 export const prerender = false;
 
@@ -9,7 +10,10 @@ const json = (data: unknown, status = 200) =>
     headers: { "content-type": "application/json" },
   });
 
-export const GET: APIRoute = async ({ locals }) => {
+export const GET: APIRoute = async ({ locals, request }) => {
+  if (!(await isAdminAuthorized(request, locals))) {
+    return json({ error: "Unauthorized" }, 401);
+  }
   const db = getDb(locals);
   await ensurePostsSchema(db);
   const { results } = await db
@@ -19,6 +23,9 @@ export const GET: APIRoute = async ({ locals }) => {
 };
 
 export const POST: APIRoute = async ({ locals, request }) => {
+  if (!(await isAdminAuthorized(request, locals))) {
+    return json({ error: "Unauthorized" }, 401);
+  }
   const payload = await request.json().catch(() => null);
   if (!payload) {
     return json({ error: "Invalid JSON" }, 400);

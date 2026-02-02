@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { getDb } from "../../../lib/d1";
+import { isAdminAuthorized } from "../../../lib/adminAuth";
 
 export const prerender = false;
 
@@ -27,6 +28,9 @@ const buildKey = (slug: string, filename: string) => {
 };
 
 export const POST: APIRoute = async ({ locals, request }) => {
+  if (!(await isAdminAuthorized(request, locals))) {
+    return json({ error: "Unauthorized" }, 401);
+  }
   const form = await request.formData().catch(() => null);
   if (!form) return json({ error: "Invalid form data" }, 400);
 
