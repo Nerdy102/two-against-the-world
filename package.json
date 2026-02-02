@@ -16,11 +16,14 @@
     "@fontsource/ibm-plex-mono": "latest",
     "@fontsource/oswald": "latest",
     "@fontsource/special-elite": "latest",
+    "marked": "latest",
     "lenis": "latest",
     "motion": "latest"
   },
   "devDependencies": {
     "@astrojs/check": "latest",
+    "@astrojs/cloudflare": "latest",
+    "@cloudflare/workers-types": "latest",
     "@tailwindcss/typography": "latest",
     "@tailwindcss/vite": "latest",
     "astro": "latest",

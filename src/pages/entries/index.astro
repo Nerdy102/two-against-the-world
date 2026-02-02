@@ -2,21 +2,24 @@
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import FeedCard from "../../components/FeedCard.astro";
 import RansomTitle from "../../components/RansomTitle.astro";
-import { getCollection } from "astro:content";
 import { formatDate } from "../../lib/formatDate";
+import { getDb, type PostRecord } from "../../lib/d1";
 
-const posts = (await getCollection("posts"))
-  .filter((p) => !p.data.draft)
-  .sort((a, b) => {
-    const pinnedA = a.data.pinned ? 1 : 0;
-    const pinnedB = b.data.pinned ? 1 : 0;
-    if (pinnedA !== pinnedB) return pinnedB - pinnedA;
-    return +new Date(b.data.pubDate) - +new Date(a.data.pubDate);
-  });
+export const prerender = false;
+
+const db = getDb(Astro.locals);
+const { results: posts = [] } = await db
+  .prepare(
+    `SELECT id, slug, title, summary, cover_url, topic, author, location, event_time, written_at, photo_time, tags_csv, side_note, published_at, created_at, pinned
+     FROM posts
+     WHERE status = 'published'
+     ORDER BY pinned DESC, datetime(published_at) DESC`
+  )
+  .all<PostRecord>();
 
 const dateCounts: Record<string, number> = {};
 for (const p of posts) {
-  const dateKey = p.data.pubDate.toISOString().slice(0, 10);
+  const dateKey = new Date(p.published_at ?? p.created_at).toISOString().slice(0, 10);
   dateCounts[dateKey] = (dateCounts[dateKey] ?? 0) + 1;
 }
 
@@ -73,22 +76,22 @@ const dateStats = Object.entries(dateCounts)
     <section class="mt-10">
       <div class="pinterest-grid" data-search-grid>
         {posts.map((post) => {
-          const dateKey = post.data.pubDate.toISOString().slice(0, 10);
+          const dateKey = new Date(post.published_at ?? post.created_at).toISOString().slice(0, 10);
           const anchorId = seenDates.has(dateKey) ? undefined : `date-${dateKey}`;
           seenDates.add(dateKey);
           return (
             <FeedCard
               href={`/entries/${post.slug}`}
-              title={post.data.title}
-              description={post.data.description}
-              date={post.data.pubDate}
-              image={post.data.cover}
-              topic={post.data.topic}
-              locked={post.data.topic === "trash-bin"}
-              pinned={post.data.pinned}
+              title={post.title}
+              description={post.summary ?? ""}
+              date={post.published_at ?? ""}
+              image={post.cover_url ?? "/noise.svg"}
+              topic={post.topic ?? undefined}
+              locked={post.topic === "trash-bin"}
+              pinned={Boolean(post.pinned)}
               dateKey={dateKey}
               anchorId={anchorId}
-              searchText={`${post.data.title} ${post.data.description ?? ""} ${post.data.author ?? ""} ${post.data.location ?? ""} ${post.data.eventTime ?? ""} ${post.data.writtenAt ?? ""} ${post.data.photoTime ?? ""} ${post.data.sideNote ?? ""} ${(post.data.tags ?? []).join(" ")} ${post.data.topic ?? ""}`}
+              searchText={`${post.title} ${post.summary ?? ""} ${post.author ?? ""} ${post.location ?? ""} ${post.event_time ?? ""} ${post.written_at ?? ""} ${post.photo_time ?? ""} ${post.side_note ?? ""} ${post.tags_csv ?? ""} ${post.topic ?? ""}`}
             />
           );
         })}

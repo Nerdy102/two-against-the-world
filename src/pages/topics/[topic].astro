@@ -4,29 +4,34 @@ import RansomTitle from "../../components/RansomTitle.astro";
 import FeedCard from "../../components/FeedCard.astro";
 import TopicCard from "../../components/TopicCard.astro";
 import { TOPICS, topicLabel, TOPIC_COPY } from "../../config/topics";
-import { PASSCODE } from "../../config/secrets";
-import { getCollection } from "astro:content";
+import { getDb, type PostRecord } from "../../lib/d1";
 
-export async function getStaticPaths() {
-  return TOPICS.map((t) => ({ params: { topic: t.slug } }));
-}
+export const prerender = false;
 
 const { topic = "two-of-us" } = Astro.params;
 const label = topicLabel(topic);
 const isLocked = topic === "trash-bin";
 
-const allPosts = (await getCollection("posts")).filter((p) => !p.data.draft);
+const db = getDb(Astro.locals);
+const { results: allPosts = [] } = await db
+  .prepare(
+    `SELECT id, slug, title, summary, cover_url, topic, published_at, pinned, status
+     FROM posts
+     WHERE status = 'published'`
+  )
+  .all<PostRecord>();
+
 const posts = allPosts
-  .filter((p) => (p.data.topic ?? "two-of-us") === topic)
+  .filter((p) => (p.topic ?? "two-of-us") === topic)
   .sort((a, b) => {
-    const pinnedA = a.data.pinned ? 1 : 0;
-    const pinnedB = b.data.pinned ? 1 : 0;
+    const pinnedA = a.pinned ? 1 : 0;
+    const pinnedB = b.pinned ? 1 : 0;
     if (pinnedA !== pinnedB) return pinnedB - pinnedA;
-    return +new Date(b.data.pubDate) - +new Date(a.data.pubDate);
+    return +new Date(b.published_at ?? "") - +new Date(a.published_at ?? "");
   });
 const counts: Record<string, number> = {};
 for (const p of allPosts) {
-  const t = p.data.topic ?? "two-of-us";
+  const t = p.topic ?? "two-of-us";
   counts[t] = (counts[t] ?? 0) + 1;
 }
 ---
@@ -68,13 +73,13 @@ for (const p of allPosts) {
             {posts.map((p) => (
               <FeedCard
                 href={`/entries/${p.slug}`}
-                image={p.data.cover}
-                title={p.data.title}
-                description={p.data.description}
-                date={p.data.pubDate}
-                topic={p.data.topic}
+                image={p.cover_url ?? "/noise.svg"}
+                title={p.title}
+                description={p.summary ?? ""}
+                date={p.published_at ?? ""}
+                topic={p.topic ?? undefined}
                 locked={isLocked}
-                pinned={p.data.pinned}
+                pinned={Boolean(p.pinned)}
               />
             ))}
           </div>

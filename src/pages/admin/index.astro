@@ -1,0 +1,403 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import RansomTitle from "../../components/RansomTitle.astro";
+import { TOPICS } from "../../config/topics";
+
+export const prerender = false;
+---
+
+<BaseLayout title="Admin — Two Against The World" description="Admin dashboard">
+  <main class="mx-auto max-w-6xl px-5 pb-24 pt-10">
+    <section class="paper edge-torn p-6 sm:p-10" data-reveal>
+      <div class="kicker text-xs text-black/50">ADMIN</div>
+      <RansomTitle text="Publish là lên ngay" as="h1" class="text-[44px] sm:text-[56px]" />
+      <p class="mt-3 text-black/60">
+        Quản lý bài viết từ điện thoại: tạo draft, lưu và publish ngay lập tức.
+      </p>
+    </section>
+
+    <section class="mt-10 grid gap-8 lg:grid-cols-[1fr_2fr]">
+      <div class="paper edge-torn p-6 sm:p-8" data-reveal>
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold">Danh sách bài</h2>
+          <button class="btn" type="button" data-new-post>Tạo bài mới</button>
+        </div>
+        <div class="mt-4 space-y-3" data-post-list></div>
+      </div>
+
+      <div class="paper edge-torn p-6 sm:p-8" data-reveal>
+        <div class="flex flex-wrap items-center gap-3">
+          <h2 class="text-lg font-semibold">Soạn bài</h2>
+          <span class="text-xs text-black/50" data-post-status>Chưa chọn bài</span>
+        </div>
+        <form class="mt-4 space-y-4" data-post-form>
+          <input type="hidden" name="id" />
+
+          <label class="compose-field">
+            <span>Tiêu đề</span>
+            <input class="input" name="title" placeholder="Tiêu đề bài viết" required />
+          </label>
+
+          <label class="compose-field">
+            <span>Slug</span>
+            <input class="input" name="slug" placeholder="slug-bai-viet" required />
+          </label>
+
+          <label class="compose-field">
+            <span>Tóm tắt</span>
+            <input class="input" name="summary" placeholder="Một câu giới thiệu ngắn" />
+          </label>
+
+          <label class="compose-field">
+            <span>Ảnh cover (URL)</span>
+            <input class="input" name="cover_url" placeholder="https://..." />
+          </label>
+
+          <label class="compose-field">
+            <span>Chủ đề</span>
+            <select class="input" name="topic">
+              <option value="">Chưa phân loại</option>
+              {TOPICS.map((t) => (
+                <option value={t.slug}>{t.label}</option>
+              ))}
+            </select>
+          </label>
+
+          <label class="compose-field">
+            <span>Tác giả</span>
+            <input class="input" name="author" placeholder="you | partner" />
+          </label>
+
+          <label class="compose-field">
+            <span>Địa điểm</span>
+            <input class="input" name="location" placeholder="Địa điểm" />
+          </label>
+
+          <label class="compose-field">
+            <span>Thời gian sự kiện</span>
+            <input class="input" name="event_time" placeholder="20:30 - 21:00" />
+          </label>
+
+          <label class="compose-field">
+            <span>Viết lúc</span>
+            <input class="input" name="written_at" placeholder="21/02/2026" />
+          </label>
+
+          <label class="compose-field">
+            <span>Chụp lúc</span>
+            <input class="input" name="photo_time" placeholder="21/02/2026" />
+          </label>
+
+          <label class="compose-field">
+            <span>Tags (phân tách bằng dấu phẩy)</span>
+            <input class="input" name="tags_csv" placeholder="memory, love" />
+          </label>
+
+          <label class="compose-field">
+            <span>Ghi chú thêm</span>
+            <input class="input" name="side_note" placeholder="Một câu thêm" />
+          </label>
+
+          <label class="compose-field">
+            <span>Voice memo (URL)</span>
+            <input class="input" name="voice_memo" placeholder="https://..." />
+          </label>
+
+          <label class="compose-field">
+            <span>Tiêu đề voice memo</span>
+            <input class="input" name="voice_memo_title" placeholder="Tên đoạn ghi âm" />
+          </label>
+
+          <label class="compose-field">
+            <span>Thư mục ảnh (nếu có)</span>
+            <input class="input" name="photo_dir" placeholder="ten-thu-muc" />
+          </label>
+
+          <label class="compose-field">
+            <span>Số ảnh</span>
+            <input class="input" type="number" min="0" name="photo_count" placeholder="0" />
+          </label>
+
+          <label class="compose-field">
+            <span>Ghim bài</span>
+            <select class="input" name="pinned">
+              <option value="0">Không</option>
+              <option value="1">Có</option>
+            </select>
+          </label>
+
+          <label class="compose-field">
+            <span>Nội dung (Markdown)</span>
+            <textarea class="input compose-textarea" name="content_md" rows={12} placeholder="Viết nội dung..."></textarea>
+          </label>
+
+          <div class="compose-field">
+            <span>Upload ảnh iPhone (tối ưu)</span>
+            <input class="input" type="file" name="upload_photos" accept="image/*" multiple />
+            <p class="mt-2 text-xs text-black/50">
+              HEIC có thể không upload được. Nếu lỗi, vào Camera → Formats → chọn “Most Compatible”.
+            </p>
+            <button class="btn mt-3" type="button" data-upload-photos>Upload ảnh</button>
+            <p class="text-xs text-black/50" data-upload-note></p>
+          </div>
+
+          <div class="flex flex-wrap gap-3">
+            <button class="btn" type="submit" data-save-post>Lưu</button>
+            <button class="btn" type="button" data-publish-post>Publish</button>
+            <button class="btn" type="button" data-unpublish-post>Gỡ publish</button>
+          </div>
+          <p class="text-xs text-black/50" data-form-note></p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <script is:inline>
+    const slugify = (s = "") =>
+      s
+        .toLowerCase()
+        .normalize("NFKD")
+        .replace(/[^\w\s-]/g, "")
+        .trim()
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-");
+
+    const form = document.querySelector("[data-post-form]");
+    const list = document.querySelector("[data-post-list]");
+    const status = document.querySelector("[data-post-status]");
+    const note = document.querySelector("[data-form-note]");
+    const newBtn = document.querySelector("[data-new-post]");
+    const publishBtn = document.querySelector("[data-publish-post]");
+    const unpublishBtn = document.querySelector("[data-unpublish-post]");
+
+    const state = {
+      posts: [],
+      active: null,
+      dirty: false,
+    };
+
+    const fields = [
+      "id",
+      "title",
+      "slug",
+      "summary",
+      "cover_url",
+      "topic",
+      "author",
+      "location",
+      "event_time",
+      "written_at",
+      "photo_time",
+      "tags_csv",
+      "side_note",
+      "voice_memo",
+      "voice_memo_title",
+      "photo_dir",
+      "photo_count",
+      "pinned",
+      "content_md",
+    ];
+
+    const fillForm = (post = {}) => {
+      fields.forEach((name) => {
+        const input = form.querySelector(`[name="${name}"]`);
+        if (!input) return;
+        input.value = post[name] ?? (input.type === "number" ? 0 : "");
+      });
+      state.dirty = false;
+      status.textContent = post.status
+        ? `Trạng thái: ${post.status}`
+        : "Chưa chọn bài";
+    };
+
+    const renderList = () => {
+      if (!list) return;
+      if (!state.posts.length) {
+        list.innerHTML = "<p class='text-sm text-black/50'>Chưa có bài nào.</p>";
+        return;
+      }
+      list.innerHTML = state.posts
+        .map(
+          (post) => `
+            <button type="button" class="w-full text-left border border-black/10 rounded-2xl p-4 hover:border-black/30" data-post-id="${post.id}">
+              <div class="text-xs text-black/50">${post.status}</div>
+              <div class="font-semibold">${post.title}</div>
+              <div class="text-xs text-black/50">${post.slug}</div>
+            </button>
+          `
+        )
+        .join("");
+      list.querySelectorAll("[data-post-id]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const id = btn.dataset.postId;
+          state.active = state.posts.find((p) => p.id === id);
+          fillForm(state.active);
+        });
+      });
+    };
+
+    const loadPosts = async () => {
+      const res = await fetch("/api/admin/posts");
+      if (!res.ok) return;
+      const data = await res.json();
+      state.posts = data.posts || [];
+      renderList();
+    };
+
+    newBtn?.addEventListener("click", () => {
+      state.active = null;
+      fillForm({});
+    });
+
+    form?.querySelector("[name='title']")?.addEventListener("input", (e) => {
+      const slugInput = form.querySelector("[name='slug']");
+      if (!slugInput || slugInput.value.trim()) return;
+      slugInput.value = slugify(e.target.value);
+    });
+
+    form?.querySelectorAll("input, textarea, select").forEach((input) => {
+      input.addEventListener("input", () => {
+        state.dirty = true;
+      });
+    });
+
+    const savePost = async ({ silent = false } = {}) => {
+      if (!form) return false;
+      if (!silent) note.textContent = "Đang lưu...";
+      const data = {};
+      fields.forEach((name) => {
+        const input = form.querySelector(`[name="${name}"]`);
+        if (!input) return;
+        if (name === "pinned") {
+          data[name] = Number(input.value || 0);
+          return;
+        }
+        data[name] = input.type === "number" ? Number(input.value || 0) : input.value;
+      });
+
+      const isNew = !data.id;
+      const res = await fetch(isNew ? "/api/admin/posts" : `/api/admin/posts/${data.id}`, {
+        method: isNew ? "POST" : "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        if (!silent) note.textContent = "Lưu chưa được, thử lại nhé.";
+        return false;
+      }
+      const payload = await res.json().catch(() => ({}));
+      if (isNew) {
+        data.id = payload.id;
+      }
+      if (!silent) note.textContent = "Đã lưu.";
+      await loadPosts();
+      state.active = state.posts.find((p) => p.id === data.id);
+      fillForm(state.active);
+      return true;
+    };
+
+    form?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      await savePost();
+    });
+
+    setInterval(async () => {
+      const id = form?.querySelector("[name='id']")?.value;
+      if (!id || !state.dirty) return;
+      const saved = await savePost({ silent: true });
+      if (saved) state.dirty = false;
+    }, 3000);
+
+    publishBtn?.addEventListener("click", async () => {
+      const id = form?.querySelector("[name='id']")?.value;
+      if (!id) return;
+      const res = await fetch(`/api/admin/posts/${id}/publish`, { method: "POST" });
+      if (!res.ok) return;
+      await loadPosts();
+      state.active = state.posts.find((p) => p.id === id);
+      fillForm(state.active);
+    });
+
+    unpublishBtn?.addEventListener("click", async () => {
+      const id = form?.querySelector("[name='id']")?.value;
+      if (!id) return;
+      const res = await fetch(`/api/admin/posts/${id}/unpublish`, { method: "POST" });
+      if (!res.ok) return;
+      await loadPosts();
+      state.active = state.posts.find((p) => p.id === id);
+      fillForm(state.active);
+    });
+
+    loadPosts();
+
+    const uploadBtn = document.querySelector("[data-upload-photos]");
+    const uploadNote = document.querySelector("[data-upload-note]");
+
+    const resizeImage = async (file, maxSize = 2048, quality = 0.82) => {
+      if (file.type === "image/heic" || file.name.toLowerCase().endsWith(".heic")) {
+        throw new Error("HEIC_NOT_SUPPORTED");
+      }
+      const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+      const ratio = Math.min(1, maxSize / Math.max(bitmap.width, bitmap.height));
+      const targetWidth = Math.round(bitmap.width * ratio);
+      const targetHeight = Math.round(bitmap.height * ratio);
+      const canvas = document.createElement("canvas");
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("NO_CONTEXT");
+      ctx.drawImage(bitmap, 0, 0, targetWidth, targetHeight);
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
+      if (!blob) throw new Error("NO_BLOB");
+      return { blob, width: targetWidth, height: targetHeight };
+    };
+
+    uploadBtn?.addEventListener("click", async () => {
+      const input = form?.querySelector("input[name='upload_photos']");
+      if (!input?.files?.length) return;
+      uploadNote.textContent = "Đang xử lý ảnh...";
+      const slug = form?.querySelector("[name='slug']")?.value || "untitled";
+      const safeSlug = slugify(slug);
+      const date = new Date().toISOString().slice(0, 10);
+      let successCount = 0;
+      for (const [index, file] of Array.from(input.files).entries()) {
+        try {
+          const { blob, width, height } = await resizeImage(file);
+          const formData = new FormData();
+          const paddedIndex = String(index + 1).padStart(3, "0");
+          const filename = `${date}_${safeSlug}_${paddedIndex}.jpg`;
+          formData.append("file", blob, filename);
+          formData.append("slug", safeSlug);
+          formData.append(
+            "meta",
+            JSON.stringify({
+              width,
+              height,
+              size: blob.size,
+              originalName: file.name,
+              fileName: filename,
+            })
+          );
+          const res = await fetch("/api/admin/upload", {
+            method: "POST",
+            body: formData,
+          });
+          if (!res.ok) throw new Error("UPLOAD_FAILED");
+          const payload = await res.json();
+          const contentField = form?.querySelector("[name='content_md']");
+          if (payload.url && contentField) {
+            contentField.value += `\n\n![${filename}](${payload.url})`;
+          }
+          successCount += 1;
+        } catch (error) {
+          if (error?.message === "HEIC_NOT_SUPPORTED") {
+            uploadNote.textContent = "Ảnh HEIC chưa hỗ trợ. Hãy đổi Camera → Formats → Most Compatible.";
+            return;
+          }
+        }
+      }
+      uploadNote.textContent = `Đã upload ${successCount} ảnh.`;
+      input.value = "";
+    });
+  </script>
+</BaseLayout>
