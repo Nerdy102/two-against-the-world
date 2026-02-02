@@ -34,8 +34,8 @@ export const POST: APIRoute = async ({ locals, request }) => {
 
   await db
     .prepare(
-      `INSERT INTO posts (id, slug, title, summary, content_md, cover_url, status, author, topic, location, event_time, written_at, photo_time, tags_csv, side_note, voice_memo, voice_memo_title, video_url, video_poster, photo_dir, photo_count, pinned)
-       VALUES (?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO posts (id, slug, title, summary, content_md, cover_url, status, author, topic, location, event_time, written_at, photo_time, tags_csv, side_note, voice_memo, voice_memo_title, photo_dir, photo_count, pinned)
+       VALUES (?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .bind(
       id,
@@ -54,8 +54,6 @@ export const POST: APIRoute = async ({ locals, request }) => {
       payload.side_note ?? null,
       payload.voice_memo ?? null,
       payload.voice_memo_title ?? null,
-      payload.video_url ?? null,
-      payload.video_poster ?? null,
       payload.photo_dir ?? null,
       payload.photo_count ?? 0,
       Number(payload.pinned ?? 0) === 1 ? 1 : 0

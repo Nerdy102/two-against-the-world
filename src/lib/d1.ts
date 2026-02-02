@@ -30,8 +30,6 @@ export type PostRecord = {
   side_note: string | null;
   voice_memo: string | null;
   voice_memo_title: string | null;
-  video_url: string | null;
-  video_poster: string | null;
   photo_dir: string | null;
   photo_count: number | null;
   pinned: number | null;
@@ -48,6 +46,7 @@ export type CommentRecord = {
   body: string;
   status: "visible" | "pending" | "hidden";
   created_at: string;
+  ip_hash?: string | null;
 };
 
 export type ReactionRecord = {

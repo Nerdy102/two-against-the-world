@@ -8,6 +8,17 @@
         "database_name": "two-against-the-world",
         "database_id": "REPLACE_WITH_D1_ID"
       }
+    ],
+    "r2_buckets": [
+      {
+        "binding": "MEDIA",
+        "bucket_name": "two-against-the-world-media"
+      }
+    ],
+    "vars": {
+      "PUBLIC_R2_BASE_URL": "https://example.com",
+      "PUBLIC_TURNSTILE_SITE_KEY": "",
+      "TURNSTILE_SECRET": ""
     ]
   }
   

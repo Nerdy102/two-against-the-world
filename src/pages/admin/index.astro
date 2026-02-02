@@ -109,16 +109,6 @@ export const prerender = false;
           </label>
 
           <label class="compose-field">
-            <span>Video (URL)</span>
-            <input class="input" name="video_url" placeholder="https://..." />
-          </label>
-
-          <label class="compose-field">
-            <span>Poster video (URL)</span>
-            <input class="input" name="video_poster" placeholder="https://..." />
-          </label>
-
-          <label class="compose-field">
             <span>Thư mục ảnh (nếu có)</span>
             <input class="input" name="photo_dir" placeholder="ten-thu-muc" />
           </label>
@@ -140,6 +130,16 @@ export const prerender = false;
             <span>Nội dung (Markdown)</span>
             <textarea class="input compose-textarea" name="content_md" rows={12} placeholder="Viết nội dung..."></textarea>
           </label>
+
+          <div class="compose-field">
+            <span>Upload ảnh iPhone (tối ưu)</span>
+            <input class="input" type="file" name="upload_photos" accept="image/*" multiple />
+            <p class="mt-2 text-xs text-black/50">
+              HEIC có thể không upload được. Nếu lỗi, vào Camera → Formats → chọn “Most Compatible”.
+            </p>
+            <button class="btn mt-3" type="button" data-upload-photos>Upload ảnh</button>
+            <p class="text-xs text-black/50" data-upload-note></p>
+          </div>
 
           <div class="flex flex-wrap gap-3">
             <button class="btn" type="submit" data-save-post>Lưu</button>
@@ -173,6 +173,7 @@ export const prerender = false;
     const state = {
       posts: [],
       active: null,
+      dirty: false,
     };
 
     const fields = [
@@ -191,8 +192,6 @@ export const prerender = false;
       "side_note",
       "voice_memo",
       "voice_memo_title",
-      "video_url",
-      "video_poster",
       "photo_dir",
       "photo_count",
       "pinned",
@@ -205,6 +204,7 @@ export const prerender = false;
         if (!input) return;
         input.value = post[name] ?? (input.type === "number" ? 0 : "");
       });
+      state.dirty = false;
       status.textContent = post.status
         ? `Trạng thái: ${post.status}`
         : "Chưa chọn bài";
@@ -255,9 +255,15 @@ export const prerender = false;
       slugInput.value = slugify(e.target.value);
     });
 
-    form?.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      note.textContent = "Đang lưu...";
+    form?.querySelectorAll("input, textarea, select").forEach((input) => {
+      input.addEventListener("input", () => {
+        state.dirty = true;
+      });
+    });
+
+    const savePost = async ({ silent = false } = {}) => {
+      if (!form) return false;
+      if (!silent) note.textContent = "Đang lưu...";
       const data = {};
       fields.forEach((name) => {
         const input = form.querySelector(`[name="${name}"]`);
@@ -276,17 +282,30 @@ export const prerender = false;
         body: JSON.stringify(data),
       });
       if (!res.ok) {
-        note.textContent = "Lưu chưa được, thử lại nhé.";
-        return;
+        if (!silent) note.textContent = "Lưu chưa được, thử lại nhé.";
+        return false;
       }
       const payload = await res.json().catch(() => ({}));
       if (isNew) {
         data.id = payload.id;
       }
-      note.textContent = "Đã lưu.";
+      if (!silent) note.textContent = "Đã lưu.";
       await loadPosts();
       state.active = state.posts.find((p) => p.id === data.id);
       fillForm(state.active);
+      return true;
+    };
+
+    form?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      await savePost();
+    });
+
+    setInterval(async () => {
+      const id = form?.querySelector("[name='id']")?.value;
+      if (!id || !state.dirty) return;
+      const saved = await savePost({ silent: true });
+      if (saved) state.dirty = false;
     });
 
     publishBtn?.addEventListener("click", async () => {
@@ -310,5 +329,65 @@ export const prerender = false;
     });
 
     loadPosts();
+
+    const uploadBtn = document.querySelector("[data-upload-photos]");
+    const uploadNote = document.querySelector("[data-upload-note]");
+
+    const resizeImage = async (file, maxSize = 2048, quality = 0.82) => {
+      if (file.type === "image/heic" || file.name.toLowerCase().endsWith(".heic")) {
+        throw new Error("HEIC_NOT_SUPPORTED");
+      }
+      const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+      const ratio = Math.min(1, maxSize / Math.max(bitmap.width, bitmap.height));
+      const targetWidth = Math.round(bitmap.width * ratio);
+      const targetHeight = Math.round(bitmap.height * ratio);
+      const canvas = document.createElement("canvas");
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("NO_CONTEXT");
+      ctx.drawImage(bitmap, 0, 0, targetWidth, targetHeight);
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
+      if (!blob) throw new Error("NO_BLOB");
+      return { blob, width: targetWidth, height: targetHeight };
+    };
+
+    uploadBtn?.addEventListener("click", async () => {
+      const input = form?.querySelector("input[name='upload_photos']");
+      if (!input?.files?.length) return;
+      uploadNote.textContent = "Đang xử lý ảnh...";
+      const slug = form?.querySelector("[name='slug']")?.value || "untitled";
+      let successCount = 0;
+      for (const file of Array.from(input.files)) {
+        try {
+          const { blob, width, height } = await resizeImage(file);
+          const formData = new FormData();
+          formData.append("file", blob, file.name.replace(/\.[^.]+$/, ".jpg"));
+          formData.append("slug", slug);
+          formData.append(
+            "meta",
+            JSON.stringify({ width, height, size: blob.size, originalName: file.name })
+          );
+          const res = await fetch("/api/admin/upload", {
+            method: "POST",
+            body: formData,
+          });
+          if (!res.ok) throw new Error("UPLOAD_FAILED");
+          const payload = await res.json();
+          const contentField = form?.querySelector("[name='content_md']");
+          if (payload.url && contentField) {
+            contentField.value += `\n\n![](${payload.url})`;
+          }
+          successCount += 1;
+        } catch (error) {
+          if (error?.message === "HEIC_NOT_SUPPORTED") {
+            uploadNote.textContent = "Ảnh HEIC chưa hỗ trợ. Hãy đổi Camera → Formats → Most Compatible.";
+            return;
+          }
+        }
+      }
+      uploadNote.textContent = `Đã upload ${successCount} ảnh.`;
+      input.value = "";
+    });
   </script>
 </BaseLayout>
