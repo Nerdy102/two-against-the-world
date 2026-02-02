@@ -3,11 +3,12 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import FeedCard from "../../components/FeedCard.astro";
 import RansomTitle from "../../components/RansomTitle.astro";
 import { formatDate } from "../../lib/formatDate";
-import { getDb, type PostRecord } from "../../lib/d1";
+import { ensurePostsSchema, getDb, type PostRecord } from "../../lib/d1";
 
 export const prerender = false;
 
 const db = getDb(Astro.locals);
+await ensurePostsSchema(db);
 const { results: posts = [] } = await db
   .prepare(
     `SELECT id, slug, title, summary, cover_url, topic, author, location, event_time, written_at, photo_time, tags_csv, side_note, published_at, created_at, pinned

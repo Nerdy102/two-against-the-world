@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { getDb } from "../../../../../lib/d1";
+import { ensurePostsSchema, getDb } from "../../../../../lib/d1";
 
 export const prerender = false;
 
@@ -16,6 +16,7 @@ export const POST: APIRoute = async ({ locals, params }) => {
   }
 
   const db = getDb(locals);
+  await ensurePostsSchema(db);
   await db
     .prepare(
       `UPDATE posts
