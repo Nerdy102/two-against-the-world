@@ -72,6 +72,13 @@ export const POST: APIRoute = async ({ locals, request }) => {
 
   const db = getDb(locals);
   const id = crypto.randomUUID();
+  const post = await db
+    .prepare(`SELECT status FROM posts WHERE slug = ? LIMIT 1`)
+    .bind(slug)
+    .first<{ status: string }>();
+  if (!post || post.status !== "published") {
+    return json({ error: "Post not available" }, 400);
+  }
   const ip =
     request.headers.get("CF-Connecting-IP") ||
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
@@ -79,8 +86,24 @@ export const POST: APIRoute = async ({ locals, request }) => {
   const ipHash = ip ? await hashIp(ip) : null;
   const secret = locals.runtime?.env?.TURNSTILE_SECRET;
   if (secret) {
+    if (!turnstileToken) return json({ error: "Turnstile required" }, 400);
     const ok = await verifyTurnstile(secret, turnstileToken, ip);
     if (!ok) return json({ error: "Turnstile failed" }, 400);
+  }
+
+  if (ipHash) {
+    const { results } = await db
+      .prepare(
+        `SELECT COUNT(*) as count
+         FROM comments
+         WHERE ip_hash = ? AND datetime(created_at) > datetime('now', '-5 minutes')`
+      )
+      .bind(ipHash)
+      .all<{ count: number }>();
+    const count = Number(results?.[0]?.count ?? 0);
+    if (count >= 5) {
+      return json({ error: "Too many comments, slow down." }, 429);
+    }
   }
 
   await db

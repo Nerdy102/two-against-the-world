@@ -285,7 +285,7 @@ const wallImages = [
       const form = document.querySelector("[data-comment-form]");
       const list = document.querySelector("[data-comment-list]");
       const err = document.querySelector("[data-comment-error]");
-      const turnstileWidget = document.querySelector("[data-turnstile-widget]");
+      const hasTurnstile = Boolean(document.querySelector("[data-turnstile-widget]"));
 
       if (!form || !list) return;
       if (form.dataset.bound === "1") return;
@@ -341,15 +341,15 @@ const wallImages = [
             slug,
             displayName: nickname,
             body: message,
-            turnstileToken: turnstileWidget && window.turnstile ? window.turnstile.getResponse(turnstileWidget) : null,
+            turnstileToken: hasTurnstile && window.turnstile ? window.turnstile.getResponse() : null,
           }),
         })
           .then((res) => {
             if (!res.ok) throw new Error("Failed");
             form.reset();
             if (err) err.textContent = "";
-            if (turnstileWidget && window.turnstile) {
-              window.turnstile.reset(turnstileWidget);
+            if (hasTurnstile && window.turnstile) {
+              window.turnstile.reset();
             }
             refresh();
           })

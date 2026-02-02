@@ -9,7 +9,12 @@ declare namespace App {
         MEDIA: R2Bucket;
         TURNSTILE_SECRET?: string;
         PUBLIC_R2_BASE_URL?: string;
+        PUBLIC_TURNSTILE_SITE_KEY?: string;
       };
     };
   }
+}
+
+interface ImportMetaEnv {
+  readonly PUBLIC_TURNSTILE_SITE_KEY?: string;
 }

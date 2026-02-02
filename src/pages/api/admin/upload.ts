@@ -9,10 +9,21 @@ const json = (data: unknown, status = 200) =>
     headers: { "content-type": "application/json" },
   });
 
+const sanitizeSlug = (value: string) =>
+  value
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^\w\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+
+const sanitizeFilename = (filename: string) => filename.replace(/[^\w.-]/g, "_");
+
 const buildKey = (slug: string, filename: string) => {
-  const safeSlug = slug || "untitled";
+  const safeSlug = sanitizeSlug(slug || "untitled") || "untitled";
   const date = new Date().toISOString().slice(0, 10);
-  return `web/${date}/${safeSlug}/${filename}`;
+  return `web/${date}/${safeSlug}/${sanitizeFilename(filename)}`;
 };
 
 export const POST: APIRoute = async ({ locals, request }) => {
@@ -25,6 +36,9 @@ export const POST: APIRoute = async ({ locals, request }) => {
 
   if (!(file instanceof File)) {
     return json({ error: "Missing file" }, 400);
+  }
+  if (!file.type.startsWith("image/")) {
+    return json({ error: "Only images are supported" }, 400);
   }
 
   const filename = file.name || `upload-${Date.now()}.jpg`;
