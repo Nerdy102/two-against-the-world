@@ -1,33 +1,45 @@
 import type { APIRoute } from "astro";
 import {
-  buildAdminSessionCookie,
-  getAdminPassword,
-  getAdminSessionToken,
+  buildAdminSessionCookies,
+  createAdminSession,
+  getAdminCredentials,
+  verifyAdminLogin,
 } from "../../../lib/adminAuth";
 
 export const prerender = false;
 
-const json = (data: unknown, status = 200, headers: HeadersInit = {}) =>
+const json = (data: unknown, status = 200, headers?: Headers) =>
   new Response(JSON.stringify(data), {
     status,
-    headers: { "content-type": "application/json", ...headers },
+    headers,
   });
 
-export const POST: APIRoute = async ({ locals, request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   const payload = await request.json().catch(() => null);
-  const password = typeof payload?.password === "string" ? payload.password : "";
-  const expectedPassword = getAdminPassword(locals);
-  if (!expectedPassword) {
-    return json({ error: "Missing ADMIN_PASSWORD" }, 500);
+  if (!payload) return json({ error: "Invalid JSON" }, 400);
+
+  const envCredentials = getAdminCredentials(locals);
+  const username =
+    typeof payload.username === "string"
+      ? payload.username.trim()
+      : envCredentials.username ?? "";
+  const password = typeof payload.password === "string" ? payload.password : "";
+
+  if (!username || !password) {
+    return json({ error: "Missing credentials" }, 400);
   }
-  if (!password || password !== expectedPassword) {
-    return json({ unlocked: false, error: "Invalid password" }, 401);
+
+  const user = await verifyAdminLogin(locals, username, password);
+  if (!user) {
+    return json({ error: "Invalid credentials" }, 401);
   }
-  const token = await getAdminSessionToken(locals);
-  if (!token) {
-    return json({ error: "Missing session token" }, 500);
-  }
+
+  const session = await createAdminSession(locals, user.id);
+  const csrfToken = crypto.randomUUID();
   const secure = request.url.startsWith("https://");
-  const cookie = buildAdminSessionCookie(token, { secure });
-  return json({ unlocked: true }, 200, { "set-cookie": cookie });
+  const [sessionCookie, csrfCookie] = buildAdminSessionCookies(session.token, csrfToken, secure);
+  const headers = new Headers({ "content-type": "application/json" });
+  headers.append("set-cookie", sessionCookie);
+  headers.append("set-cookie", csrfCookie);
+  return json({ ok: true, authenticated: true }, 200, headers);
 };

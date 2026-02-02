@@ -34,6 +34,14 @@ Thiết lập trong Cloudflare Dashboard (Workers → Settings → Variables):
 - `PUBLIC_ENABLE_PINNED_FIELDS`: bật trường ghim bài trong Admin.
 - `PUBLIC_ENABLE_UPLOAD_HELPERS`: bật UI hỗ trợ upload (progress/cancel).
 
+## Cloudflare KV (SESSION)
+
+Astro adapter dùng KV binding `SESSION` cho session nội bộ. Cấu hình đã có sẵn trong `wrangler.jsonc`; nếu chạy trên môi trường khác cần tạo KV namespace và gán binding `SESSION`.
+
+## Image optimization (Cloudflare Workers)
+
+Cloudflare Workers không hỗ trợ `sharp` runtime. Project đã cấu hình image service ở chế độ `compile` để tối ưu ảnh khi build (không dùng runtime sharp).
+
 ## D1 migrations
 
 Áp dụng migrations local:

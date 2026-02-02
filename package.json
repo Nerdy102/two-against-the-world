@@ -37,5 +37,9 @@
     "typescript": "latest",
     "wrangler": "^4.61.1",
     "tsx": "^4.19.2"
+  },
+  "overrides": {
+    "lodash": "^4.17.21",
+    "undici": "^7.20.0"
   }
 }

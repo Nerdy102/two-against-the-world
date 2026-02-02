@@ -62,6 +62,12 @@ export const getAdminCredentials = (locals: APIContext["locals"]) => {
   return { username, password };
 };
 
+export const getAdminPassword = (locals: APIContext["locals"]) =>
+  locals.runtime?.env?.ADMIN_PASSWORD ?? null;
+
+export const getAdminPassword = (locals: APIContext["locals"]) =>
+  locals.runtime?.env?.ADMIN_PASSWORD ?? null;
+
 export const ensureAdminBootstrapUser = async (locals: APIContext["locals"]) => {
   const { username, password } = getAdminCredentials(locals);
   if (!username || !password) return;
