@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { getDb } from "../../../lib/d1";
+import { ensureReactionsSchema, getDb } from "../../../lib/d1";
 
 export const prerender = false;
 
@@ -33,6 +33,7 @@ export const GET: APIRoute = async ({ locals, request, url }) => {
   }
 
   const db = getDb(locals);
+  await ensureReactionsSchema(db);
   if (kind) {
     const { results } = await db
       .prepare(
@@ -112,6 +113,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
   }
 
   const db = getDb(locals);
+  await ensureReactionsSchema(db);
   let visitorId = getVisitorId(request);
   let setCookieHeader: string | undefined;
   if (!visitorId) {

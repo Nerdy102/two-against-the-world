@@ -4,6 +4,9 @@ import RansomTitle from "../../components/RansomTitle.astro";
 import { TOPICS } from "../../config/topics";
 
 export const prerender = false;
+
+const enablePinnedFields = import.meta.env.PUBLIC_ENABLE_PINNED_FIELDS !== "false";
+const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "false";
 ---
 
 <BaseLayout title="Admin — Two Against The World" description="Admin dashboard">
@@ -30,24 +33,37 @@ export const prerender = false;
           <h2 class="text-lg font-semibold">Soạn bài</h2>
           <span class="text-xs text-black/50" data-post-status>Chưa chọn bài</span>
         </div>
-        <div class="mt-4 space-y-3" data-admin-lock>
-          <p class="text-xs text-black/60">
-            Nhập mật khẩu để mở khóa soạn bài & upload. Trạng thái: <span data-admin-status>Đang khóa</span>
-          </p>
-          <div class="flex flex-wrap items-center gap-3">
-            <input
-              class="input"
-              type="password"
-              name="admin_password"
-              placeholder="Nhập mật khẩu"
-              data-admin-password
-            />
-            <button class="btn" type="button" data-admin-unlock>Mở khóa</button>
+        <div class="mt-4 space-y-3" data-admin-auth>
+          <div data-auth-locked>
+            <p class="text-xs text-black/60">
+              Đăng nhập để mở khóa soạn bài & upload. Trạng thái:
+              <span data-admin-status>Đang khóa</span>
+            </p>
+            <div class="flex flex-wrap items-center gap-3">
+              <input class="input" type="text" name="admin_username" placeholder="Username" data-admin-username />
+              <input
+                class="input"
+                type="password"
+                name="admin_password"
+                placeholder="Password"
+                data-admin-password
+              />
+              <button class="btn" type="button" data-admin-login>Đăng nhập</button>
+            </div>
+          </div>
+          <div class="hidden" data-auth-unlocked>
+            <p class="text-xs text-black/60">
+              Đã đăng nhập. <span data-admin-status>Đã mở khóa</span>
+            </p>
+            <button class="btn" type="button" data-admin-logout>Đăng xuất</button>
           </div>
         </div>
 
         <form class="mt-4 space-y-4" data-post-form>
-          <p class="text-xs text-black/60">Trường có <span class="text-red-500">*</span> là bắt buộc.</p>
+          <p class="text-xs text-black/60">
+            Trường có <span class="text-red-500">*</span> là bắt buộc. Bắt buộc tối thiểu: Tiêu đề, Chủ đề,
+            Ảnh, Nội dung.
+          </p>
           <input type="hidden" name="id" />
 
           <label class="compose-field">
@@ -69,7 +85,8 @@ export const prerender = false;
           </label>
 
           <div class="compose-field">
-            <span>Ảnh cover (upload)</span>
+            <span>Ảnh cover (upload) <span class="text-red-500">*</span></span>
+            <input type="hidden" name="cover_key" />
             <input type="hidden" name="cover_url" />
             <input
               class="input"
@@ -81,12 +98,16 @@ export const prerender = false;
             <p class="mt-2 text-xs text-black/50">
               Chọn ảnh từ iPhone (HEIC/HEIF sẽ được tự tối ưu sang JPG). Ảnh cover sẽ tự chèn vào bài.
             </p>
-            <button class="btn mt-3" type="button" data-upload-cover>Upload ảnh cover</button>
+            <div class="mt-3 flex flex-wrap gap-2">
+              <button class="btn" type="button" data-upload-cover>Upload ảnh cover</button>
+              {enableUploadHelpers && <button class="btn hidden" type="button" data-cover-cancel>Hủy</button>}
+            </div>
+            {enableUploadHelpers && <p class="text-xs text-black/50" data-cover-progress></p>}
             <p class="text-xs text-black/50" data-cover-note></p>
           </div>
 
           <label class="compose-field">
-            <span>Chủ đề</span>
+            <span>Chủ đề <span class="text-red-500">*</span></span>
             <select class="input" name="topic">
               <option value="">Chưa phân loại</option>
               {TOPICS.map((t) => (
@@ -126,6 +147,11 @@ export const prerender = false;
           </label>
 
           <label class="compose-field">
+            <span>Ngày publish</span>
+            <input class="input" name="published_at" placeholder="2026-02-02T10:00:00Z" />
+          </label>
+
+          <label class="compose-field">
             <span>Ghi chú thêm</span>
             <input class="input" name="side_note" placeholder="Một câu thêm" />
           </label>
@@ -150,11 +176,56 @@ export const prerender = false;
             <input class="input" type="number" min="0" name="photo_count" placeholder="0" />
           </label>
 
+          {enablePinnedFields && (
+            <>
+              <label class="compose-field">
+                <span>Ghim bài</span>
+                <select class="input" name="pinned">
+                  <option value="0">Không</option>
+                  <option value="1">Có</option>
+                </select>
+              </label>
+
+              <label class="compose-field">
+                <span>Độ ưu tiên ghim</span>
+                <input class="input" name="pinned_priority" type="number" min="0" max="999" placeholder="0" />
+              </label>
+
+              <label class="compose-field">
+                <span>Ghim đến (ISO)</span>
+                <input class="input" name="pinned_until" placeholder="2026-02-02T10:00:00Z" />
+              </label>
+
+              <label class="compose-field">
+                <span>Kiểu ghim</span>
+                <select class="input" name="pinned_style">
+                  <option value="">Mặc định</option>
+                  <option value="event">Event</option>
+                  <option value="announcement">Announcement</option>
+                  <option value="memory">Memory</option>
+                </select>
+              </label>
+            </>
+          )}
+
           <label class="compose-field">
-            <span>Ghim bài</span>
-            <select class="input" name="pinned">
-              <option value="0">Không</option>
-              <option value="1">Có</option>
+            <span>Layout</span>
+            <select class="input" name="layout">
+              <option value="normal">Normal</option>
+              <option value="long">Long</option>
+            </select>
+          </label>
+
+          <label class="compose-field">
+            <span>Thứ tự hiển thị</span>
+            <input class="input" name="sort_order" type="number" min="-9999" max="9999" placeholder="0" />
+          </label>
+
+          <label class="compose-field">
+            <span>Trạng thái</span>
+            <select class="input" name="status">
+              <option value="draft">Draft</option>
+              <option value="published">Published</option>
             </select>
           </label>
 
@@ -168,6 +239,10 @@ export const prerender = false;
               required
             ></textarea>
           </label>
+          <div class="compose-field">
+            <button class="btn" type="button" data-preview-toggle>Xem preview</button>
+            <div class="mt-3 hidden prose prose-scrap max-w-none" data-preview></div>
+          </div>
 
           <div class="compose-field">
             <span>Upload ảnh iPhone (tối ưu)</span>
@@ -179,10 +254,14 @@ export const prerender = false;
               multiple
             />
             <p class="mt-2 text-xs text-black/50">
-              Tối ưu kích thước và nén nhẹ để đăng nhanh. Nếu ảnh HEIC lỗi, hãy chọn “Most Compatible” trong
-              Camera → Formats.
+              Tối ưu kích thước và nén nhẹ để đăng nhanh (tối đa 6 ảnh/lần). Nếu ảnh HEIC lỗi, hãy chọn “Most
+              Compatible” trong Camera → Formats.
             </p>
-            <button class="btn mt-3" type="button" data-upload-photos>Upload ảnh</button>
+            <div class="mt-3 flex flex-wrap gap-2">
+              <button class="btn" type="button" data-upload-photos>Upload ảnh</button>
+              {enableUploadHelpers && <button class="btn hidden" type="button" data-upload-cancel>Hủy</button>}
+            </div>
+            {enableUploadHelpers && <p class="text-xs text-black/50" data-upload-progress></p>}
             <p class="text-xs text-black/50" data-upload-note></p>
           </div>
 
@@ -191,15 +270,39 @@ export const prerender = false;
             <button class="btn" type="button" data-submit-post>Đăng bài ngay</button>
             <button class="btn" type="button" data-publish-post>Publish</button>
             <button class="btn" type="button" data-unpublish-post>Gỡ publish</button>
+            <button class="btn" type="button" data-delete-post>Xóa</button>
           </div>
           <p class="text-xs text-black/50" data-form-note></p>
         </form>
+      </div>
+    </section>
+
+    <section class="mt-10 grid gap-8 lg:grid-cols-[1fr_2fr]">
+      <div class="paper edge-torn p-6 sm:p-8" data-reveal>
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold">Bình luận</h2>
+          <select class="input text-sm" data-comment-filter>
+            <option value="pending">Chờ duyệt</option>
+            <option value="approved">Đã duyệt</option>
+            <option value="hidden">Ẩn</option>
+            <option value="">Tất cả</option>
+          </select>
+        </div>
+        <div class="mt-4 space-y-3" data-comment-list></div>
+      </div>
+      <div class="paper edge-torn p-6 sm:p-8" data-reveal>
+        <h2 class="text-lg font-semibold">Moderation</h2>
+        <p class="mt-2 text-xs text-black/60">
+          Chọn trạng thái để duyệt/ẩn comment. Comment có link hoặc dài sẽ vào pending tự động.
+        </p>
+        <p class="mt-4 text-xs text-black/50" data-comment-note></p>
       </div>
     </section>
   </main>
 
   <script>
     import heic2any from "heic2any";
+    import { marked } from "marked";
 
     const slugify = (s = "") =>
       s
@@ -219,15 +322,35 @@ export const prerender = false;
     const publishBtn = document.querySelector("[data-publish-post]");
     const unpublishBtn = document.querySelector("[data-unpublish-post]");
     const submitBtn = document.querySelector("[data-submit-post]");
+    const deleteBtn = document.querySelector("[data-delete-post]");
     const coverBtn = document.querySelector("[data-upload-cover]");
     const coverNote = document.querySelector("[data-cover-note]");
+    const coverProgress = document.querySelector("[data-cover-progress]");
+    const coverCancel = document.querySelector("[data-cover-cancel]");
     const uploadBtn = document.querySelector("[data-upload-photos]");
     const uploadNote = document.querySelector("[data-upload-note]");
-    const lockWrap = document.querySelector("[data-admin-lock]");
+    const uploadProgress = document.querySelector("[data-upload-progress]");
+    const uploadCancel = document.querySelector("[data-upload-cancel]");
+    const authWrap = document.querySelector("[data-admin-auth]");
     const lockStatus = document.querySelector("[data-admin-status]");
-    const lockInput = document.querySelector("[data-admin-password]");
-    const unlockBtn = document.querySelector("[data-admin-unlock]");
+    const usernameInput = document.querySelector("[data-admin-username]");
+    const passwordInput = document.querySelector("[data-admin-password]");
+    const loginBtn = document.querySelector("[data-admin-login]");
+    const logoutBtn = document.querySelector("[data-admin-logout]");
+    const authLocked = document.querySelector("[data-auth-locked]");
+    const authUnlocked = document.querySelector("[data-auth-unlocked]");
+    const previewToggle = document.querySelector("[data-preview-toggle]");
+    const previewEl = document.querySelector("[data-preview]");
+    const commentList = document.querySelector("[data-comment-list]");
+    const commentFilter = document.querySelector("[data-comment-filter]");
+    const commentNote = document.querySelector("[data-comment-note]");
     let unlocked = false;
+    const enableDraftSave = import.meta.env.PUBLIC_ENABLE_ADMIN_DRAFT_SAVE !== "false";
+    const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "false";
+    const MAX_UPLOAD_FILES = 6;
+    const MAX_FILE_BYTES = 2.5 * 1024 * 1024;
+    let uploadController = null;
+    let coverController = null;
 
     const state = {
       posts: [],
@@ -243,47 +366,58 @@ export const prerender = false;
       if (lockStatus) {
         lockStatus.textContent = locked ? "Đang khóa" : "Đã mở khóa";
       }
-      lockWrap?.classList.toggle("opacity-60", locked);
+      authWrap?.classList.toggle("opacity-60", locked);
+      authLocked?.classList.toggle("hidden", !locked);
+      authUnlocked?.classList.toggle("hidden", locked);
       const controls = [
         newBtn,
         publishBtn,
         unpublishBtn,
         submitBtn,
+        deleteBtn,
         coverBtn,
         uploadBtn,
         ...(form ? Array.from(form.querySelectorAll("input, textarea, select, button")) : []),
       ].filter(Boolean);
       controls.forEach((el) => {
-        if (el?.hasAttribute("data-admin-unlock") || el?.hasAttribute("data-admin-password")) return;
+        if (
+          el?.hasAttribute("data-admin-login") ||
+          el?.hasAttribute("data-admin-logout") ||
+          el?.hasAttribute("data-admin-password") ||
+          el?.hasAttribute("data-admin-username")
+        )
+          return;
         el.disabled = locked;
       });
     };
 
     const isUnlocked = () => unlocked;
 
-    const unlock = async () => {
-      if (!lockInput?.value) {
-        lockStatus.textContent = "Nhập mật khẩu";
+    const getCsrfToken = () => {
+      const match = document.cookie.match(/(?:^|; )twaw_admin_csrf=([^;]+)/);
+      return match ? decodeURIComponent(match[1]) : "";
+    };
+
+    const login = async () => {
+      if (!usernameInput?.value || !passwordInput?.value) {
+        lockStatus.textContent = "Nhập username + password";
         return;
       }
-      const res = await fetch("/api/admin/unlock", {
+      const res = await fetch("/api/admin/login", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ password: lockInput.value }),
+        body: JSON.stringify({ username: usernameInput.value, password: passwordInput.value }),
       });
       if (!res.ok) {
-        lockStatus.textContent = "Sai mật khẩu";
+        lockStatus.textContent = "Sai thông tin đăng nhập";
         return;
       }
-      const data = await res.json().catch(() => ({}));
-      if (!data?.unlocked) {
-        lockStatus.textContent = "Sai mật khẩu";
-        return;
-      }
+      await res.json().catch(() => ({}));
       unlocked = true;
-      lockInput.value = "";
+      passwordInput.value = "";
       setLocked(false);
       await loadPosts();
+      await loadComments();
     };
 
     const checkSession = async () => {
@@ -294,17 +428,25 @@ export const prerender = false;
         return;
       }
       const data = await res.json().catch(() => ({}));
-      unlocked = Boolean(data?.unlocked);
+      unlocked = Boolean(data?.authenticated);
       setLocked(!unlocked);
-      if (unlocked) await loadPosts();
+      if (unlocked) {
+        await loadPosts();
+        await loadComments();
+      }
     };
 
-    unlockBtn?.addEventListener("click", unlock);
-    lockInput?.addEventListener("keydown", (event) => {
+    loginBtn?.addEventListener("click", login);
+    passwordInput?.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
         event.preventDefault();
-        unlock();
+        login();
       }
+    });
+    logoutBtn?.addEventListener("click", async () => {
+      await fetch("/api/admin/logout", { method: "POST" });
+      unlocked = false;
+      setLocked(true);
     });
 
     const fields = [
@@ -312,6 +454,7 @@ export const prerender = false;
       "title",
       "slug",
       "summary",
+      "cover_key",
       "cover_url",
       "topic",
       "author",
@@ -320,14 +463,58 @@ export const prerender = false;
       "written_at",
       "photo_time",
       "tags_csv",
+      "published_at",
       "side_note",
       "voice_memo",
       "voice_memo_title",
       "photo_dir",
       "photo_count",
       "pinned",
+      "pinned_priority",
+      "pinned_until",
+      "pinned_style",
+      "layout",
+      "sort_order",
+      "status",
       "content_md",
     ];
+
+    const DRAFT_KEY = "twaw_admin_draft_v1";
+
+    const saveDraft = () => {
+      if (!form || !enableDraftSave) return;
+      if (state.active?.id) return;
+      const data = {};
+      fields.forEach((name) => {
+        const input = form.querySelector(`[name="${name}"]`);
+        if (!input) return;
+        data[name] = input.value;
+      });
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ data, savedAt: Date.now() }));
+    };
+
+    const loadDraft = () => {
+      if (!form || state.active?.id || !enableDraftSave) return;
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      let payload = null;
+      try {
+        payload = JSON.parse(raw);
+      } catch {
+        return;
+      }
+      if (!payload?.data) return;
+      fields.forEach((name) => {
+        const input = form.querySelector(`[name="${name}"]`);
+        if (!input || payload.data[name] === undefined) return;
+        input.value = payload.data[name];
+      });
+      status.textContent = "Đang dùng bản nháp trên máy";
+    };
+
+    const clearDraft = () => {
+      localStorage.removeItem(DRAFT_KEY);
+    };
 
     const fillForm = (post = {}) => {
       fields.forEach((name) => {
@@ -382,6 +569,71 @@ export const prerender = false;
       renderList();
     };
 
+    const loadComments = async () => {
+      if (!commentList || !isUnlocked()) return;
+      const filter = commentFilter?.value ?? "pending";
+      const res = await fetch(`/api/admin/comments?status=${encodeURIComponent(filter)}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const items = data.comments || [];
+      const escapeHtml = (value = "") =>
+        String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      if (!items.length) {
+        commentList.innerHTML = "<p class='text-sm text-black/50'>Chưa có comment.</p>";
+        return;
+      }
+      commentList.innerHTML = items
+        .map(
+          (item) => `
+            <div class="comment-card">
+              <div class="comment-meta">
+                <span class="comment-name">${escapeHtml(item.display_name || "Ẩn danh")}</span>
+                <span class="comment-time">${new Date(item.created_at).toLocaleString("vi-VN")}</span>
+                <span class="comment-nick">${escapeHtml(item.post_slug)}</span>
+              </div>
+              <p class="comment-body">${escapeHtml(item.body)}</p>
+              <div class="mt-3 flex flex-wrap gap-2">
+                <button class="btn text-xs" data-comment-action="approved" data-comment-id="${item.id}">Duyệt</button>
+                <button class="btn text-xs" data-comment-action="hidden" data-comment-id="${item.id}">Ẩn</button>
+                <button class="btn text-xs" data-comment-action="delete" data-comment-id="${item.id}">Xóa</button>
+              </div>
+            </div>
+          `
+        )
+        .join("");
+      commentList.querySelectorAll("[data-comment-action]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const id = btn.dataset.commentId;
+          const action = btn.dataset.commentAction;
+          if (!id || !action) return;
+          commentNote.textContent = "Đang xử lý comment...";
+          const csrf = getCsrfToken();
+          const res =
+            action === "delete"
+              ? await fetch(`/api/admin/comments/${id}`, {
+                  method: "DELETE",
+                  headers: { "x-csrf-token": csrf },
+                })
+              : await fetch(`/api/admin/comments/${id}`, {
+                  method: "PUT",
+                  headers: { "content-type": "application/json", "x-csrf-token": csrf },
+                  body: JSON.stringify({ status: action }),
+                });
+          if (!res.ok) {
+            commentNote.textContent = "Lỗi xử lý comment.";
+            return;
+          }
+          commentNote.textContent = "Đã cập nhật comment.";
+          await loadComments();
+        });
+      });
+    };
+
     newBtn?.addEventListener("click", () => {
       state.active = null;
       fillForm({});
@@ -396,10 +648,12 @@ export const prerender = false;
     form?.querySelectorAll("input, textarea, select").forEach((input) => {
       input.addEventListener("input", () => {
         state.dirty = true;
+        saveDraft();
       });
     });
 
     const requiredFields = ["title", "slug", "content_md"];
+    const requiredOnCreate = ["topic"];
 
     const savePost = async ({ silent = false } = {}) => {
       if (!form) return false;
@@ -418,6 +672,14 @@ export const prerender = false;
         }
         data[name] = input.type === "number" ? Number(input.value || 0) : input.value;
       });
+      if (data.tags_csv) {
+        data.tags_json = JSON.stringify(
+          String(data.tags_csv)
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean)
+        );
+      }
 
       const missingField = requiredFields.find((name) => {
         const value = typeof data[name] === "string" ? data[name].trim() : "";
@@ -434,11 +696,29 @@ export const prerender = false;
         input?.focus();
         return false;
       }
+      if (isNew) {
+        const missingOnCreate = requiredOnCreate.find((name) => {
+          const value = typeof data[name] === "string" ? data[name].trim() : "";
+          return !value;
+        });
+        if (missingOnCreate) {
+          note.textContent = "Thiếu Chủ đề.";
+          const input = form.querySelector(`[name="${missingOnCreate}"]`);
+          input?.focus();
+          return false;
+        }
+        const contentValue = String(data.content_md || "");
+        const hasImage = Boolean(data.cover_url) || /!\[.*?\]\(.+?\)/.test(contentValue);
+        if (!hasImage) {
+          note.textContent = "Thiếu ảnh. Hãy upload cover hoặc ảnh trong nội dung.";
+          return false;
+        }
+      }
 
       const isNew = !data.id;
       const res = await fetch(isNew ? "/api/admin/posts" : `/api/admin/posts/${data.id}`, {
         method: isNew ? "POST" : "PUT",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", "x-csrf-token": getCsrfToken() },
         body: JSON.stringify(data),
       });
       const payload = await res.json().catch(() => ({}));
@@ -460,6 +740,7 @@ export const prerender = false;
         data.id = payload.id;
       }
       if (!silent) note.textContent = "Đã lưu.";
+      clearDraft();
       await loadPosts();
       state.active = state.posts.find((p) => p.id === data.id);
       fillForm(state.active);
@@ -481,7 +762,10 @@ export const prerender = false;
     publishBtn?.addEventListener("click", async () => {
       const id = form?.querySelector("[name='id']")?.value;
       if (!id) return;
-      const res = await fetch(`/api/admin/posts/${id}/publish`, { method: "POST" });
+      const res = await fetch(`/api/admin/posts/${id}/publish`, {
+        method: "POST",
+        headers: { "x-csrf-token": getCsrfToken() },
+      });
       if (!res.ok) {
         if (res.status === 401) {
           unlocked = false;
@@ -500,7 +784,10 @@ export const prerender = false;
     unpublishBtn?.addEventListener("click", async () => {
       const id = form?.querySelector("[name='id']")?.value;
       if (!id) return;
-      const res = await fetch(`/api/admin/posts/${id}/unpublish`, { method: "POST" });
+      const res = await fetch(`/api/admin/posts/${id}/unpublish`, {
+        method: "POST",
+        headers: { "x-csrf-token": getCsrfToken() },
+      });
       if (!res.ok) {
         if (res.status === 401) {
           unlocked = false;
@@ -521,7 +808,10 @@ export const prerender = false;
       if (!saved) return;
       const id = form?.querySelector("[name='id']")?.value;
       if (!id) return;
-      const res = await fetch(`/api/admin/posts/${id}/publish`, { method: "POST" });
+      const res = await fetch(`/api/admin/posts/${id}/publish`, {
+        method: "POST",
+        headers: { "x-csrf-token": getCsrfToken() },
+      });
       if (!res.ok) {
         if (res.status === 401) {
           unlocked = false;
@@ -538,11 +828,48 @@ export const prerender = false;
       note.textContent = "Đã đăng bài.";
     });
 
+    deleteBtn?.addEventListener("click", async () => {
+      const id = form?.querySelector("[name='id']")?.value;
+      if (!id) return;
+      if (!confirm("Xóa bài này?")) return;
+      const res = await fetch(`/api/admin/posts/${id}`, {
+        method: "DELETE",
+        headers: { "x-csrf-token": getCsrfToken() },
+      });
+      if (!res.ok) {
+        note.textContent = "Xóa lỗi, thử lại nhé.";
+        return;
+      }
+      note.textContent = "Đã xóa.";
+      await loadPosts();
+      fillForm({});
+    });
+
+    previewToggle?.addEventListener("click", () => {
+      if (!previewEl) return;
+      previewEl.classList.toggle("hidden");
+      const content = form?.querySelector("[name='content_md']")?.value ?? "";
+      previewEl.innerHTML = marked.parse(content);
+    });
+
+    form?.querySelector("[name='content_md']")?.addEventListener("input", () => {
+      if (!previewEl || previewEl.classList.contains("hidden")) return;
+      previewEl.innerHTML = marked.parse(form.querySelector("[name='content_md']").value || "");
+    });
+
+    commentFilter?.addEventListener("change", loadComments);
+
+    loadDraft();
     checkSession();
 
     const isHeic = (file) => {
       const name = file?.name?.toLowerCase() || "";
-      return file?.type === "image/heic" || file?.type === "image/heif" || name.endsWith(".heic");
+      return (
+        file?.type === "image/heic" ||
+        file?.type === "image/heif" ||
+        name.endsWith(".heic") ||
+        name.endsWith(".heif")
+      );
     };
 
     const toJpegBlob = async (file, quality = 0.82) => {
@@ -550,6 +877,9 @@ export const prerender = false;
       const blob = await heic2any({ blob: file, toType: "image/jpeg", quality });
       return blob instanceof Blob ? blob : new Blob([blob], { type: "image/jpeg" });
     };
+
+    const encodeJpeg = (canvas, quality) =>
+      new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
 
     const resizeImage = async (file, maxSize = 2048, quality = 0.82) => {
       const source = await toJpegBlob(file, quality);
@@ -563,12 +893,17 @@ export const prerender = false;
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("NO_CONTEXT");
       ctx.drawImage(bitmap, 0, 0, targetWidth, targetHeight);
-      const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
+      let currentQuality = quality;
+      let blob = await encodeJpeg(canvas, currentQuality);
+      while (blob && blob.size > MAX_FILE_BYTES && currentQuality > 0.5) {
+        currentQuality = Math.max(0.5, currentQuality - 0.1);
+        blob = await encodeJpeg(canvas, currentQuality);
+      }
       if (!blob) throw new Error("NO_BLOB");
       return { blob, width: targetWidth, height: targetHeight };
     };
 
-    const uploadImage = async ({ file, slug, filename }) => {
+    const uploadImage = async ({ file, slug, filename, sortOrder, signal }) => {
       const { blob, width, height } = await resizeImage(file);
       const formData = new FormData();
       formData.append("file", blob, filename);
@@ -581,11 +916,14 @@ export const prerender = false;
           size: blob.size,
           originalName: file.name,
           fileName: filename,
+          sort_order: sortOrder ?? 0,
         })
       );
       const res = await fetch("/api/admin/upload", {
         method: "POST",
+        headers: { "x-csrf-token": getCsrfToken() },
         body: formData,
+        signal,
       });
       if (!res.ok) {
         if (res.status === 401) {
@@ -598,6 +936,12 @@ export const prerender = false;
       return res.json();
     };
 
+    coverCancel?.addEventListener("click", () => {
+      coverController?.abort();
+      coverProgress?.textContent = "";
+      coverCancel?.classList.add("hidden");
+    });
+
     coverBtn?.addEventListener("click", async () => {
       if (!isUnlocked()) {
         coverNote.textContent = "Cần mở khóa để upload.";
@@ -606,9 +950,11 @@ export const prerender = false;
       const input = form?.querySelector("input[name='cover_upload']");
       const file = input?.files?.[0];
       if (!file) return;
-      coverNote.textContent = "Đang xử lý ảnh cover...";
+      coverNote.textContent = "";
+      coverProgress?.textContent = "Đang xử lý ảnh cover...";
       const slugValue = form?.querySelector("[name='slug']")?.value;
       if (!slugValue) {
+        coverProgress?.textContent = "";
         coverNote.textContent = "Hãy nhập đường dẫn trước khi upload cover.";
         return;
       }
@@ -616,24 +962,54 @@ export const prerender = false;
       const safeSlug = slugify(slug);
       const filenameBase = file.name.replace(/\.[^.]+$/, "");
       const filename = `${filenameBase || "cover"}-${Date.now()}.jpg`;
+      coverController?.abort();
+      coverController = new AbortController();
+      coverCancel?.classList.remove("hidden");
       try {
-        const payload = await uploadImage({ file, slug: safeSlug, filename });
+        const payload = await uploadImage({
+          file,
+          slug: safeSlug,
+          filename,
+          sortOrder: 0,
+          signal: coverController.signal,
+        });
         const coverInput = form?.querySelector("[name='cover_url']");
+        const coverKeyInput = form?.querySelector("[name='cover_key']");
         if (payload.url && coverInput) {
           coverInput.value = payload.url;
           coverInput.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+        if (payload.key && coverKeyInput) {
+          coverKeyInput.value = payload.key;
+          coverKeyInput.dispatchEvent(new Event("input", { bubbles: true }));
         }
         const contentField = form?.querySelector("[name='content_md']");
         if (payload.url && contentField && !contentField.value.includes(payload.url)) {
           contentField.value = `![cover](${payload.url})\n\n${contentField.value}`.trim();
           contentField.dispatchEvent(new Event("input", { bubbles: true }));
         }
+        coverProgress?.textContent = "";
         coverNote.textContent = "Đã upload ảnh cover.";
         input.value = "";
         markDirty();
       } catch (error) {
-        coverNote.textContent = "Upload ảnh cover lỗi. Thử lại hoặc đổi định dạng ảnh.";
+        if (error?.name === "AbortError") {
+          coverNote.textContent = "Đã hủy upload ảnh cover.";
+        } else {
+          coverNote.textContent =
+            "Upload ảnh cover lỗi. Thử lại, chọn ảnh khác, hoặc bật Camera → Formats → Most Compatible.";
+        }
+        coverProgress?.textContent = "";
+      } finally {
+        coverCancel?.classList.add("hidden");
+        coverController = null;
       }
+    });
+
+    uploadCancel?.addEventListener("click", () => {
+      uploadController?.abort();
+      uploadProgress?.textContent = "";
+      uploadCancel?.classList.add("hidden");
     });
 
     uploadBtn?.addEventListener("click", async () => {
@@ -643,9 +1019,15 @@ export const prerender = false;
       }
       const input = form?.querySelector("input[name='upload_photos']");
       if (!input?.files?.length) return;
-      uploadNote.textContent = "Đang xử lý ảnh...";
+      if (input.files.length > MAX_UPLOAD_FILES) {
+        uploadNote.textContent = `Chọn tối đa ${MAX_UPLOAD_FILES} ảnh thôi nha.`;
+        return;
+      }
+      uploadNote.textContent = "";
+      uploadProgress?.textContent = "Đang xử lý ảnh...";
       const slugValue = form?.querySelector("[name='slug']")?.value;
       if (!slugValue) {
+        uploadProgress?.textContent = "";
         uploadNote.textContent = "Hãy nhập đường dẫn trước khi upload ảnh.";
         return;
       }
@@ -653,11 +1035,22 @@ export const prerender = false;
       const safeSlug = slugify(slug);
       const date = new Date().toISOString().slice(0, 10);
       let successCount = 0;
+      uploadController?.abort();
+      uploadController = new AbortController();
+      uploadCancel?.classList.remove("hidden");
       for (const [index, file] of Array.from(input.files).entries()) {
         try {
+          if (uploadController.signal.aborted) break;
           const paddedIndex = String(index + 1).padStart(3, "0");
           const filename = `${date}_${safeSlug}_${paddedIndex}.jpg`;
-          const payload = await uploadImage({ file, slug: safeSlug, filename });
+          uploadProgress?.textContent = `Đang upload ${index + 1}/${input.files.length}...`;
+          const payload = await uploadImage({
+            file,
+            slug: safeSlug,
+            filename,
+            sortOrder: index + 1,
+            signal: uploadController.signal,
+          });
           const contentField = form?.querySelector("[name='content_md']");
           if (payload.url && contentField) {
             contentField.value += `\n\n![${filename}](${payload.url})`;
@@ -666,11 +1059,21 @@ export const prerender = false;
           }
           successCount += 1;
         } catch (error) {
-          uploadNote.textContent = "Có ảnh upload lỗi. Thử lại hoặc đổi định dạng ảnh.";
+          if (error?.name === "AbortError") {
+            uploadNote.textContent = "Đã hủy upload ảnh.";
+          } else {
+            uploadNote.textContent =
+              "Có ảnh upload lỗi. Thử ảnh khác hoặc đổi Camera → Formats → Most Compatible.";
+          }
         }
       }
-      uploadNote.textContent = `Đã upload ${successCount} ảnh.`;
+      uploadProgress?.textContent = "";
+      if (!uploadController?.signal?.aborted) {
+        uploadNote.textContent = `Đã upload ${successCount} ảnh.`;
+      }
       input.value = "";
+      uploadCancel?.classList.add("hidden");
+      uploadController = null;
     });
 
     setLocked(true);
