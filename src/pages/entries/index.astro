@@ -23,7 +23,7 @@ try {
         pinned_priority, pinned_until, pinned_style, sort_order
        FROM posts
        WHERE status = 'published'
-       ORDER BY pinned DESC, pinned_priority DESC, sort_order DESC, datetime(published_at) DESC`
+       ORDER BY pinned DESC, pinned_priority DESC, datetime(published_at) DESC`
     )
     .all<PostRecord>();
   posts = results ?? [];
