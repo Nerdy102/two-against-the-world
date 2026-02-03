@@ -33,7 +33,8 @@ export const GET: APIRoute = async ({ locals, request, url }) => {
   }
 
   const db = getDb(locals);
-  await ensureReactionsSchema(db);
+  const allowBootstrap = locals.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
+  await ensureReactionsSchema(db, { allowBootstrap });
   if (kind) {
     const { results } = await db
       .prepare(
@@ -113,7 +114,8 @@ export const POST: APIRoute = async ({ locals, request }) => {
   }
 
   const db = getDb(locals);
-  await ensureReactionsSchema(db);
+  const allowBootstrap = locals.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
+  await ensureReactionsSchema(db, { allowBootstrap });
   let visitorId = getVisitorId(request);
   let setCookieHeader: string | undefined;
   if (!visitorId) {

@@ -10,7 +10,7 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
 ---
 
 <BaseLayout title="Admin — Two Against The World" description="Admin dashboard">
-  <main class="mx-auto max-w-6xl px-5 pb-24 pt-10">
+  <main class="mx-auto max-w-7xl px-5 pb-24 pt-10">
     <section class="paper edge-torn p-6 sm:p-10" data-reveal>
       <div class="kicker text-xs text-black/50">ADMIN</div>
       <RansomTitle text="Publish là lên ngay" as="h1" class="text-[44px] sm:text-[56px]" />
@@ -40,15 +40,14 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
               <span data-admin-status>Đang khóa</span>
             </p>
             <div class="flex flex-wrap items-center gap-3">
-              <input class="input" type="text" name="admin_username" placeholder="Username" data-admin-username />
               <input
                 class="input"
                 type="password"
                 name="admin_password"
-                placeholder="Password"
+                placeholder="Admin password"
                 data-admin-password
               />
-              <button class="btn" type="button" data-admin-login>Đăng nhập</button>
+              <button class="btn" type="button" data-admin-login>Mở khóa</button>
             </div>
           </div>
           <div class="hidden" data-auth-unlocked>
@@ -58,11 +57,12 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
             <button class="btn" type="button" data-admin-logout>Đăng xuất</button>
           </div>
         </div>
+        <div class="admin-toast" data-admin-toast role="status" aria-live="polite" aria-atomic="true"></div>
 
         <form class="mt-4 space-y-4" data-post-form>
           <p class="text-xs text-black/60">
             Trường có <span class="text-red-500">*</span> là bắt buộc. Bắt buộc tối thiểu: Tiêu đề, Chủ đề,
-            Ảnh, Nội dung.
+            Tác giả, Ảnh, Nội dung.
           </p>
           <input type="hidden" name="id" />
 
@@ -72,43 +72,24 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
           </label>
 
           <label class="compose-field">
-            <span>Đường dẫn bài viết <span class="text-red-500">*</span></span>
-            <input class="input" name="slug" placeholder="vi-du-duong-dan-bai-viet" required />
-            <p class="mt-2 text-xs text-black/50">
-              Gợi ý: Tự tạo từ tiêu đề (tiếng Việt), sẽ bỏ dấu và thay khoảng trắng bằng dấu gạch ngang.
-            </p>
-          </label>
-
-          <label class="compose-field">
             <span>Tóm tắt</span>
             <input class="input" name="summary" placeholder="Một câu giới thiệu ngắn" />
           </label>
 
-          <div class="compose-field">
-            <span>Ảnh cover (upload) <span class="text-red-500">*</span></span>
-            <input type="hidden" name="cover_key" />
-            <input type="hidden" name="cover_url" />
-            <input
-              class="input"
-              type="file"
-              name="cover_upload"
-              accept="image/*,image/heic,image/heif"
-              capture="environment"
-            />
-            <p class="mt-2 text-xs text-black/50">
-              Chọn ảnh từ iPhone (HEIC/HEIF sẽ được tự tối ưu sang JPG). Ảnh cover sẽ tự chèn vào bài.
-            </p>
-            <div class="mt-3 flex flex-wrap gap-2">
-              <button class="btn" type="button" data-upload-cover>Upload ảnh cover</button>
-              {enableUploadHelpers && <button class="btn hidden" type="button" data-cover-cancel>Hủy</button>}
+          <div class="compose-field hidden" data-link-preview>
+            <span>Link bài viết</span>
+            <div class="flex flex-wrap items-center gap-2">
+              <input class="input flex-1 min-w-[220px]" type="text" readonly data-link-text />
+              <button class="btn" type="button" data-link-copy>Sao chép</button>
             </div>
-            {enableUploadHelpers && <p class="text-xs text-black/50" data-cover-progress></p>}
-            <p class="text-xs text-black/50" data-cover-note></p>
+            <p class="mt-2 text-xs text-black/50">
+              Link sẽ hiện sau khi lưu hoặc publish.
+            </p>
           </div>
 
           <label class="compose-field">
             <span>Chủ đề <span class="text-red-500">*</span></span>
-            <select class="input" name="topic">
+            <select class="input" name="topic" required>
               <option value="">Chưa phân loại</option>
               {TOPICS.map((t) => (
                 <option value={t.slug}>{t.label}</option>
@@ -117,117 +98,36 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
           </label>
 
           <label class="compose-field">
-            <span>Tác giả</span>
-            <input class="input" name="author" placeholder="you | partner" />
+            <span>Tác giả <span class="text-red-500">*</span></span>
+            <input
+              class="input"
+              name="author"
+              placeholder="nhà triết học trên giường | nhà triết học ở hộp đêm"
+              required
+            />
           </label>
 
-          <label class="compose-field">
-            <span>Địa điểm</span>
-            <input class="input" name="location" placeholder="Địa điểm" />
-          </label>
-
-          <label class="compose-field">
-            <span>Thời gian sự kiện</span>
-            <input class="input" name="event_time" placeholder="20:30 - 21:00" />
-          </label>
-
-          <label class="compose-field">
-            <span>Viết lúc</span>
-            <input class="input" name="written_at" placeholder="21/02/2026" />
-          </label>
-
-          <label class="compose-field">
-            <span>Chụp lúc</span>
-            <input class="input" name="photo_time" placeholder="21/02/2026" />
-          </label>
-
-          <label class="compose-field">
-            <span>Tags (phân tách bằng dấu phẩy)</span>
-            <input class="input" name="tags_csv" placeholder="memory, love" />
-          </label>
-
-          <label class="compose-field">
-            <span>Ngày publish</span>
-            <input class="input" name="published_at" placeholder="2026-02-02T10:00:00Z" />
-          </label>
-
-          <label class="compose-field">
-            <span>Ghi chú thêm</span>
-            <input class="input" name="side_note" placeholder="Một câu thêm" />
-          </label>
-
-          <label class="compose-field">
-            <span>Voice memo (URL)</span>
-            <input class="input" name="voice_memo" placeholder="https://..." />
-          </label>
-
-          <label class="compose-field">
-            <span>Tiêu đề voice memo</span>
-            <input class="input" name="voice_memo_title" placeholder="Tên đoạn ghi âm" />
-          </label>
-
-          <label class="compose-field">
-            <span>Thư mục ảnh (nếu có)</span>
-            <input class="input" name="photo_dir" placeholder="ten-thu-muc" />
-          </label>
-
-          <label class="compose-field">
-            <span>Số ảnh</span>
-            <input class="input" type="number" min="0" name="photo_count" placeholder="0" />
-          </label>
-
-          {enablePinnedFields && (
-            <>
-              <label class="compose-field">
-                <span>Ghim bài</span>
-                <select class="input" name="pinned">
-                  <option value="0">Không</option>
-                  <option value="1">Có</option>
-                </select>
-              </label>
-
-              <label class="compose-field">
-                <span>Độ ưu tiên ghim</span>
-                <input class="input" name="pinned_priority" type="number" min="0" max="999" placeholder="0" />
-              </label>
-
-              <label class="compose-field">
-                <span>Ghim đến (ISO)</span>
-                <input class="input" name="pinned_until" placeholder="2026-02-02T10:00:00Z" />
-              </label>
-
-              <label class="compose-field">
-                <span>Kiểu ghim</span>
-                <select class="input" name="pinned_style">
-                  <option value="">Mặc định</option>
-                  <option value="event">Event</option>
-                  <option value="announcement">Announcement</option>
-                  <option value="memory">Memory</option>
-                </select>
-              </label>
-            </>
-          )}
-
-          <label class="compose-field">
-            <span>Layout</span>
-            <select class="input" name="layout">
-              <option value="normal">Normal</option>
-              <option value="long">Long</option>
-            </select>
-          </label>
-
-          <label class="compose-field">
-            <span>Thứ tự hiển thị</span>
-            <input class="input" name="sort_order" type="number" min="-9999" max="9999" placeholder="0" />
-          </label>
-
-          <label class="compose-field">
-            <span>Trạng thái</span>
-            <select class="input" name="status">
-              <option value="draft">Draft</option>
-              <option value="published">Published</option>
-            </select>
-          </label>
+          <div class="compose-field">
+            <span>Ảnh <span class="text-red-500">*</span></span>
+            <input type="hidden" name="cover_key" />
+            <input type="hidden" name="cover_url" />
+            <input
+              class="input"
+              type="file"
+              name="upload_photos"
+              accept="image/*,image/heic,image/heif"
+              multiple
+              data-upload-input
+            />
+            <p class="mt-2 text-xs text-black/50">Tip: ảnh đầu tiên sẽ thành cover.</p>
+            <div class="compose-preview" data-upload-preview></div>
+            <div class="mt-3 flex flex-wrap gap-2">
+              <button class="btn" type="button" data-upload-photos>Upload ảnh</button>
+              {enableUploadHelpers && <button class="btn hidden" type="button" data-upload-cancel>Hủy</button>}
+            </div>
+            {enableUploadHelpers && <p class="text-xs text-black/50" data-upload-progress></p>}
+            <p class="text-xs text-black/50" data-upload-note></p>
+          </div>
 
           <label class="compose-field">
             <span>Nội dung (Markdown) <span class="text-red-500">*</span></span>
@@ -244,26 +144,111 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
             <div class="mt-3 hidden prose prose-scrap max-w-none" data-preview></div>
           </div>
 
-          <div class="compose-field">
-            <span>Upload ảnh iPhone (tối ưu)</span>
-            <input
-              class="input"
-              type="file"
-              name="upload_photos"
-              accept="image/*,image/heic,image/heif"
-              multiple
-            />
-            <p class="mt-2 text-xs text-black/50">
-              Tối ưu kích thước và nén nhẹ để đăng nhanh (tối đa 6 ảnh/lần). Nếu ảnh HEIC lỗi, hãy chọn “Most
-              Compatible” trong Camera → Formats.
-            </p>
-            <div class="mt-3 flex flex-wrap gap-2">
-              <button class="btn" type="button" data-upload-photos>Upload ảnh</button>
-              {enableUploadHelpers && <button class="btn hidden" type="button" data-upload-cancel>Hủy</button>}
+          <details class="compose-advanced">
+            <summary class="compose-advanced__summary">Nâng cao (tuỳ chọn)</summary>
+            <div class="mt-4 grid gap-4">
+              <label class="compose-field">
+                <span>Đường dẫn bài viết</span>
+                <input class="input" name="slug" placeholder="vi-du-duong-dan-bai-viet" />
+                <p class="mt-2 text-xs text-black/50">
+                  Tự tạo từ tiêu đề nếu bỏ trống. Sẽ bỏ dấu và thay khoảng trắng bằng dấu gạch ngang.
+                </p>
+              </label>
+
+              <label class="compose-field">
+                <span>Địa điểm</span>
+                <input class="input" name="location" placeholder="Địa điểm" />
+              </label>
+
+              <label class="compose-field">
+                <span>Thời gian sự kiện</span>
+                <input class="input" name="event_time" placeholder="20:30 - 21:00" />
+              </label>
+
+              <label class="compose-field">
+                <span>Viết lúc</span>
+                <input class="input" name="written_at" placeholder="21/02/2026" />
+              </label>
+
+              <label class="compose-field">
+                <span>Chụp lúc</span>
+                <input class="input" name="photo_time" placeholder="21/02/2026" />
+              </label>
+
+              <label class="compose-field">
+                <span>Tags (phân tách bằng dấu phẩy)</span>
+                <input class="input" name="tags_csv" placeholder="memory, love" />
+              </label>
+
+              <label class="compose-field">
+                <span>Ghi chú thêm</span>
+                <input class="input" name="side_note" placeholder="Một câu thêm" />
+              </label>
+
+              <label class="compose-field">
+                <span>Voice memo (URL)</span>
+                <input class="input" name="voice_memo" placeholder="https://..." />
+              </label>
+
+              <label class="compose-field">
+                <span>Tiêu đề voice memo</span>
+                <input class="input" name="voice_memo_title" placeholder="Tên đoạn ghi âm" />
+              </label>
+
+              {enablePinnedFields && (
+                <>
+                  <label class="compose-field">
+                    <span>Ghim bài</span>
+                    <select class="input" name="pinned">
+                      <option value="0">Không</option>
+                      <option value="1">Có</option>
+                    </select>
+                  </label>
+
+                  <label class="compose-field">
+                    <span>Độ ưu tiên ghim</span>
+                    <input class="input" name="pinned_priority" type="number" min="0" max="999" placeholder="0" />
+                  </label>
+
+                  <label class="compose-field">
+                    <span>Ghim đến (ISO)</span>
+                    <input class="input" name="pinned_until" placeholder="2026-02-02T10:00:00Z" />
+                  </label>
+
+                  <label class="compose-field">
+                    <span>Kiểu ghim</span>
+                    <select class="input" name="pinned_style">
+                      <option value="">Mặc định</option>
+                      <option value="event">Event</option>
+                      <option value="announcement">Announcement</option>
+                      <option value="memory">Memory</option>
+                    </select>
+                  </label>
+                </>
+              )}
+
+              <label class="compose-field">
+                <span>Layout</span>
+                <select class="input" name="layout">
+                  <option value="normal">Normal</option>
+                  <option value="long">Long</option>
+                </select>
+              </label>
+
+              <label class="compose-field">
+                <span>Thứ tự hiển thị</span>
+                <input class="input" name="sort_order" type="number" min="-9999" max="9999" placeholder="0" />
+              </label>
+
+              <label class="compose-field">
+                <span>Trạng thái</span>
+                <select class="input" name="status">
+                  <option value="draft">Draft</option>
+                  <option value="published">Published</option>
+                </select>
+              </label>
             </div>
-            {enableUploadHelpers && <p class="text-xs text-black/50" data-upload-progress></p>}
-            <p class="text-xs text-black/50" data-upload-note></p>
-          </div>
+          </details>
 
           <div class="flex flex-wrap gap-3">
             <button class="btn" type="submit" data-save-post>Lưu</button>
@@ -323,17 +308,14 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
     const unpublishBtn = document.querySelector("[data-unpublish-post]");
     const submitBtn = document.querySelector("[data-submit-post]");
     const deleteBtn = document.querySelector("[data-delete-post]");
-    const coverBtn = document.querySelector("[data-upload-cover]");
-    const coverNote = document.querySelector("[data-cover-note]");
-    const coverProgress = document.querySelector("[data-cover-progress]");
-    const coverCancel = document.querySelector("[data-cover-cancel]");
     const uploadBtn = document.querySelector("[data-upload-photos]");
+    const uploadInput = document.querySelector("[data-upload-input]");
+    const uploadPreview = document.querySelector("[data-upload-preview]");
     const uploadNote = document.querySelector("[data-upload-note]");
     const uploadProgress = document.querySelector("[data-upload-progress]");
     const uploadCancel = document.querySelector("[data-upload-cancel]");
     const authWrap = document.querySelector("[data-admin-auth]");
     const lockStatus = document.querySelector("[data-admin-status]");
-    const usernameInput = document.querySelector("[data-admin-username]");
     const passwordInput = document.querySelector("[data-admin-password]");
     const loginBtn = document.querySelector("[data-admin-login]");
     const logoutBtn = document.querySelector("[data-admin-logout]");
@@ -341,6 +323,10 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
     const authUnlocked = document.querySelector("[data-auth-unlocked]");
     const previewToggle = document.querySelector("[data-preview-toggle]");
     const previewEl = document.querySelector("[data-preview]");
+    const adminToast = document.querySelector("[data-admin-toast]");
+    const linkPreview = document.querySelector("[data-link-preview]");
+    const linkText = document.querySelector("[data-link-text]");
+    const linkCopy = document.querySelector("[data-link-copy]");
     const commentList = document.querySelector("[data-comment-list]");
     const commentFilter = document.querySelector("[data-comment-filter]");
     const commentNote = document.querySelector("[data-comment-note]");
@@ -350,13 +336,17 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
     const MAX_UPLOAD_FILES = 6;
     const MAX_FILE_BYTES = 2.5 * 1024 * 1024;
     let uploadController = null;
-    let coverController = null;
+    let selectedFiles = [];
+    let previewUrls = [];
+    let coverIndex = 0;
 
     const state = {
       posts: [],
       active: null,
       dirty: false,
     };
+    let renderPreview = () => {};
+    let clearPreviewUrls = () => {};
 
     const markDirty = () => {
       state.dirty = true;
@@ -375,7 +365,6 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
         unpublishBtn,
         submitBtn,
         deleteBtn,
-        coverBtn,
         uploadBtn,
         ...(form ? Array.from(form.querySelectorAll("input, textarea, select, button")) : []),
       ].filter(Boolean);
@@ -383,8 +372,7 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
         if (
           el?.hasAttribute("data-admin-login") ||
           el?.hasAttribute("data-admin-logout") ||
-          el?.hasAttribute("data-admin-password") ||
-          el?.hasAttribute("data-admin-username")
+          el?.hasAttribute("data-admin-password")
         )
           return;
         el.disabled = locked;
@@ -393,23 +381,69 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
 
     const isUnlocked = () => unlocked;
 
+    let toastTimeout = null;
+    const showToast = (message, variant = "error") => {
+      if (!adminToast) return;
+      adminToast.textContent = message;
+      adminToast.dataset.state = variant;
+      adminToast.classList.add("is-visible");
+      if (toastTimeout) window.clearTimeout(toastTimeout);
+      toastTimeout = window.setTimeout(() => {
+        adminToast.classList.remove("is-visible");
+        adminToast.textContent = "";
+        adminToast.dataset.state = "";
+      }, 2200);
+    };
+
     const getCsrfToken = () => {
       const match = document.cookie.match(/(?:^|; )twaw_admin_csrf=([^;]+)/);
       return match ? decodeURIComponent(match[1]) : "";
     };
 
-    const login = async () => {
-      if (!usernameInput?.value || !passwordInput?.value) {
-        lockStatus.textContent = "Nhập username + password";
+    const getSiteBase = () => import.meta.env.PUBLIC_SITE_URL || window.location.origin;
+
+    const getSlugValue = () => {
+      const slugInput = form?.querySelector("[name='slug']");
+      const rawSlug = slugInput?.value?.trim();
+      if (rawSlug) return slugify(rawSlug);
+      const titleValue = form?.querySelector("[name='title']")?.value ?? "";
+      return slugify(titleValue);
+    };
+
+    const updateLinkPreview = () => {
+      if (!linkPreview || !linkText) return;
+      const hasId = Boolean(form?.querySelector("[name='id']")?.value);
+      if (!hasId) {
+        linkPreview.classList.add("hidden");
+        linkText.value = "";
         return;
       }
-      const res = await fetch("/api/admin/login", {
+      const slugValue = getSlugValue();
+      if (!slugValue) {
+        linkPreview.classList.add("hidden");
+        linkText.value = "";
+        return;
+      }
+      const base = getSiteBase();
+      linkText.value = `${base.replace(/\\/$/, "")}/entries/${slugValue}`;
+      linkPreview.classList.remove("hidden");
+    };
+
+    const login = async () => {
+      if (!passwordInput?.value) {
+        lockStatus.textContent = "Nhập password";
+        showToast("Nhập password để mở khóa.");
+        return;
+      }
+      const res = await fetch("/api/admin/unlock", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ username: usernameInput.value, password: passwordInput.value }),
+        body: JSON.stringify({ password: passwordInput.value }),
       });
       if (!res.ok) {
-        lockStatus.textContent = "Sai thông tin đăng nhập";
+        const payload = await res.json().catch(() => ({}));
+        lockStatus.textContent = "Không mở khóa được";
+        showToast(payload?.error || "Không mở khóa được. Thử lại nhé.");
         return;
       }
       await res.json().catch(() => ({}));
@@ -449,6 +483,16 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
       setLocked(true);
     });
 
+    linkCopy?.addEventListener("click", async () => {
+      if (!linkText?.value) return;
+      try {
+        await navigator.clipboard.writeText(linkText.value);
+        showToast("Đã sao chép link.", "info");
+      } catch {
+        showToast("Không sao chép được link.", "error");
+      }
+    });
+
     const fields = [
       "id",
       "title",
@@ -463,12 +507,9 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
       "written_at",
       "photo_time",
       "tags_csv",
-      "published_at",
       "side_note",
       "voice_memo",
       "voice_memo_title",
-      "photo_dir",
-      "photo_count",
       "pinned",
       "pinned_priority",
       "pinned_until",
@@ -510,6 +551,7 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
         input.value = payload.data[name];
       });
       status.textContent = "Đang dùng bản nháp trên máy";
+      updateLinkPreview();
     };
 
     const clearDraft = () => {
@@ -522,10 +564,14 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
         if (!input) return;
         input.value = post[name] ?? (input.type === "number" ? 0 : "");
       });
+      if (uploadInput) uploadInput.value = "";
+      selectedFiles = [];
+      renderPreview();
       state.dirty = false;
       status.textContent = post.status
         ? `Trạng thái: ${post.status}`
         : "Chưa chọn bài";
+      updateLinkPreview();
     };
 
     const renderList = () => {
@@ -562,6 +608,8 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
           unlocked = false;
           setLocked(true);
         }
+        const payload = await res.json().catch(() => ({}));
+        showToast(payload?.error || "Không tải được bài viết.");
         return;
       }
       const data = await res.json();
@@ -573,7 +621,11 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
       if (!commentList || !isUnlocked()) return;
       const filter = commentFilter?.value ?? "pending";
       const res = await fetch(`/api/admin/comments?status=${encodeURIComponent(filter)}`);
-      if (!res.ok) return;
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        showToast(payload?.error || "Không tải được comment.");
+        return;
+      }
       const data = await res.json();
       const items = data.comments || [];
       const escapeHtml = (value = "") =>
@@ -626,6 +678,8 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
                 });
           if (!res.ok) {
             commentNote.textContent = "Lỗi xử lý comment.";
+            const payload = await res.json().catch(() => ({}));
+            showToast(payload?.error || "Lỗi xử lý comment.");
             return;
           }
           commentNote.textContent = "Đã cập nhật comment.";
@@ -643,7 +697,10 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
       const slugInput = form.querySelector("[name='slug']");
       if (!slugInput || slugInput.value.trim()) return;
       slugInput.value = slugify(e.target.value);
+      updateLinkPreview();
     });
+
+    form?.querySelector("[name='slug']")?.addEventListener("input", updateLinkPreview);
 
     form?.querySelectorAll("input, textarea, select").forEach((input) => {
       input.addEventListener("input", () => {
@@ -652,7 +709,7 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
       });
     });
 
-    const requiredFields = ["title", "slug", "content_md"];
+    const requiredFields = ["title", "author", "content_md"];
     const requiredOnCreate = ["topic"];
 
     const savePost = async ({ silent = false } = {}) => {
@@ -681,6 +738,8 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
         );
       }
 
+      const isNew = !data.id;
+
       const missingField = requiredFields.find((name) => {
         const value = typeof data[name] === "string" ? data[name].trim() : "";
         return !value;
@@ -688,7 +747,7 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
       if (missingField) {
         const label = {
           title: "Tiêu đề",
-          slug: "Đường dẫn",
+          author: "Tác giả",
           content_md: "Nội dung",
         }[missingField];
         note.textContent = `Thiếu ${label}.`;
@@ -710,12 +769,10 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
         const contentValue = String(data.content_md || "");
         const hasImage = Boolean(data.cover_url) || /!\[.*?\]\(.+?\)/.test(contentValue);
         if (!hasImage) {
-          note.textContent = "Thiếu ảnh. Hãy upload cover hoặc ảnh trong nội dung.";
+          note.textContent = "Thiếu ảnh. Hãy upload ít nhất 1 ảnh.";
           return false;
         }
       }
-
-      const isNew = !data.id;
       const res = await fetch(isNew ? "/api/admin/posts" : `/api/admin/posts/${data.id}`, {
         method: isNew ? "POST" : "PUT",
         headers: { "content-type": "application/json", "x-csrf-token": getCsrfToken() },
@@ -733,11 +790,19 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
           note.textContent = payload?.error
             ? `Lưu lỗi: ${payload.error}`
             : "Lưu chưa được, thử lại nhé.";
+          showToast(payload?.error || "Lưu chưa được, thử lại nhé.");
         }
         return false;
       }
       if (isNew) {
         data.id = payload.id;
+      }
+      if (payload?.slug) {
+        const slugInput = form.querySelector("[name='slug']");
+        if (slugInput) {
+          slugInput.value = payload.slug;
+        }
+        updateLinkPreview();
       }
       if (!silent) note.textContent = "Đã lưu.";
       clearDraft();
@@ -773,7 +838,9 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
           note.textContent = "Cần mở khóa để publish.";
           return;
         }
-        note.textContent = "Publish lỗi, thử lại nhé.";
+        const payload = await res.json().catch(() => ({}));
+        note.textContent = payload?.error || "Publish lỗi, thử lại nhé.";
+        showToast(payload?.error || "Publish lỗi, thử lại nhé.");
         return;
       }
       await loadPosts();
@@ -795,7 +862,9 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
           note.textContent = "Cần mở khóa để gỡ publish.";
           return;
         }
-        note.textContent = "Gỡ publish lỗi, thử lại nhé.";
+        const payload = await res.json().catch(() => ({}));
+        note.textContent = payload?.error || "Gỡ publish lỗi, thử lại nhé.";
+        showToast(payload?.error || "Gỡ publish lỗi, thử lại nhé.");
         return;
       }
       await loadPosts();
@@ -819,7 +888,9 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
           note.textContent = "Cần mở khóa để publish.";
           return;
         }
-        note.textContent = "Publish lỗi, thử lại nhé.";
+        const payload = await res.json().catch(() => ({}));
+        note.textContent = payload?.error || "Publish lỗi, thử lại nhé.";
+        showToast(payload?.error || "Publish lỗi, thử lại nhé.");
         return;
       }
       await loadPosts();
@@ -837,7 +908,9 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
         headers: { "x-csrf-token": getCsrfToken() },
       });
       if (!res.ok) {
-        note.textContent = "Xóa lỗi, thử lại nhé.";
+        const payload = await res.json().catch(() => ({}));
+        note.textContent = payload?.error || "Xóa lỗi, thử lại nhé.";
+        showToast(payload?.error || "Xóa lỗi, thử lại nhé.");
         return;
       }
       note.textContent = "Đã xóa.";
@@ -936,74 +1009,48 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
       return res.json();
     };
 
-    coverCancel?.addEventListener("click", () => {
-      coverController?.abort();
-      if (coverProgress) coverProgress.textContent = "";
-      coverCancel?.classList.add("hidden");
-    });
+    clearPreviewUrls = () => {
+      previewUrls.forEach((url) => URL.revokeObjectURL(url));
+      previewUrls = [];
+    };
 
-    coverBtn?.addEventListener("click", async () => {
-      if (!isUnlocked()) {
-        coverNote.textContent = "Cần mở khóa để upload.";
-        return;
-      }
-      const input = form?.querySelector("input[name='cover_upload']");
-      const file = input?.files?.[0];
-      if (!file) return;
-      coverNote.textContent = "";
-      if (coverProgress) coverProgress.textContent = "Đang xử lý ảnh cover...";
-      const slugValue = form?.querySelector("[name='slug']")?.value;
-      if (!slugValue) {
-        if (coverProgress) coverProgress.textContent = "";
-        coverNote.textContent = "Hãy nhập đường dẫn trước khi upload cover.";
-        return;
-      }
-      const slug = slugValue || "untitled";
-      const safeSlug = slugify(slug);
-      const filenameBase = file.name.replace(/\.[^.]+$/, "");
-      const filename = `${filenameBase || "cover"}-${Date.now()}.jpg`;
-      coverController?.abort();
-      coverController = new AbortController();
-      coverCancel?.classList.remove("hidden");
-      try {
-        const payload = await uploadImage({
-          file,
-          slug: safeSlug,
-          filename,
-          sortOrder: 0,
-          signal: coverController.signal,
+    renderPreview = () => {
+      if (!uploadPreview) return;
+      uploadPreview.innerHTML = "";
+      clearPreviewUrls();
+      if (!selectedFiles.length) return;
+      selectedFiles.forEach((file, index) => {
+        const url = URL.createObjectURL(file);
+        previewUrls.push(url);
+        const card = document.createElement("div");
+        card.className = "compose-thumb";
+        const img = document.createElement("img");
+        img.src = url;
+        img.alt = file.name;
+        const label = document.createElement("span");
+        label.textContent = index === coverIndex ? "Cover" : "Ảnh";
+        const actions = document.createElement("div");
+        actions.className = "compose-thumb__actions";
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "btn text-xs";
+        btn.textContent = index === coverIndex ? "Cover" : "Đặt làm cover";
+        btn.disabled = index === coverIndex;
+        btn.addEventListener("click", () => {
+          coverIndex = index;
+          renderPreview();
         });
-        const coverInput = form?.querySelector("[name='cover_url']");
-        const coverKeyInput = form?.querySelector("[name='cover_key']");
-        if (payload.url && coverInput) {
-          coverInput.value = payload.url;
-          coverInput.dispatchEvent(new Event("input", { bubbles: true }));
-        }
-        if (payload.key && coverKeyInput) {
-          coverKeyInput.value = payload.key;
-          coverKeyInput.dispatchEvent(new Event("input", { bubbles: true }));
-        }
-        const contentField = form?.querySelector("[name='content_md']");
-        if (payload.url && contentField && !contentField.value.includes(payload.url)) {
-          contentField.value = `![cover](${payload.url})\n\n${contentField.value}`.trim();
-          contentField.dispatchEvent(new Event("input", { bubbles: true }));
-        }
-        if (coverProgress) coverProgress.textContent = "";
-        coverNote.textContent = "Đã upload ảnh cover.";
-        input.value = "";
-        markDirty();
-      } catch (error) {
-        if (error?.name === "AbortError") {
-          coverNote.textContent = "Đã hủy upload ảnh cover.";
-        } else {
-          coverNote.textContent =
-            "Upload ảnh cover lỗi. Thử lại, chọn ảnh khác, hoặc bật Camera → Formats → Most Compatible.";
-        }
-        if (coverProgress) coverProgress.textContent = "";
-      } finally {
-        coverCancel?.classList.add("hidden");
-        coverController = null;
-      }
+        actions.append(btn);
+        card.append(img, label, actions);
+        uploadPreview.append(card);
+      });
+    };
+
+    uploadInput?.addEventListener("change", () => {
+      selectedFiles = Array.from(uploadInput.files || []);
+      coverIndex = 0;
+      renderPreview();
+      markDirty();
     });
 
     uploadCancel?.addEventListener("click", () => {
@@ -1017,46 +1064,58 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
         uploadNote.textContent = "Cần mở khóa để upload.";
         return;
       }
-      const input = form?.querySelector("input[name='upload_photos']");
-      if (!input?.files?.length) return;
-      if (input.files.length > MAX_UPLOAD_FILES) {
+      if (!selectedFiles.length) return;
+      if (selectedFiles.length > MAX_UPLOAD_FILES) {
         uploadNote.textContent = `Chọn tối đa ${MAX_UPLOAD_FILES} ảnh thôi nha.`;
         return;
       }
       uploadNote.textContent = "";
       if (uploadProgress) uploadProgress.textContent = "Đang xử lý ảnh...";
-      const slugValue = form?.querySelector("[name='slug']")?.value;
-      if (!slugValue) {
-        if (uploadProgress) uploadProgress.textContent = "";
-        uploadNote.textContent = "Hãy nhập đường dẫn trước khi upload ảnh.";
-        return;
-      }
-      const slug = slugValue || "untitled";
-      const safeSlug = slugify(slug);
+      const safeSlug = getSlugValue() || "untitled";
       const date = new Date().toISOString().slice(0, 10);
       let successCount = 0;
       uploadController?.abort();
       uploadController = new AbortController();
       uploadCancel?.classList.remove("hidden");
-      for (const [index, file] of Array.from(input.files).entries()) {
+      let nextSortOrder = 1;
+      for (const [index, file] of selectedFiles.entries()) {
         try {
           if (uploadController.signal.aborted) break;
           const paddedIndex = String(index + 1).padStart(3, "0");
           const filename = `${date}_${safeSlug}_${paddedIndex}.jpg`;
+          const sortOrder = index === coverIndex ? 0 : nextSortOrder++;
           if (uploadProgress) {
-            uploadProgress.textContent = `Đang upload ${index + 1}/${input.files.length}...`;
+            uploadProgress.textContent = `Đang upload ${index + 1}/${selectedFiles.length}...`;
           }
           const payload = await uploadImage({
             file,
             slug: safeSlug,
             filename,
-            sortOrder: index + 1,
+            sortOrder,
             signal: uploadController.signal,
           });
           const contentField = form?.querySelector("[name='content_md']");
+          const coverInput = form?.querySelector("[name='cover_url']");
+          const coverKeyInput = form?.querySelector("[name='cover_key']");
+          if (sortOrder === 0) {
+            if (payload.url && coverInput) {
+              coverInput.value = payload.url;
+              coverInput.dispatchEvent(new Event("input", { bubbles: true }));
+            }
+            if (payload.key && coverKeyInput) {
+              coverKeyInput.value = payload.key;
+              coverKeyInput.dispatchEvent(new Event("input", { bubbles: true }));
+            }
+            if (payload.url && contentField && !contentField.value.includes(payload.url)) {
+              contentField.value = `![cover](${payload.url})\n\n${contentField.value}`.trim();
+              contentField.dispatchEvent(new Event("input", { bubbles: true }));
+            }
+          }
           if (payload.url && contentField) {
-            contentField.value += `\n\n![${filename}](${payload.url})`;
-            contentField.dispatchEvent(new Event("input", { bubbles: true }));
+            if (sortOrder !== 0) {
+              contentField.value += `\n\n![${filename}](${payload.url})`;
+              contentField.dispatchEvent(new Event("input", { bubbles: true }));
+            }
             markDirty();
           }
           successCount += 1;
@@ -1073,7 +1132,9 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
       if (!uploadController?.signal?.aborted) {
         uploadNote.textContent = `Đã upload ${successCount} ảnh.`;
       }
-      input.value = "";
+      if (uploadInput) uploadInput.value = "";
+      selectedFiles = [];
+      renderPreview();
       uploadCancel?.classList.add("hidden");
       uploadController = null;
     });

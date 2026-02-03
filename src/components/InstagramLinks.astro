@@ -13,6 +13,11 @@ const cards = [
     handle: "@lovebabymiu",
     url: "https://www.instagram.com/lovebabymiu/",
   },
+  {
+    label: "Oriyin",
+    handle: "@oriyinframes",
+    url: "https://www.instagram.com/oriyinframes/",
+  },
 ];
 ---
 
@@ -33,8 +38,24 @@ const cards = [
       <div class="ig-cards">
         {cards.map((card) => (
           <a class="ig-card" href={card.url} target="_blank" rel="noopener noreferrer">
-            <div class="ig-card__label">{card.label}</div>
-            <div class="ig-card__handle">{card.handle}</div>
+            <div class="ig-card__top">
+              <span class="ig-card__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path
+                    d="M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4z"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                  />
+                  <circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.5" />
+                  <circle cx="17.3" cy="6.7" r="1" fill="currentColor" />
+                </svg>
+              </span>
+              <div>
+                <div class="ig-card__label">{card.label}</div>
+                <div class="ig-card__handle">{card.handle}</div>
+              </div>
+            </div>
             <div class="ig-card__cta">Xem Instagram →</div>
           </a>
         ))}
