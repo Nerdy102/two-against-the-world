@@ -46,8 +46,6 @@ export const GET: APIRoute = async ({ locals }) => {
     postMedia: false,
   };
   let d1PublishedCount = 0;
-  let commentsCount = 0;
-  let reactionsCount = 0;
   let d1PublishedSlugs: string[] = [];
   let contentPostCount = 0;
   let mergedCount = 0;
@@ -62,14 +60,6 @@ export const GET: APIRoute = async ({ locals }) => {
         .prepare(`SELECT slug FROM posts WHERE status = 'published'`)
         .all<{ slug: string }>();
       d1PublishedSlugs = results?.map((row) => row.slug) ?? [];
-      const commentsRow = await db
-        .prepare(`SELECT COUNT(*) as count FROM comments`)
-        .first<{ count: number }>();
-      commentsCount = Number(commentsRow?.count ?? 0);
-      const reactionsRow = await db
-        .prepare(`SELECT COUNT(*) as count FROM reactions`)
-        .first<{ count: number }>();
-      reactionsCount = Number(reactionsRow?.count ?? 0);
       schema.posts = await tableExists(db, "posts");
       schema.comments = await tableExists(db, "comments");
       schema.reactions = await tableExists(db, "reactions");
@@ -111,9 +101,7 @@ export const GET: APIRoute = async ({ locals }) => {
     },
     schema,
     counts: {
-      d1PostsPublishedCount: d1PublishedCount,
-      commentsCount,
-      reactionsCount,
+      d1PublishedCount,
       contentPostCount,
       mergedCount,
     },

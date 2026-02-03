@@ -14,10 +14,7 @@ const jar = new Map();
 const captureCookies = (response) => {
   const setCookies = response.headers.getSetCookie?.() ?? [];
   const fallback = response.headers.get("set-cookie");
-  if (fallback) {
-    const parts = fallback.split(/,(?=[^;]+?=)/);
-    setCookies.push(...parts);
-  }
+  if (fallback) setCookies.push(fallback);
   for (const header of setCookies) {
     const [pair] = header.split(";");
     const [key, value] = pair.split("=");
@@ -34,16 +31,9 @@ const cookieHeader = () =>
 const getCsrfToken = () => jar.get("twaw_admin_csrf") ?? "";
 
 const requestJson = async (path, options = {}) => {
-  const method = options.method ?? "GET";
   const res = await fetch(`${baseUrl}${path}`, {
     ...options,
     headers: {
-      ...(method !== "GET"
-        ? {
-            origin: baseUrl,
-            referer: `${baseUrl}/`,
-          }
-        : {}),
       ...(options.headers ?? {}),
       cookie: cookieHeader(),
     },
