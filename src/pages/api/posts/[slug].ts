@@ -6,7 +6,7 @@ export const prerender = false;
 export const GET: APIRoute = async ({ locals, params }) => {
   const slug = params.slug;
   if (!slug) {
-    return new Response(JSON.stringify({ error: "Missing slug" }), {
+    return new Response(JSON.stringify({ error: "Missing slug", code: "POST_SLUG_MISSING" }), {
       status: 400,
       headers: { "content-type": "application/json" },
     });
@@ -24,7 +24,7 @@ export const GET: APIRoute = async ({ locals, params }) => {
     .first<PostRecord>();
 
   if (!record) {
-    return new Response(JSON.stringify({ error: "Not found" }), {
+    return new Response(JSON.stringify({ error: "Not found", code: "POST_NOT_FOUND" }), {
       status: 404,
       headers: { "content-type": "application/json" },
     });

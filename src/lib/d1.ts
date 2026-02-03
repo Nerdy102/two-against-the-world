@@ -1,4 +1,5 @@
 import type { D1Database } from "@cloudflare/workers-types";
+import type { CommentStatus, PostStatus } from "./constants";
 
 export type D1Env = {
   DB: D1Database;
@@ -49,7 +50,7 @@ const POST_COLUMNS: PostColumnDefinition[] = [
 const COMMENT_COLUMNS: PostColumnDefinition[] = [
   { name: "post_id", sql: "post_id TEXT" },
   { name: "user_agent_hash", sql: "user_agent_hash TEXT" },
-  { name: "status", sql: "status TEXT NOT NULL DEFAULT 'approved'" },
+  { name: "status", sql: "status TEXT NOT NULL DEFAULT 'visible'" },
 ];
 
 let postsSchemaReady: Promise<void> | null = null;
@@ -173,7 +174,7 @@ export async function ensureCommentsSchema(
             parent_id TEXT,
             display_name TEXT NOT NULL,
             body TEXT NOT NULL,
-            status TEXT NOT NULL DEFAULT 'approved',
+            status TEXT NOT NULL DEFAULT 'visible' CHECK(status IN ('visible','pending','hidden')),
             ip_hash TEXT,
             user_agent_hash TEXT,
             post_id TEXT,
@@ -392,7 +393,7 @@ export type PostRecord = {
   tags_json?: string | null;
   cover_key?: string | null;
   cover_url: string | null;
-  status: "draft" | "published";
+  status: PostStatus;
   author: string | null;
   topic: string | null;
   location: string | null;
@@ -423,7 +424,7 @@ export type CommentRecord = {
   parent_id: string | null;
   display_name: string;
   body: string;
-  status: "approved" | "pending" | "hidden" | "visible";
+  status: CommentStatus;
   created_at: string;
   ip_hash?: string | null;
   user_agent_hash?: string | null;

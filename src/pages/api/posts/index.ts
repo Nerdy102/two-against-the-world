@@ -42,7 +42,7 @@ export const GET: APIRoute = async ({ locals, request }) => {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load posts.";
-    return new Response(JSON.stringify({ error: message }), {
+    return new Response(JSON.stringify({ error: message, code: "POSTS_FETCH_FAILED" }), {
       status: 500,
       headers: { "content-type": "application/json" },
     });

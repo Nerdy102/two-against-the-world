@@ -65,8 +65,8 @@ export const GET: APIRoute = async ({ locals }) => {
     ok: true,
     env: {
       hasAdminPassword: Boolean(env.ADMIN_PASSWORD),
-      hasDb: Boolean(env.DB),
-      hasR2: Boolean(env.MEDIA),
+      hasDBBinding: Boolean(env.DB),
+      hasR2Binding: Boolean(env.MEDIA),
       hasTurnstile: Boolean(env.TURNSTILE_SECRET),
     },
     schema,

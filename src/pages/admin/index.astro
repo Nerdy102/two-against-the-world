@@ -2,11 +2,17 @@
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import RansomTitle from "../../components/RansomTitle.astro";
 import { TOPICS } from "../../config/topics";
+import { COMMENT_STATUSES } from "../../lib/constants";
 
 export const prerender = false;
 
 const enablePinnedFields = import.meta.env.PUBLIC_ENABLE_PINNED_FIELDS !== "false";
 const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "false";
+const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
+  pending: "Chờ duyệt",
+  visible: "Đã duyệt",
+  hidden: "Ẩn",
+};
 ---
 
 <BaseLayout title="Admin — Two Against The World" description="Admin dashboard">
@@ -264,9 +270,9 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
         <div class="flex items-center justify-between">
           <h2 class="text-lg font-semibold">Bình luận</h2>
           <select class="input text-sm" data-comment-filter>
-            <option value="pending">Chờ duyệt</option>
-            <option value="approved">Đã duyệt</option>
-            <option value="hidden">Ẩn</option>
+            {COMMENT_STATUSES.map((status) => (
+              <option value={status}>{commentStatusLabels[status]}</option>
+            ))}
             <option value="">Tất cả</option>
           </select>
         </div>
@@ -662,7 +668,7 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
               </div>
               <p class="comment-body">${escapeHtml(item.body)}</p>
               <div class="mt-3 flex flex-wrap gap-2">
-                <button class="btn text-xs" data-comment-action="approved" data-comment-id="${item.id}">Duyệt</button>
+                <button class="btn text-xs" data-comment-action="visible" data-comment-id="${item.id}">Duyệt</button>
                 <button class="btn text-xs" data-comment-action="hidden" data-comment-id="${item.id}">Ẩn</button>
                 <button class="btn text-xs" data-comment-action="delete" data-comment-id="${item.id}">Xóa</button>
               </div>

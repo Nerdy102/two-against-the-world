@@ -28,13 +28,13 @@ const buildKey = (slug: string, batchId: number | string, index: number) => {
 
 export const POST: APIRoute = async ({ locals, request }) => {
   if (!(await requireAdminSession(request, locals))) {
-    return json({ error: "Unauthorized" }, 401);
+    return json({ error: "Unauthorized", code: "ADMIN_UNAUTHORIZED" }, 401);
   }
   if (!verifyCsrf(request)) {
-    return json({ error: "Unauthorized" }, 401);
+    return json({ error: "Unauthorized", code: "ADMIN_CSRF_INVALID" }, 401);
   }
   const form = await request.formData().catch(() => null);
-  if (!form) return json({ error: "Invalid form data" }, 400);
+  if (!form) return json({ error: "Invalid form data", code: "INVALID_FORM_DATA" }, 400);
 
   try {
     const file = form.get("file");
@@ -42,10 +42,10 @@ export const POST: APIRoute = async ({ locals, request }) => {
     const meta = typeof form.get("meta") === "string" ? String(form.get("meta")) : null;
 
     if (!(file instanceof File)) {
-      return json({ error: "Missing file" }, 400);
+      return json({ error: "Missing file", code: "UPLOAD_FILE_MISSING" }, 400);
     }
     if (!file.type.startsWith("image/")) {
-      return json({ error: "Only images are supported" }, 400);
+      return json({ error: "Only images are supported", code: "UPLOAD_FILE_INVALID" }, 400);
     }
 
     let parsedMeta: { width?: number; height?: number; sort_order?: number; batch_id?: number; index?: number } | null =
@@ -59,7 +59,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
     const contentType = file.type || "image/jpeg";
     const bucket = locals.runtime?.env?.MEDIA;
     if (!bucket) {
-      return json({ error: "Missing MEDIA binding" }, 500);
+      return json({ error: "Missing MEDIA binding", code: "R2_BINDING_MISSING" }, 500);
     }
 
     await bucket.put(key, file.stream(), {
@@ -106,6 +106,6 @@ export const POST: APIRoute = async ({ locals, request }) => {
     return json({ ok: true, url, key });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Upload failed.";
-    return json({ error: message }, 500);
+    return json({ error: message, code: "UPLOAD_FAILED" }, 500);
   }
 };
