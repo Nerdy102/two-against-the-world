@@ -47,7 +47,10 @@ const shouldHoldForReview = (body: string) => {
 export const GET: APIRoute = async ({ locals, url }) => {
   const slug = url.searchParams.get("slug");
   if (!slug) {
-    return json({ error: "Missing slug", detail: "slug is required.", code: "COMMENT_SLUG_MISSING" }, 400);
+    return json(
+      { ok: false, error: "Missing slug", detail: "slug is required.", code: "COMMENT_SLUG_MISSING" },
+      400
+    );
   }
   try {
     const db = getDb(locals);
@@ -65,29 +68,37 @@ export const GET: APIRoute = async ({ locals, url }) => {
       )
       .bind(slug, publicStatus)
       .all<CommentRecord>();
-    return json({ comments: results ?? [] });
+    return json({ ok: true, comments: results ?? [] });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load comments.";
     if (message.includes("D1 database binding not found")) {
       return json(
-        { error: "Missing DB binding", detail: "Check wrangler D1 bindings.", code: "DB_BINDING_MISSING" },
+        { ok: false, error: "Missing DB binding", detail: "Check wrangler D1 bindings.", code: "DB_BINDING_MISSING" },
         500
       );
     }
     if (message.startsWith('D1 schema missing for "')) {
       return json(
-        { error: "Missing DB schema; apply migrations locally", detail: message, code: "DB_SCHEMA_MISSING" },
+        {
+          ok: false,
+          error: "Missing DB schema; apply migrations locally",
+          detail: message,
+          code: "DB_SCHEMA_MISSING",
+        },
         500
       );
     }
-    return json({ error: message, detail: message, code: "COMMENTS_FETCH_FAILED" }, 500);
+    return json({ ok: false, error: message, detail: message, code: "COMMENTS_FETCH_FAILED" }, 500);
   }
 };
 
 export const POST: APIRoute = async ({ locals, request }) => {
   const payload = await request.json().catch(() => null);
   if (!payload) {
-    return json({ error: "Invalid JSON", detail: "Request body must be valid JSON.", code: "INVALID_JSON" }, 400);
+    return json(
+      { ok: false, error: "Invalid JSON", detail: "Request body must be valid JSON.", code: "INVALID_JSON" },
+      400
+    );
   }
 
   const slug = normalizeText(payload.slug);
@@ -101,6 +112,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
   if (!slug || !displayName || !body) {
     return json(
       {
+        ok: false,
         error: "Missing fields",
         detail: "slug, displayName, and body are required.",
         code: "MISSING_FIELDS",
@@ -110,7 +122,12 @@ export const POST: APIRoute = async ({ locals, request }) => {
   }
   if (displayName.length > 60 || body.length > 2000) {
     return json(
-      { error: "Comment too long", detail: "Nickname or message exceeds length limits.", code: "COMMENT_TOO_LONG" },
+      {
+        ok: false,
+        error: "Comment too long",
+        detail: "Nickname or message exceeds length limits.",
+        code: "COMMENT_TOO_LONG",
+      },
       400
     );
   }
@@ -132,14 +149,14 @@ export const POST: APIRoute = async ({ locals, request }) => {
     if (secret) {
       if (!turnstileToken) {
         return json(
-          { error: "Turnstile required", detail: "Missing turnstile token.", code: "TURNSTILE_REQUIRED" },
+          { ok: false, error: "Turnstile required", detail: "Missing turnstile token.", code: "TURNSTILE_REQUIRED" },
           400
         );
       }
       const ok = await verifyTurnstile(secret, turnstileToken, ip);
       if (!ok) {
         return json(
-          { error: "Turnstile failed", detail: "Verification failed.", code: "TURNSTILE_FAILED" },
+          { ok: false, error: "Turnstile failed", detail: "Verification failed.", code: "TURNSTILE_FAILED" },
           400
         );
       }
@@ -152,7 +169,12 @@ export const POST: APIRoute = async ({ locals, request }) => {
         .first<{ id: string }>();
       if (banned?.id) {
         return json(
-          { error: "You are blocked from commenting.", detail: "Your IP is blocked.", code: "COMMENT_BLOCKED" },
+          {
+            ok: false,
+            error: "You are blocked from commenting.",
+            detail: "Your IP is blocked.",
+            code: "COMMENT_BLOCKED",
+          },
           403
         );
       }
@@ -170,7 +192,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
       const count = Number(results?.[0]?.count ?? 0);
       if (count >= 5) {
         return json(
-          { error: "Too many comments, slow down.", detail: "Rate limit exceeded.", code: "COMMENT_RATE_LIMIT" },
+          { ok: false, error: "Too many comments, slow down.", detail: "Rate limit exceeded.", code: "COMMENT_RATE_LIMIT" },
           429
         );
       }
@@ -182,7 +204,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
     );
     if (!status) {
       return json(
-        { error: "Invalid comment status", detail: "Status not allowed.", code: "COMMENT_STATUS_INVALID" },
+        { ok: false, error: "Invalid comment status", detail: "Status not allowed.", code: "COMMENT_STATUS_INVALID" },
         400
       );
     }
@@ -199,16 +221,21 @@ export const POST: APIRoute = async ({ locals, request }) => {
     const message = error instanceof Error ? error.message : "Failed to submit comment.";
     if (message.includes("D1 database binding not found")) {
       return json(
-        { error: "Missing DB binding", detail: "Check wrangler D1 bindings.", code: "DB_BINDING_MISSING" },
+        { ok: false, error: "Missing DB binding", detail: "Check wrangler D1 bindings.", code: "DB_BINDING_MISSING" },
         500
       );
     }
     if (message.startsWith('D1 schema missing for "')) {
       return json(
-        { error: "Missing DB schema; apply migrations locally", detail: message, code: "DB_SCHEMA_MISSING" },
+        {
+          ok: false,
+          error: "Missing DB schema; apply migrations locally",
+          detail: message,
+          code: "DB_SCHEMA_MISSING",
+        },
         500
       );
     }
-    return json({ error: message, detail: message, code: "COMMENTS_CREATE_FAILED" }, 500);
+    return json({ ok: false, error: message, detail: message, code: "COMMENTS_CREATE_FAILED" }, 500);
   }
 };

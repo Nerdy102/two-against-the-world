@@ -161,6 +161,25 @@ const DEFAULT_ADMIN_USERNAME = "admin";
 export const getAdminPassword = (locals: APIContext["locals"]) =>
   locals.runtime?.env?.ADMIN_PASSWORD ?? null;
 
+export const isSecureRequest = (request: Request) => {
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  if (forwardedProto) {
+    return forwardedProto.split(",")[0]?.trim() === "https";
+  }
+  const cfVisitor = request.headers.get("cf-visitor");
+  if (cfVisitor) {
+    try {
+      const data = JSON.parse(cfVisitor);
+      if (typeof data?.scheme === "string") {
+        return data.scheme === "https";
+      }
+    } catch {
+      // ignore malformed cf-visitor header
+    }
+  }
+  return new URL(request.url).protocol === "https:";
+};
+
 export const ensureAdminBootstrapUser = async (locals: APIContext["locals"]) => {
   const password = getAdminPassword(locals);
   if (!password) return;
@@ -278,10 +297,14 @@ export const buildAdminSessionCookies = (token: string, csrfToken: string, secur
   return [sessionParts.join("; "), csrfParts.join("; ")];
 };
 
-export const clearAdminCookies = () => [
-  `${ADMIN_SESSION_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`,
-  `${ADMIN_CSRF_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`,
-];
+export const clearAdminCookies = (secure = false) => {
+  const base = [
+    `${ADMIN_SESSION_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`,
+    `${ADMIN_CSRF_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`,
+  ];
+  if (!secure) return base;
+  return base.map((cookie) => `${cookie}; Secure`);
+};
 
 export const getCsrfTokenFromCookies = (request: Request) => {
   const cookies = parseCookies(request.headers.get("cookie"));

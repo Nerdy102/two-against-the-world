@@ -52,6 +52,12 @@ Thiết lập trong Cloudflare Dashboard (Workers → Settings → Variables/Sec
 - `PUBLIC_ENABLE_UPLOAD_HELPERS`: bật UI hỗ trợ upload (progress/cancel).
 - `PUBLIC_ENABLE_LOVE_WIDGETS`: bật day counter + clocks.
 
+Nếu muốn set nhanh bằng CLI:
+
+```bash
+wrangler secret put ADMIN_PASSWORD
+```
+
 ## Sessions (không dùng Astro.session)
 
 Project không dùng `Astro.session`. Admin session được quản lý bằng cookie + D1 nên **không cần** KV binding `SESSION` trong Cloudflare Workers.

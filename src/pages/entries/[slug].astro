@@ -221,6 +221,7 @@ const useBlendedStory = isSingleImage;
             ))}
           </div>
           <span class="text-xs text-black/50" data-reaction-state>Chọn icon để thả cảm xúc.</span>
+          <div class="comment-toast reaction-toast" data-reaction-toast role="status" aria-live="polite" aria-atomic="true"></div>
         </div>
 
         <form class="comment-form mt-6" data-comment-form data-comment-slug={post.slug}>
@@ -433,6 +434,8 @@ const useBlendedStory = isSingleImage;
             }
             if (data?.status === "pending") {
               showToast("Comment đang chờ duyệt.", "info");
+            } else {
+              showToast("Đã gửi lời nhắn.", "success");
             }
             if (hasTurnstile && window.turnstile) {
               window.turnstile.reset();
@@ -461,6 +464,7 @@ const useBlendedStory = isSingleImage;
     const initReactions = () => {
       const bar = document.querySelector("[data-reaction-bar]");
       const stateEl = document.querySelector("[data-reaction-state]");
+      const toast = document.querySelector("[data-reaction-toast]");
       const shareBtn = document.querySelector("[data-share-link]");
       const shareState = document.querySelector("[data-share-state]");
       const commentShareBtn = document.querySelector("[data-comment-share-link]");
@@ -478,8 +482,23 @@ const useBlendedStory = isSingleImage;
         return message || fallback;
       };
 
+      let toastTimeout = null;
+      const showToast = (message, variant = "success") => {
+        if (!toast) return;
+        toast.textContent = message;
+        toast.dataset.state = variant;
+        toast.classList.add("is-visible");
+        if (toastTimeout) window.clearTimeout(toastTimeout);
+        toastTimeout = window.setTimeout(() => {
+          toast.classList.remove("is-visible");
+          toast.textContent = "";
+          toast.dataset.state = "";
+        }, 2200);
+      };
+
       const showReactionError = (message) => {
         if (stateEl) stateEl.textContent = message;
+        showToast(message, "error");
       };
 
       const render = ({ counts = {}, reactedKinds = [], total = 0 }) => {
@@ -525,6 +544,7 @@ const useBlendedStory = isSingleImage;
           }
           const data = await res.json();
           render(data);
+          showToast("Đã cập nhật cảm xúc.", "success");
         });
       });
 

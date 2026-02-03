@@ -5,6 +5,7 @@ import {
   clearAdminLoginFailures,
   createAdminSession,
   getAdminPassword,
+  isSecureRequest,
   recordAdminLoginFailure,
   verifyAdminPassword,
 } from "../../../lib/adminAuth";
@@ -27,7 +28,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const payload = await request.json().catch(() => null);
     if (!payload) {
       return json(
-        { error: "Invalid JSON", detail: "Request body must be valid JSON.", code: "INVALID_JSON" },
+        {
+          ok: false,
+          error: "Invalid JSON",
+          detail: "Request body must be valid JSON.",
+          code: "INVALID_JSON",
+        },
         400
       );
     }
@@ -36,19 +42,30 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     if (!password) {
       return json(
-        { error: "Missing password", detail: "Password is required.", code: "ADMIN_PASSWORD_MISSING" },
+        {
+          ok: false,
+          error: "Missing password",
+          detail: "Password is required.",
+          code: "ADMIN_PASSWORD_MISSING",
+        },
         400
       );
     }
-    const adminPassword = locals.runtime?.env?.ADMIN_PASSWORD ?? getAdminPassword(locals);
+    const adminPassword = getAdminPassword(locals);
     console.info("[admin:unlock] hasAdminPassword=%s", Boolean(adminPassword));
     if (!adminPassword) {
+      const hostname = new URL(request.url).hostname;
+      const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
+      const detail = isLocal
+        ? "Missing ADMIN_PASSWORD in .dev.vars for wrangler dev."
+        : "Missing ADMIN_PASSWORD in Cloudflare Worker variables/secrets";
       return json(
         {
+          ok: false,
           error: "Missing ADMIN_PASSWORD",
-          detail: "ADMIN_PASSWORD is not set in runtime env.",
-          howToFixProd: "Set it in Cloudflare Worker Variables/Secrets",
-          howToFixLocal: "Set it in .dev.vars for wrangler dev",
+          detail,
+          howToFixProd: "Set ADMIN_PASSWORD in Cloudflare Worker Variables/Secrets",
+          howToFixLocal: "Set ADMIN_PASSWORD in .dev.vars for wrangler dev",
           code: "ADMIN_PASSWORD_ENV_MISSING",
         },
         400
@@ -56,7 +73,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
     if (!locals.runtime?.env?.DB) {
       return json(
-        { error: "Missing DB binding", detail: "DB binding is required.", code: "DB_BINDING_MISSING" },
+        {
+          ok: false,
+          error: "Missing DB binding",
+          detail: "DB binding is required.",
+          code: "DB_BINDING_MISSING",
+        },
         500
       );
     }
@@ -69,6 +91,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       }
       return json(
         {
+          ok: false,
           error: "Too many attempts. Try again later.",
           detail: "Rate limit exceeded.",
           code: "ADMIN_RATE_LIMIT",
@@ -82,7 +105,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (!user) {
       await recordAdminLoginFailure(request, locals);
       return json(
-        { error: "Wrong password", detail: "Password mismatch.", code: "ADMIN_PASSWORD_INVALID" },
+        {
+          ok: false,
+          error: "Wrong password",
+          detail: "Password mismatch.",
+          code: "ADMIN_PASSWORD_INVALID",
+        },
         401
       );
     }
@@ -90,7 +118,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     await clearAdminLoginFailures(request, locals);
     const session = await createAdminSession(locals, user.id);
     const csrfToken = crypto.randomUUID();
-    const secure = request.url.startsWith("https://");
+    const secure = isSecureRequest(request);
     const [sessionCookie, csrfCookie] = buildAdminSessionCookies(session.token, csrfToken, secure);
     const headers = new Headers({ "content-type": "application/json" });
     headers.append("set-cookie", sessionCookie);
@@ -100,13 +128,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const message = error instanceof Error ? error.message : "Server error.";
     if (message.includes("D1 database binding not found")) {
       return json(
-        { error: "Missing DB binding", detail: "DB binding is required.", code: "DB_BINDING_MISSING" },
+        { ok: false, error: "Missing DB binding", detail: "DB binding is required.", code: "DB_BINDING_MISSING" },
         500
       );
     }
     if (message.startsWith('D1 schema missing for "')) {
       return json(
         {
+          ok: false,
           error: "Missing DB schema; apply migrations locally",
           detail: message,
           code: "DB_SCHEMA_MISSING",
@@ -115,6 +144,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
       );
     }
     console.error("[admin:unlock] error", message);
-    return json({ error: message, detail: message, code: "ADMIN_UNLOCK_FAILED" }, 500);
+    return json(
+      { ok: false, error: message, detail: message, code: "ADMIN_UNLOCK_FAILED" },
+      500
+    );
   }
 };

@@ -81,6 +81,7 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
             <span>Link bài viết</span>
             <div class="flex flex-wrap items-center gap-2">
               <input class="input flex-1 min-w-[220px]" type="text" readonly data-link-text />
+              <button class="btn" type="button" data-link-open>Mở</button>
               <button class="btn" type="button" data-link-copy>Sao chép</button>
             </div>
             <p class="mt-2 text-xs text-black/50">
@@ -328,6 +329,7 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
     const adminToast = document.querySelector("[data-admin-toast]");
     const linkPreview = document.querySelector("[data-link-preview]");
     const linkText = document.querySelector("[data-link-text]");
+    const linkOpen = document.querySelector("[data-link-open]");
     const linkCopy = document.querySelector("[data-link-copy]");
     const commentList = document.querySelector("[data-comment-list]");
     const commentFilter = document.querySelector("[data-comment-filter]");
@@ -427,17 +429,20 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       if (!hasId) {
         linkPreview.classList.add("hidden");
         linkText.value = "";
+        if (linkOpen) linkOpen.disabled = true;
         return;
       }
       const slugValue = getSlugValue();
       if (!slugValue) {
         linkPreview.classList.add("hidden");
         linkText.value = "";
+        if (linkOpen) linkOpen.disabled = true;
         return;
       }
       const base = getSiteBase();
       linkText.value = base.replace(/\/$/, "") + "/entries/" + slugValue;
       linkPreview.classList.remove("hidden");
+      if (linkOpen) linkOpen.disabled = false;
     };
 
     const login = async () => {
@@ -515,6 +520,11 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       } catch {
         showToast("Không sao chép được link.", "error");
       }
+    });
+
+    linkOpen?.addEventListener("click", () => {
+      if (!linkText?.value) return;
+      window.open(linkText.value, "_blank", "noopener,noreferrer");
     });
 
     const fields = [
@@ -870,6 +880,8 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       await loadPosts();
       state.active = state.posts.find((p) => p.id === id);
       fillForm(state.active);
+      updateLinkPreview();
+      showToast("Đã publish. Link sẵn sàng mở.", "success");
     });
 
     unpublishBtn?.addEventListener("click", async () => {
@@ -923,6 +935,8 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       state.active = state.posts.find((p) => p.id === id);
       fillForm(state.active);
       note.textContent = "Đã đăng bài.";
+      updateLinkPreview();
+      showToast("Đã publish. Link sẵn sàng mở.", "success");
     });
 
     deleteBtn?.addEventListener("click", async () => {
