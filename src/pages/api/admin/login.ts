@@ -5,7 +5,8 @@ import {
   clearAdminLoginFailures,
   createAdminSession,
   recordAdminLoginFailure,
-  verifyAdminLogin,
+  getAdminPassword,
+  verifyAdminPassword,
 } from "../../../lib/adminAuth";
 
 export const prerender = false;
@@ -19,10 +20,12 @@ const json = (data: unknown, status = 200, headers?: Headers) =>
 export const POST: APIRoute = async ({ locals, request }) => {
   const payload = await request.json().catch(() => null);
   if (!payload) return json({ error: "Invalid JSON" }, 400);
-  const username = typeof payload.username === "string" ? payload.username.trim() : "";
   const password = typeof payload.password === "string" ? payload.password : "";
-  if (!username || !password) {
-    return json({ error: "Missing credentials" }, 400);
+  if (!password) {
+    return json({ error: "Missing password" }, 400);
+  }
+  if (!getAdminPassword(locals)) {
+    return json({ error: "Admin password not configured" }, 500);
   }
 
   const rateLimit = await checkAdminLoginRateLimit(request, locals);
@@ -34,7 +37,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
     return json({ error: "Too many attempts. Try again later." }, 429, headers);
   }
 
-  const user = await verifyAdminLogin(locals, username, password);
+  const user = await verifyAdminPassword(locals, password);
   if (!user) {
     await recordAdminLoginFailure(request, locals);
     return json({ error: "Invalid credentials" }, 401);

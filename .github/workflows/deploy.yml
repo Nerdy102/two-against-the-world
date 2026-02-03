@@ -1,0 +1,44 @@
+name: Deploy to Cloudflare Workers
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Set build metadata
+        run: |
+          echo "BUILD_SHA=${GITHUB_SHA}" >> $GITHUB_ENV
+          echo "BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_ENV
+
+      - name: Deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CF_API_TOKEN }}
+          accountId: ${{ secrets.CF_ACCOUNT_ID }}
+          command: >
+            deploy
+            --var BUILD_SHA:${{ env.BUILD_SHA }}
+            --var BUILD_TIME:${{ env.BUILD_TIME }}
+            --var PUBLIC_BUILD_SHA:${{ env.BUILD_SHA }}
+            --var PUBLIC_BUILD_TIME:${{ env.BUILD_TIME }}

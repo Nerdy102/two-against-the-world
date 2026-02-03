@@ -153,23 +153,19 @@ export const clearAdminLoginFailures = async (request: Request, locals: APIConte
   await db.prepare(`DELETE FROM admin_login_attempts WHERE ip_hash = ?`).bind(ipHash).run();
 };
 
-export const getAdminCredentials = (locals: APIContext["locals"]) => {
-  const username = locals.runtime?.env?.ADMIN_USERNAME ?? null;
-  const password = locals.runtime?.env?.ADMIN_PASSWORD ?? null;
-  return { username, password };
-};
+const DEFAULT_ADMIN_USERNAME = "admin";
 
 export const getAdminPassword = (locals: APIContext["locals"]) =>
   locals.runtime?.env?.ADMIN_PASSWORD ?? null;
 
 export const ensureAdminBootstrapUser = async (locals: APIContext["locals"]) => {
-  const { username, password } = getAdminCredentials(locals);
-  if (!username || !password) return;
+  const password = getAdminPassword(locals);
+  if (!password) return;
   const db = getDb(locals);
   await ensureAdminSchema(db);
   const existing = await db
     .prepare(`SELECT id FROM admin_users WHERE username = ? LIMIT 1`)
-    .bind(username)
+    .bind(DEFAULT_ADMIN_USERNAME)
     .first<{ id: string }>();
   if (existing?.id) return;
   const salt = crypto.randomUUID();
@@ -179,29 +175,28 @@ export const ensureAdminBootstrapUser = async (locals: APIContext["locals"]) => 
       `INSERT INTO admin_users (id, username, password_hash, password_salt)
        VALUES (?, ?, ?, ?)`
     )
-    .bind(crypto.randomUUID(), username, hash, salt)
+    .bind(crypto.randomUUID(), DEFAULT_ADMIN_USERNAME, hash, salt)
     .run();
 };
 
-export const verifyAdminLogin = async (
-  locals: APIContext["locals"],
-  username: string,
-  password: string
-) => {
+export const verifyAdminPassword = async (locals: APIContext["locals"], password: string) => {
   const db = getDb(locals);
   await ensureAdminSchema(db);
   await ensureAdminBootstrapUser(locals);
-  const user = await db
+  const { results } = await db
     .prepare(
       `SELECT id, username, password_hash, password_salt
-       FROM admin_users
-       WHERE username = ? LIMIT 1`
+       FROM admin_users`
     )
-    .bind(username)
-    .first<AdminUser>();
-  if (!user) return null;
-  const hash = await pbkdf2Hash(password, user.password_salt);
-  return hash === user.password_hash ? user : null;
+    .all<AdminUser>();
+  if (!results?.length) return null;
+  for (const user of results) {
+    const hash = await pbkdf2Hash(password, user.password_salt);
+    if (hash === user.password_hash) {
+      return user;
+    }
+  }
+  return null;
 };
 
 export const createAdminSession = async (locals: APIContext["locals"], adminUserId: string) => {
