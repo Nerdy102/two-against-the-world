@@ -51,13 +51,13 @@ const buildTime =
     <StickerLayer />
 
     <Header active={active} />
+    <LoveWidgets />
 
     <main class="mx-auto max-w-7xl px-5 pt-6">
       <slot />
     </main>
 
     <Footer buildSha={buildSha} buildTime={buildTime} />
-    <LoveWidgets />
 
     <script is:inline>
       // Respect reduced motion

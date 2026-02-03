@@ -3,42 +3,62 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
 ---
 
 {enabled && (
-  <div class="love-widgets" data-love-widgets>
-    <div class="love-widgets__panel">
-      <div class="love-widgets__day" data-love-day>Day 0</div>
-      <div class="love-widgets__clocks">
-        <div class="love-widgets__clock" data-love-clock="vn">
-          <span>VN</span>
-          <strong>--:--</strong>
-        </div>
-        <div class="love-widgets__clock" data-love-clock="jp">
-          <span>JP</span>
-          <strong>--:--</strong>
-        </div>
-        <div class="love-widgets__clock" data-love-clock="us">
-          <span>NY</span>
-          <strong>--:--</strong>
+  <>
+    <div class="love-counter-wrap mx-auto max-w-7xl px-5">
+      <div class="love-counter-strip" data-love-counter>
+        <span class="love-counter__icons" aria-hidden="true">♥︎ ✶ ☾</span>
+        <div class="love-counter__day" data-love-day>DAY 0</div>
+        <div class="love-counter__since">since 28 Dec 2025</div>
+      </div>
+    </div>
+
+    <div class="love-widgets love-widgets--clocks" data-love-widgets>
+      <div class="love-widgets__panel">
+        <div class="love-widgets__clocks">
+          <div class="love-widgets__clock" data-love-clock="vn">
+            <span class="love-widgets__label">
+              <span class="love-widgets__flag" aria-hidden="true">🇻🇳</span>
+              VN
+            </span>
+            <strong>--:--</strong>
+          </div>
+          <div class="love-widgets__clock" data-love-clock="jp">
+            <span class="love-widgets__label">
+              <span class="love-widgets__flag" aria-hidden="true">🇯🇵</span>
+              JP
+            </span>
+            <strong>--:--</strong>
+          </div>
+          <div class="love-widgets__clock" data-love-clock="us">
+            <span class="love-widgets__label">
+              <span class="love-widgets__flag" aria-hidden="true">🇺🇸</span>
+              NY
+            </span>
+            <strong>--:--</strong>
+          </div>
         </div>
       </div>
     </div>
-  </div>
+  </>
 )}
 
 {enabled && (
   <script is:inline>
     const initLoveWidgets = () => {
-      const root = document.querySelector("[data-love-widgets]");
-      if (!root || root.dataset.bound === "1") return;
-      root.dataset.bound = "1";
+      if (document.documentElement.dataset.loveWidgetsBound === "1") return;
+      document.documentElement.dataset.loveWidgetsBound = "1";
 
-      const dayEl = root.querySelector("[data-love-day]");
-      const clockEls = {
-        vn: root.querySelector("[data-love-clock='vn'] strong"),
-        jp: root.querySelector("[data-love-clock='jp'] strong"),
-        us: root.querySelector("[data-love-clock='us'] strong"),
-      };
+      const dayEl = document.querySelector("[data-love-day]");
+      const clockRoot = document.querySelector("[data-love-widgets]");
+      const clockEls = clockRoot
+        ? {
+            vn: clockRoot.querySelector("[data-love-clock='vn'] strong"),
+            jp: clockRoot.querySelector("[data-love-clock='jp'] strong"),
+            us: clockRoot.querySelector("[data-love-clock='us'] strong"),
+          }
+        : {};
 
-      const startDate = new Date("2025-12-28T00:00:00+07:00");
+      const startParts = { year: 2025, month: 12, day: 28 };
 
       const getDateParts = (timeZone) => {
         const formatter = new Intl.DateTimeFormat("en-CA", {
@@ -60,13 +80,9 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         if (!dayEl) return;
         const parts = getDateParts("Asia/Ho_Chi_Minh");
         const todayUtc = Date.UTC(parts.year, parts.month - 1, parts.day);
-        const startUtc = Date.UTC(
-          startDate.getUTCFullYear(),
-          startDate.getUTCMonth(),
-          startDate.getUTCDate()
-        );
+        const startUtc = Date.UTC(startParts.year, startParts.month - 1, startParts.day);
         const diff = Math.max(0, Math.floor((todayUtc - startUtc) / (1000 * 60 * 60 * 24)) + 1);
-        dayEl.textContent = `Day ${diff}`;
+        dayEl.textContent = `DAY ${diff}`;
       };
 
       const makeClock = (timeZone) =>
