@@ -39,12 +39,10 @@
     "@tailwindcss/vite": "latest",
     "astro": "latest",
     "tailwindcss": "latest",
-    "typescript": "latest",
-    "wrangler": "^4.61.1"
+    "typescript": "latest"
   },
   "overrides": {
     "lodash": "4.17.21",
-    "undici": "7.18.2",
-    "wrangler": "^4.61.1"
+    "undici": "7.18.2"
   }
 }
