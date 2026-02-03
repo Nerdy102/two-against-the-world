@@ -4,7 +4,7 @@
   // - Add D1 + R2 bindings + secrets.
   // - If you switch to Astro SSR (output: "server" + @astrojs/cloudflare),
   //   Astro will build a Worker entry at ./dist/_worker.js.
-  "name": "two-against-the-world",
+  "name": "two-against-the-world1",
   "compatibility_date": "2026-01-31",
 
   // Astro SSR output (Cloudflare adapter) puts the Worker entry here.

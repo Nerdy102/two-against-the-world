@@ -58,6 +58,24 @@ Nếu muốn set nhanh bằng CLI:
 wrangler secret put ADMIN_PASSWORD
 ```
 
+## Production bring-up checklist (tinyeu.blog / world1)
+
+- Worker production: `two-against-the-world1` (https://tinyeu.blog).
+- D1 binding: `DB` → database `two-against-the-world`.
+- R2 binding: `MEDIA` → bucket `two-against-the-world-media`.
+- Env/secrets required:
+  - `ADMIN_PASSWORD` (required).
+  - `PUBLIC_R2_BASE_URL` (required for media URLs).
+  - `PUBLIC_SITE_URL` (https://tinyeu.blog).
+  - Turnstile optional: `PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET`.
+  - `COMMENTS_REQUIRE_REVIEW` should remain `false` by default.
+- Repair schema (admin-only, idempotent):
+  1. Unlock `/admin` with `ADMIN_PASSWORD`.
+  2. From the same browser session, `POST /api/admin/repair-schema` with `X-CSRF-Token` header
+     equal to the `twaw_admin_csrf` cookie.
+- Verify health:
+  - `GET https://tinyeu.blog/api/health` → `schema.postMedia` should be `true`.
+
 ## Sessions (không dùng Astro.session)
 
 Project không dùng `Astro.session`. Admin session được quản lý bằng cookie + D1 nên **không cần** KV binding `SESSION` trong Cloudflare Workers.
@@ -155,6 +173,7 @@ Ví dụ response:
 ```json
 {
   "ok": true,
+  "workerName": "two-against-the-world1",
   "env": {
     "hasAdminPassword": true,
     "hasDBBinding": true,
