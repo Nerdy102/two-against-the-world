@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import type { D1Database } from "@cloudflare/workers-types";
 import { getDb } from "../../lib/d1";
+import { getPublishedPostsFromContent, shouldUseContentFallback } from "../../lib/posts";
 
 export const prerender = false;
 
@@ -44,9 +45,21 @@ export const GET: APIRoute = async ({ locals }) => {
     media: false,
     postMedia: false,
   };
+  let d1PublishedCount = 0;
+  let d1PublishedSlugs: string[] = [];
+  let contentPostCount = 0;
+  let mergedCount = 0;
   if (env.DB) {
     try {
       const db = getDb(locals);
+      const countRow = await db
+        .prepare(`SELECT COUNT(*) as count FROM posts WHERE status = 'published'`)
+        .first<{ count: number }>();
+      d1PublishedCount = Number(countRow?.count ?? 0);
+      const { results } = await db
+        .prepare(`SELECT slug FROM posts WHERE status = 'published'`)
+        .all<{ slug: string }>();
+      d1PublishedSlugs = results?.map((row) => row.slug) ?? [];
       schema.posts = await tableExists(db, "posts");
       schema.comments = await tableExists(db, "comments");
       schema.reactions = await tableExists(db, "reactions");
@@ -61,15 +74,37 @@ export const GET: APIRoute = async ({ locals }) => {
     }
   }
 
+  try {
+    const contentPosts = await getPublishedPostsFromContent();
+    contentPostCount = contentPosts.length;
+    if (shouldUseContentFallback()) {
+      const slugSet = new Set(d1PublishedSlugs);
+      contentPosts.forEach((post) => {
+        if (post.slug) slugSet.add(post.slug);
+      });
+      mergedCount = slugSet.size || contentPostCount;
+    }
+  } catch {
+    contentPostCount = 0;
+  }
+  if (!mergedCount) {
+    mergedCount = shouldUseContentFallback() ? contentPostCount : d1PublishedCount;
+  }
+
   return json({
     ok: true,
     env: {
       hasAdminPassword: Boolean(env.ADMIN_PASSWORD),
-      hasDb: Boolean(env.DB),
-      hasR2: Boolean(env.MEDIA),
+      hasDBBinding: Boolean(env.DB),
+      hasR2Binding: Boolean(env.MEDIA),
       hasTurnstile: Boolean(env.TURNSTILE_SECRET),
     },
     schema,
+    counts: {
+      d1PublishedCount,
+      contentPostCount,
+      mergedCount,
+    },
     build,
   });
 };

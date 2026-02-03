@@ -5,6 +5,7 @@ import {
   getDb,
   type CommentRecord,
 } from "../../../lib/d1";
+import { normalizeCommentStatus } from "../../../lib/constants";
 
 export const prerender = false;
 
@@ -46,43 +47,47 @@ const shouldHoldForReview = (body: string) => {
 export const GET: APIRoute = async ({ locals, url }) => {
   const slug = url.searchParams.get("slug");
   if (!slug) {
-    return json({ error: "Missing slug" }, 400);
+    return json({ error: "Missing slug", detail: "slug is required.", code: "COMMENT_SLUG_MISSING" }, 400);
   }
   try {
     const db = getDb(locals);
     const allowBootstrap = locals.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
     await ensureCommentsSchema(db, { allowBootstrap });
     await ensureAdminSchema(db, { allowBootstrap });
+    const publicStatus: CommentRecord["status"] = "visible";
     const { results } = await db
       .prepare(
         `SELECT id, post_slug, parent_id, display_name, body, status, created_at
          FROM comments
-         WHERE post_slug = ? AND status IN ('approved', 'visible')
+         WHERE post_slug = ? AND status = ?
          ORDER BY datetime(created_at) DESC
          LIMIT 200`
       )
-      .bind(slug)
+      .bind(slug, publicStatus)
       .all<CommentRecord>();
     return json({ comments: results ?? [] });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load comments.";
     if (message.includes("D1 database binding not found")) {
-      return json({ error: "Missing DB binding", detail: "Check wrangler D1 bindings." }, 500);
-    }
-    if (message.startsWith('D1 schema missing for "')) {
       return json(
-        { error: "Missing DB schema; apply migrations locally", detail: message },
+        { error: "Missing DB binding", detail: "Check wrangler D1 bindings.", code: "DB_BINDING_MISSING" },
         500
       );
     }
-    return json({ error: message }, 500);
+    if (message.startsWith('D1 schema missing for "')) {
+      return json(
+        { error: "Missing DB schema; apply migrations locally", detail: message, code: "DB_SCHEMA_MISSING" },
+        500
+      );
+    }
+    return json({ error: message, detail: message, code: "COMMENTS_FETCH_FAILED" }, 500);
   }
 };
 
 export const POST: APIRoute = async ({ locals, request }) => {
   const payload = await request.json().catch(() => null);
   if (!payload) {
-    return json({ error: "Invalid JSON" }, 400);
+    return json({ error: "Invalid JSON", detail: "Request body must be valid JSON.", code: "INVALID_JSON" }, 400);
   }
 
   const slug = normalizeText(payload.slug);
@@ -95,12 +100,19 @@ export const POST: APIRoute = async ({ locals, request }) => {
 
   if (!slug || !displayName || !body) {
     return json(
-      { error: "Missing fields", detail: "slug, displayName, and body are required." },
+      {
+        error: "Missing fields",
+        detail: "slug, displayName, and body are required.",
+        code: "MISSING_FIELDS",
+      },
       400
     );
   }
   if (displayName.length > 60 || body.length > 2000) {
-    return json({ error: "Comment too long" }, 400);
+    return json(
+      { error: "Comment too long", detail: "Nickname or message exceeds length limits.", code: "COMMENT_TOO_LONG" },
+      400
+    );
   }
 
   try {
@@ -118,9 +130,19 @@ export const POST: APIRoute = async ({ locals, request }) => {
     const userAgentHash = userAgent ? await hashIp(userAgent) : null;
     const secret = locals.runtime?.env?.TURNSTILE_SECRET;
     if (secret) {
-      if (!turnstileToken) return json({ error: "Turnstile required" }, 400);
+      if (!turnstileToken) {
+        return json(
+          { error: "Turnstile required", detail: "Missing turnstile token.", code: "TURNSTILE_REQUIRED" },
+          400
+        );
+      }
       const ok = await verifyTurnstile(secret, turnstileToken, ip);
-      if (!ok) return json({ error: "Turnstile failed" }, 400);
+      if (!ok) {
+        return json(
+          { error: "Turnstile failed", detail: "Verification failed.", code: "TURNSTILE_FAILED" },
+          400
+        );
+      }
     }
 
     if (ipHash) {
@@ -129,7 +151,10 @@ export const POST: APIRoute = async ({ locals, request }) => {
         .bind(ipHash)
         .first<{ id: string }>();
       if (banned?.id) {
-        return json({ error: "You are blocked from commenting." }, 403);
+        return json(
+          { error: "You are blocked from commenting.", detail: "Your IP is blocked.", code: "COMMENT_BLOCKED" },
+          403
+        );
       }
     }
 
@@ -144,12 +169,23 @@ export const POST: APIRoute = async ({ locals, request }) => {
         .all<{ count: number }>();
       const count = Number(results?.[0]?.count ?? 0);
       if (count >= 5) {
-        return json({ error: "Too many comments, slow down." }, 429);
+        return json(
+          { error: "Too many comments, slow down.", detail: "Rate limit exceeded.", code: "COMMENT_RATE_LIMIT" },
+          429
+        );
       }
     }
 
     const requireReview = locals.runtime?.env?.COMMENTS_REQUIRE_REVIEW === "true";
-    const status = requireReview || shouldHoldForReview(body) ? "pending" : "approved";
+    const status = normalizeCommentStatus(
+      requireReview || shouldHoldForReview(body) ? "pending" : "visible"
+    );
+    if (!status) {
+      return json(
+        { error: "Invalid comment status", detail: "Status not allowed.", code: "COMMENT_STATUS_INVALID" },
+        400
+      );
+    }
     await db
       .prepare(
         `INSERT INTO comments (id, post_slug, post_id, parent_id, display_name, body, status, ip_hash, user_agent_hash)
@@ -162,14 +198,17 @@ export const POST: APIRoute = async ({ locals, request }) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to submit comment.";
     if (message.includes("D1 database binding not found")) {
-      return json({ error: "Missing DB binding", detail: "Check wrangler D1 bindings." }, 500);
-    }
-    if (message.startsWith('D1 schema missing for "')) {
       return json(
-        { error: "Missing DB schema; apply migrations locally", detail: message },
+        { error: "Missing DB binding", detail: "Check wrangler D1 bindings.", code: "DB_BINDING_MISSING" },
         500
       );
     }
-    return json({ error: message }, 500);
+    if (message.startsWith('D1 schema missing for "')) {
+      return json(
+        { error: "Missing DB schema; apply migrations locally", detail: message, code: "DB_SCHEMA_MISSING" },
+        500
+      );
+    }
+    return json({ error: message, detail: message, code: "COMMENTS_CREATE_FAILED" }, 500);
   }
 };

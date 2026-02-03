@@ -155,6 +155,74 @@ Nếu HTML bị cache cứng, có thể:
 
 `GET /api/health` trả về trạng thái env + build info để debug production nhanh.
 
+Ví dụ response:
+
+```json
+{
+  "ok": true,
+  "env": {
+    "hasAdminPassword": true,
+    "hasDBBinding": true,
+    "hasR2Binding": true,
+    "hasTurnstile": false
+  },
+  "schema": {
+    "posts": true,
+    "comments": true,
+    "reactions": true,
+    "adminUsers": true,
+    "adminSessions": true,
+    "commentBans": true,
+    "adminLoginAttempts": true,
+    "media": true,
+    "postMedia": true
+  },
+  "build": {
+    "sha": "abc123",
+    "time": "2026-02-02T10:00:00Z"
+  }
+}
+```
+
+## Doctor mode (schema diagnostics)
+
+`GET /api/diag/schema` (admin-only) trả về D1 schema cho các bảng quan trọng.
+
+Ví dụ response:
+
+```json
+{
+  "ok": true,
+  "tables": {
+    "posts": {
+      "sql": "CREATE TABLE posts (... статус ...)",
+      "checks": ["status IN ('draft','published')"]
+    },
+    "comments": {
+      "sql": "CREATE TABLE comments (... статус ...)",
+      "checks": ["status IN ('visible','pending','hidden')"]
+    }
+  }
+}
+```
+
+## Integration test harness
+
+Chạy worker local trước:
+
+```bash
+npx wrangler dev
+```
+
+Chạy integration test (cần `ADMIN_PASSWORD` trong `.dev.vars`):
+
+```bash
+ADMIN_PASSWORD=your_password npm run integration:test
+```
+
+Tuỳ chọn:
+- `BASE_URL` (default `http://localhost:8788`) để test với URL khác.
+
 ## Fix lockfile / npm ci (Cloudflare build)
 
 Cloudflare Pages dùng `npm ci`, nên cần lockfile sync:

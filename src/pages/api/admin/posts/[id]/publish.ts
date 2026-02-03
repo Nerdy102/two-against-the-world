@@ -12,14 +12,23 @@ const json = (data: unknown, status = 200) =>
 
 export const POST: APIRoute = async ({ locals, params, request }) => {
   if (!(await requireAdminSession(request, locals))) {
-    return json({ error: "Unauthorized" }, 401);
+    return json(
+      { error: "Unauthorized", detail: "Admin session required.", code: "ADMIN_UNAUTHORIZED" },
+      401
+    );
   }
   if (!verifyCsrf(request)) {
-    return json({ error: "Unauthorized" }, 401);
+    return json(
+      { error: "Unauthorized", detail: "CSRF validation failed.", code: "ADMIN_CSRF_INVALID" },
+      401
+    );
   }
   const id = params.id;
   if (!id) {
-    return json({ error: "Missing id" }, 400);
+    return json(
+      { error: "Missing id", detail: "Post id is required.", code: "POST_ID_MISSING" },
+      400
+    );
   }
 
   try {
@@ -40,6 +49,6 @@ export const POST: APIRoute = async ({ locals, params, request }) => {
     return json({ ok: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to publish post.";
-    return json({ error: message }, 500);
+    return json({ error: message, detail: message, code: "ADMIN_POST_PUBLISH_FAILED" }, 500);
   }
 };

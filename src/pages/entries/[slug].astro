@@ -6,6 +6,7 @@ import { formatDate } from "../../lib/formatDate";
 import { topicLabel, topicMeta } from "../../config/topics";
 import { getDb, type PostRecord } from "../../lib/d1";
 import { getHybridPostBySlug } from "../../lib/posts";
+import { REACTION_KINDS } from "../../lib/constants";
 import { marked } from "marked";
 
 export const prerender = false;
@@ -213,69 +214,11 @@ const useBlendedStory = isSingleImage;
 
         <div class="mt-4 flex flex-wrap items-center gap-3">
           <div class="reaction-bar" data-reaction-bar>
-            <button class="btn reaction-btn" type="button" data-reaction-kind="🥺">
-              🥺 <span data-reaction-count>0</span>
-            </button>
-            <button class="btn reaction-btn" type="button" data-reaction-kind="🤧">
-              🤧 <span data-reaction-count>0</span>
-            </button>
-            <button class="btn reaction-btn" type="button" data-reaction-kind="😭">
-              😭 <span data-reaction-count>0</span>
-            </button>
-            <button class="btn reaction-btn" type="button" data-reaction-kind="🤡">
-              🤡 <span data-reaction-count>0</span>
-            </button>
-            <button class="btn reaction-btn" type="button" data-reaction-kind="😎">
-              😎 <span data-reaction-count>0</span>
-            </button>
-            <button class="btn reaction-btn" type="button" data-reaction-kind="☺️">
-              ☺️ <span data-reaction-count>0</span>
-            </button>
-            <button class="btn reaction-btn" type="button" data-reaction-kind="😖">
-              😖 <span data-reaction-count>0</span>
-            </button>
-            <button class="btn reaction-btn" type="button" data-reaction-kind="😏">
-              😏 <span data-reaction-count>0</span>
-            </button>
-            <button class="btn reaction-btn" type="button" data-reaction-kind="🥹">
-              🥹 <span data-reaction-count>0</span>
-            </button>
-            <button class="btn reaction-btn" type="button" data-reaction-kind="🤪">
-              🤪 <span data-reaction-count>0</span>
-            </button>
-            <button class="btn reaction-btn" type="button" data-reaction-kind="🤓">
-              🤓 <span data-reaction-count>0</span>
-            </button>
-            <button class="btn reaction-btn" type="button" data-reaction-kind="😈">
-              😈 <span data-reaction-count>0</span>
-            </button>
-            <button class="btn reaction-btn" type="button" data-reaction-kind="😼">
-              😼 <span data-reaction-count>0</span>
-            </button>
-            <button class="btn reaction-btn" type="button" data-reaction-kind="🫶🏻">
-              🫶🏻 <span data-reaction-count>0</span>
-            </button>
-            <button class="btn reaction-btn" type="button" data-reaction-kind="♥️">
-              ♥️ <span data-reaction-count>0</span>
-            </button>
-            <button class="btn reaction-btn" type="button" data-reaction-kind="🫀">
-              🫀 <span data-reaction-count>0</span>
-            </button>
-            <button class="btn reaction-btn" type="button" data-reaction-kind="💞">
-              💞 <span data-reaction-count>0</span>
-            </button>
-            <button class="btn reaction-btn" type="button" data-reaction-kind="✌🏻">
-              ✌🏻 <span data-reaction-count>0</span>
-            </button>
-            <button class="btn reaction-btn" type="button" data-reaction-kind="🖕🏻">
-              🖕🏻 <span data-reaction-count>0</span>
-            </button>
-            <button class="btn reaction-btn" type="button" data-reaction-kind="💋">
-              💋 <span data-reaction-count>0</span>
-            </button>
-            <button class="btn reaction-btn" type="button" data-reaction-kind="👀">
-              👀 <span data-reaction-count>0</span>
-            </button>
+            {REACTION_KINDS.map((kind) => (
+              <button class="btn reaction-btn" type="button" data-reaction-kind={kind}>
+                {kind} <span data-reaction-count>0</span>
+              </button>
+            ))}
           </div>
           <span class="text-xs text-black/50" data-reaction-state>Chọn icon để thả cảm xúc.</span>
         </div>
