@@ -41,7 +41,10 @@ const ensureUniqueSlug = async (db: D1Database, baseSlug: string, excludeId?: st
 
 export const GET: APIRoute = async ({ locals, request }) => {
   if (!(await requireAdminSession(request, locals))) {
-    return json({ error: "Unauthorized" }, 401);
+    return json(
+      { error: "Unauthorized", detail: "Admin session required.", code: "ADMIN_UNAUTHORIZED" },
+      401
+    );
   }
   try {
     const db = getDb(locals);
@@ -56,27 +59,39 @@ export const GET: APIRoute = async ({ locals, request }) => {
     return json({ posts: results ?? [] });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load posts.";
-    return json({ error: message }, 500);
+    return json({ error: message, detail: message, code: "ADMIN_POSTS_FETCH_FAILED" }, 500);
   }
 };
 
 export const POST: APIRoute = async ({ locals, request }) => {
   if (!(await requireAdminSession(request, locals))) {
-    return json({ error: "Unauthorized" }, 401);
+    return json(
+      { error: "Unauthorized", detail: "Admin session required.", code: "ADMIN_UNAUTHORIZED" },
+      401
+    );
   }
   if (!verifyCsrf(request)) {
-    return json({ error: "Unauthorized" }, 401);
+    return json(
+      { error: "Unauthorized", detail: "CSRF validation failed.", code: "ADMIN_CSRF_INVALID" },
+      401
+    );
   }
   try {
     const payload = await request.json().catch(() => null);
     if (!payload) {
-      return json({ error: "Invalid JSON" }, 400);
+      return json(
+        { error: "Invalid JSON", detail: "Request body must be valid JSON.", code: "INVALID_JSON" },
+        400
+      );
     }
 
     const title = typeof payload.title === "string" ? payload.title.trim() : "";
     const rawSlug = typeof payload.slug === "string" ? payload.slug.trim() : "";
     if (!title) {
-      return json({ error: "Missing title" }, 400);
+      return json(
+        { error: "Missing title", detail: "Title is required.", code: "POST_TITLE_MISSING" },
+        400
+      );
     }
 
     const id = crypto.randomUUID();
@@ -85,7 +100,10 @@ export const POST: APIRoute = async ({ locals, request }) => {
     await ensurePostsSchema(db, { allowBootstrap });
     const baseSlug = slugify(rawSlug || title);
     if (!baseSlug) {
-      return json({ error: "Missing slug" }, 400);
+      return json(
+        { error: "Missing slug", detail: "Slug is required.", code: "POST_SLUG_MISSING" },
+        400
+      );
     }
     const slug = await ensureUniqueSlug(db, baseSlug);
 
@@ -156,6 +174,6 @@ export const POST: APIRoute = async ({ locals, request }) => {
     return json({ ok: true, id, slug });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to create post.";
-    return json({ error: message }, 500);
+    return json({ error: message, detail: message, code: "ADMIN_POST_CREATE_FAILED" }, 500);
   }
 };

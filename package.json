@@ -17,7 +17,8 @@
     "import:posts": "node scripts/import-posts-to-d1.mjs",
     "export:posts": "node scripts/export-posts-from-d1.mjs",
     "sync:media": "node scripts/sync-media.mjs",
-    "download:media": "node scripts/download-media.mjs"
+    "download:media": "node scripts/download-media.mjs",
+    "integration:test": "node scripts/integration-test.mjs"
   },
   "dependencies": {
     "@fontsource/be-vietnam-pro": "latest",

@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { ensureCommentsSchema, getDb } from "../../../../lib/d1";
 import { requireAdminSession } from "../../../../lib/adminAuth";
+import { COMMENT_STATUSES, normalizeCommentStatus } from "../../../../lib/constants";
 
 export const prerender = false;
 
@@ -12,19 +13,26 @@ const json = (data: unknown, status = 200) =>
 
 export const GET: APIRoute = async ({ locals, request, url }) => {
   if (!(await requireAdminSession(request, locals))) {
-    return json({ error: "Unauthorized" }, 401);
+    return json({ error: "Unauthorized", detail: "Admin session required.", code: "ADMIN_UNAUTHORIZED" }, 401);
   }
   try {
-    const status = url.searchParams.get("status");
+    const statusParam = url.searchParams.get("status");
     const slug = url.searchParams.get("slug");
     const db = getDb(locals);
     const allowBootstrap = locals.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
     await ensureCommentsSchema(db, { allowBootstrap });
     const params: unknown[] = [];
     let where = "1=1";
-    if (status) {
+    if (statusParam) {
+      const normalized = normalizeCommentStatus(statusParam);
+      if (!normalized || !COMMENT_STATUSES.includes(normalized)) {
+        return json(
+          { error: "Invalid status", detail: "Status not allowed.", code: "COMMENT_STATUS_INVALID" },
+          400
+        );
+      }
       where += " AND status = ?";
-      params.push(status);
+      params.push(normalized);
     }
     if (slug) {
       where += " AND post_slug = ?";
@@ -43,6 +51,6 @@ export const GET: APIRoute = async ({ locals, request, url }) => {
     return json({ comments: results ?? [] });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load comments.";
-    return json({ error: message }, 500);
+    return json({ error: message, detail: message, code: "ADMIN_COMMENTS_FETCH_FAILED" }, 500);
   }
 };

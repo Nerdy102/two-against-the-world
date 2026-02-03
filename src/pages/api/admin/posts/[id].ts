@@ -41,20 +41,32 @@ const ensureUniqueSlug = async (db: D1Database, baseSlug: string, excludeId?: st
 
 export const PUT: APIRoute = async ({ locals, params, request }) => {
   if (!(await requireAdminSession(request, locals))) {
-    return json({ error: "Unauthorized" }, 401);
+    return json(
+      { error: "Unauthorized", detail: "Admin session required.", code: "ADMIN_UNAUTHORIZED" },
+      401
+    );
   }
   if (!verifyCsrf(request)) {
-    return json({ error: "Unauthorized" }, 401);
+    return json(
+      { error: "Unauthorized", detail: "CSRF validation failed.", code: "ADMIN_CSRF_INVALID" },
+      401
+    );
   }
   const id = params.id;
   if (!id) {
-    return json({ error: "Missing id" }, 400);
+    return json(
+      { error: "Missing id", detail: "Post id is required.", code: "POST_ID_MISSING" },
+      400
+    );
   }
 
   try {
     const payload = await request.json().catch(() => null);
     if (!payload) {
-      return json({ error: "Invalid JSON" }, 400);
+      return json(
+        { error: "Invalid JSON", detail: "Request body must be valid JSON.", code: "INVALID_JSON" },
+        400
+      );
     }
 
     const db = getDb(locals);
@@ -69,14 +81,20 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
     if (incomingSlug) {
       const baseSlug = slugify(incomingSlug);
       if (!baseSlug) {
-        return json({ error: "Missing slug" }, 400);
+        return json(
+          { error: "Missing slug", detail: "Slug is required.", code: "POST_SLUG_MISSING" },
+          400
+        );
       }
       nextSlug = await ensureUniqueSlug(db, baseSlug, id);
     }
     if (!nextSlug) {
       const baseSlug = slugify(payload.title ?? "");
       if (!baseSlug) {
-        return json({ error: "Missing slug" }, 400);
+        return json(
+          { error: "Missing slug", detail: "Slug is required.", code: "POST_SLUG_MISSING" },
+          400
+        );
       }
       nextSlug = await ensureUniqueSlug(db, baseSlug, id);
     }
@@ -166,20 +184,29 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
     return json({ ok: true, slug: nextSlug });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to update post.";
-    return json({ error: message }, 500);
+    return json({ error: message, detail: message, code: "ADMIN_POST_UPDATE_FAILED" }, 500);
   }
 };
 
 export const DELETE: APIRoute = async ({ locals, params, request }) => {
   if (!(await requireAdminSession(request, locals))) {
-    return json({ error: "Unauthorized" }, 401);
+    return json(
+      { error: "Unauthorized", detail: "Admin session required.", code: "ADMIN_UNAUTHORIZED" },
+      401
+    );
   }
   if (!verifyCsrf(request)) {
-    return json({ error: "Unauthorized" }, 401);
+    return json(
+      { error: "Unauthorized", detail: "CSRF validation failed.", code: "ADMIN_CSRF_INVALID" },
+      401
+    );
   }
   const id = params.id;
   if (!id) {
-    return json({ error: "Missing id" }, 400);
+    return json(
+      { error: "Missing id", detail: "Post id is required.", code: "POST_ID_MISSING" },
+      400
+    );
   }
   try {
     const db = getDb(locals);
@@ -189,6 +216,6 @@ export const DELETE: APIRoute = async ({ locals, params, request }) => {
     return json({ ok: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to delete post.";
-    return json({ error: message }, 500);
+    return json({ error: message, detail: message, code: "ADMIN_POST_DELETE_FAILED" }, 500);
   }
 };

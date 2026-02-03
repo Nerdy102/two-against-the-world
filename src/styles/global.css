@@ -844,7 +844,7 @@ a { color: inherit; text-decoration: none; }
   column-gap: 16px;
   width: min(1200px, 92vw);
   margin: 0 auto;
-  column-fill: auto;
+  column-fill: balance;
 }
 
 @media (min-width: 900px) {
@@ -858,7 +858,8 @@ a { color: inherit; text-decoration: none; }
 .feed-card {
   position: relative;
   z-index: 0;
-  display: block;
+  display: inline-block;
+  width: 100%;
   break-inside: avoid;
   margin: 0 0 16px;
   padding: 16px;
@@ -875,6 +876,12 @@ a { color: inherit; text-decoration: none; }
 .feed-card:hover {
   transform: translateY(-2px);
   border-color: rgba(169, 255, 90, 0.35);
+}
+
+[data-motion="ok"] .feed-card[data-reveal] {
+  opacity: 1;
+  transform: none;
+  filter: none;
 }
 
 .feed-card.is-pinned {
@@ -954,6 +961,16 @@ a { color: inherit; text-decoration: none; }
   font-size: 24px;
   letter-spacing: 0.01em;
   text-transform: none;
+}
+
+@media (max-width: 640px) {
+  .feed-card__title {
+    font-size: clamp(18px, 4.6vw, 22px);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
 }
 
 .feed-card__meta-line {
