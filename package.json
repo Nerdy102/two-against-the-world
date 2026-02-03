@@ -26,6 +26,7 @@
     "@fontsource/ibm-plex-mono": "latest",
     "@fontsource/oswald": "latest",
     "@fontsource/special-elite": "latest",
+    "gray-matter": "^4.0.3",
     "heic2any": "^0.0.4",
     "lenis": "latest",
     "marked": "^17.0.1",
