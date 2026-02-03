@@ -40,7 +40,9 @@
     "@tailwindcss/vite": "latest",
     "astro": "latest",
     "tailwindcss": "latest",
-    "typescript": "latest"
+    "tsx": "^4.19.2",
+    "typescript": "latest",
+    "wrangler": "^4.61.1"
   },
   "overrides": {
     "lodash": "4.17.21",
