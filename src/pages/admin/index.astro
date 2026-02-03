@@ -425,7 +425,7 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
         return;
       }
       const base = getSiteBase();
-      linkText.value = `${base.replace(/\\/$/, "")}/entries/${slugValue}`;
+      linkText.value = base.replace(/\\/$/, "") + "/entries/" + slugValue;
       linkPreview.classList.remove("hidden");
     };
 

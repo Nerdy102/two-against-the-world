@@ -22,7 +22,7 @@ const parseArgs = () => {
   };
 };
 
-const ensureDir = async (dir: string) => {
+const ensureDir = async (dir) => {
   await fs.mkdir(dir, { recursive: true });
 };
 

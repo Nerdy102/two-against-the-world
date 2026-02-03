@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { execSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import matter from "gray-matter";
+import { parseFrontmatter } from "./frontmatter.mjs";
 
 const POSTS_DIR = path.join(process.cwd(), "src", "content", "posts");
 const WRANGLER_FILE = path.join(process.cwd(), "wrangler.jsonc");
@@ -23,7 +23,7 @@ const parseArgs = () => {
   };
 };
 
-const slugify = (input: string) =>
+const slugify = (input = "") =>
   input
     .toLowerCase()
     .replace(/đ/g, "d")
@@ -33,13 +33,13 @@ const slugify = (input: string) =>
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-");
 
-const toDateString = (value?: string | Date) => {
+const toDateString = (value) => {
   if (!value) return new Date().toISOString();
   const date = value instanceof Date ? value : new Date(value);
   return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
 };
 
-const buildUpsert = (post: Record<string, unknown>) => {
+const buildUpsert = (post) => {
   const columns = Object.keys(post);
   const placeholders = columns.map(() => "?").join(", ");
   const updates = columns
@@ -52,13 +52,13 @@ ON CONFLICT(slug) DO UPDATE SET ${updates};`;
   return { sql, params: columns.map((key) => post[key]) };
 };
 
-const quote = (value: unknown) => {
+const quote = (value) => {
   if (value === null || value === undefined) return "NULL";
   if (typeof value === "number") return String(value);
   return `'${String(value).replace(/'/g, "''")}'`;
 };
 
-const runWrangler = (dbName: string, sql: string, local: boolean) => {
+const runWrangler = (dbName, sql, local) => {
   const flags = local ? "--local" : "";
   execSync(`wrangler d1 execute ${dbName} --command ${JSON.stringify(sql)} ${flags}`, {
     stdio: "inherit",
@@ -75,7 +75,7 @@ const main = async () => {
     if (!file.endsWith(".md") && !file.endsWith(".mdx")) continue;
     const fullPath = path.join(POSTS_DIR, file);
     const raw = await fs.readFile(fullPath, "utf8");
-    const { data, content } = matter(raw);
+    const { data, content } = parseFrontmatter(raw);
     const slug = data.slug ? String(data.slug) : slugify(data.title || file.replace(/\.(md|mdx)$/, ""));
     const publishedAt = toDateString(data.pubDate);
     const tags = Array.isArray(data.tags) ? data.tags.map(String) : [];
