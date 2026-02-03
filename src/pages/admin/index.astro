@@ -384,6 +384,10 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
     const isUnlocked = () => unlocked;
 
     let toastTimeout = null;
+    const formatApiError = (payload, fallback) => {
+      const message = [payload?.error, payload?.detail].filter(Boolean).join(" — ");
+      return message || fallback;
+    };
     const showToast = (message, variant = "error") => {
       if (!adminToast) return;
       adminToast.textContent = message;
@@ -452,7 +456,9 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
         const payload = await res.json().catch(() => ({}));
         if (!res.ok) {
           lockStatus.textContent = "Không mở khóa được";
-          showToast(payload?.error || "Không mở khóa được. Thử lại nhé.");
+          const hint = [payload?.howToFixProd, payload?.howToFixLocal].filter(Boolean).join(" | ");
+          const message = formatApiError(payload, "Không mở khóa được. Thử lại nhé.");
+          showToast(hint ? `${message} (${hint})` : message);
           setLocked(true);
           return;
         }
@@ -627,7 +633,7 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
           setLocked(true);
         }
         const payload = await res.json().catch(() => ({}));
-        showToast(payload?.error || "Không tải được bài viết.");
+        showToast(formatApiError(payload, "Không tải được bài viết."));
         return;
       }
       const data = await res.json();
@@ -641,7 +647,7 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       const res = await fetch(`/api/admin/comments?status=${encodeURIComponent(filter)}`);
       if (!res.ok) {
         const payload = await res.json().catch(() => ({}));
-        showToast(payload?.error || "Không tải được comment.");
+        showToast(formatApiError(payload, "Không tải được comment."));
         return;
       }
       const data = await res.json();
@@ -697,7 +703,7 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
           if (!res.ok) {
             commentNote.textContent = "Lỗi xử lý comment.";
             const payload = await res.json().catch(() => ({}));
-            showToast(payload?.error || "Lỗi xử lý comment.");
+            showToast(formatApiError(payload, "Lỗi xử lý comment."));
             return;
           }
           commentNote.textContent = "Đã cập nhật comment.";
@@ -805,10 +811,9 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
           return false;
         }
         if (!silent) {
-          note.textContent = payload?.error
-            ? `Lưu lỗi: ${payload.error}`
-            : "Lưu chưa được, thử lại nhé.";
-          showToast(payload?.error || "Lưu chưa được, thử lại nhé.");
+          const message = formatApiError(payload, "Lưu chưa được, thử lại nhé.");
+          note.textContent = message ? `Lưu lỗi: ${message}` : "Lưu chưa được, thử lại nhé.";
+          showToast(message || "Lưu chưa được, thử lại nhé.");
         }
         return false;
       }
@@ -857,8 +862,9 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
           return;
         }
         const payload = await res.json().catch(() => ({}));
-        note.textContent = payload?.error || "Publish lỗi, thử lại nhé.";
-        showToast(payload?.error || "Publish lỗi, thử lại nhé.");
+        const message = formatApiError(payload, "Publish lỗi, thử lại nhé.");
+        note.textContent = message;
+        showToast(message);
         return;
       }
       await loadPosts();
@@ -881,8 +887,9 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
           return;
         }
         const payload = await res.json().catch(() => ({}));
-        note.textContent = payload?.error || "Gỡ publish lỗi, thử lại nhé.";
-        showToast(payload?.error || "Gỡ publish lỗi, thử lại nhé.");
+        const message = formatApiError(payload, "Gỡ publish lỗi, thử lại nhé.");
+        note.textContent = message;
+        showToast(message);
         return;
       }
       await loadPosts();
@@ -907,8 +914,9 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
           return;
         }
         const payload = await res.json().catch(() => ({}));
-        note.textContent = payload?.error || "Publish lỗi, thử lại nhé.";
-        showToast(payload?.error || "Publish lỗi, thử lại nhé.");
+        const message = formatApiError(payload, "Publish lỗi, thử lại nhé.");
+        note.textContent = message;
+        showToast(message);
         return;
       }
       await loadPosts();
@@ -927,8 +935,9 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       });
       if (!res.ok) {
         const payload = await res.json().catch(() => ({}));
-        note.textContent = payload?.error || "Xóa lỗi, thử lại nhé.";
-        showToast(payload?.error || "Xóa lỗi, thử lại nhé.");
+        const message = formatApiError(payload, "Xóa lỗi, thử lại nhé.");
+        note.textContent = message;
+        showToast(message);
         return;
       }
       note.textContent = "Đã xóa.";

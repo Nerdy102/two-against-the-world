@@ -1,6 +1,6 @@
 # two-against-the-world
 
-## Local setup
+## Local setup (development)
 
 ```bash
 npm install
@@ -17,6 +17,7 @@ Tạo `.dev.vars` ở root để chạy `wrangler dev` với env local:
 
 ```bash
 ADMIN_PASSWORD=hoayeuuyen
+PUBLIC_SITE_URL=http://localhost:4321
 ```
 
 Nếu cần bootstrap schema local (development only), có thể set thêm:
@@ -25,21 +26,9 @@ Nếu cần bootstrap schema local (development only), có thể set thêm:
 ALLOW_SCHEMA_BOOTSTRAP=true
 ```
 
-Tạo `.dev.vars` ở root để chạy `wrangler dev` với env local:
+## Production setup (Cloudflare)
 
-```bash
-ADMIN_PASSWORD=hoayeuuyen
-```
-
-Nếu cần bootstrap schema local (development only), có thể set thêm:
-
-```bash
-ALLOW_SCHEMA_BOOTSTRAP=true
-```
-
-## Environment variables (Cloudflare)
-
-Thiết lập trong Cloudflare Dashboard (Workers → Settings → Variables):
+Thiết lập trong Cloudflare Dashboard (Workers → Settings → Variables/Secrets):
 
 - `ADMIN_PASSWORD` (required): password admin (không commit vào repo).
 - `PUBLIC_SITE_URL`: URL site (ví dụ `https://tinyeu.blog`).
