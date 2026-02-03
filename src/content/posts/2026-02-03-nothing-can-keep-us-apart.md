@@ -5,7 +5,7 @@ pubDate: 2026-02-03
 topic: screenshots
 cover: "/photos/2026-02-03-nothing-can-keep-us-apart/cover.jpg"
 photoDir: "2026-02-03-nothing-can-keep-us-apart"
-photoCount: 2
+photoCount: 1
 
 author: "vịu ơ"
 location: "trong túi áo Hoà"
