@@ -25,6 +25,18 @@ Nếu cần bootstrap schema local (development only), có thể set thêm:
 ALLOW_SCHEMA_BOOTSTRAP=true
 ```
 
+Tạo `.dev.vars` ở root để chạy `wrangler dev` với env local:
+
+```bash
+ADMIN_PASSWORD=hoayeuuyen
+```
+
+Nếu cần bootstrap schema local (development only), có thể set thêm:
+
+```bash
+ALLOW_SCHEMA_BOOTSTRAP=true
+```
+
 ## Environment variables (Cloudflare)
 
 Thiết lập trong Cloudflare Dashboard (Workers → Settings → Variables):
