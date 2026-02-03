@@ -6,10 +6,17 @@ export const prerender = false;
 export const GET: APIRoute = async ({ locals, params }) => {
   const slug = params.slug;
   if (!slug) {
-    return new Response(JSON.stringify({ error: "Missing slug", code: "POST_SLUG_MISSING" }), {
-      status: 400,
-      headers: { "content-type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        error: "Missing slug",
+        detail: "slug param is required.",
+        code: "POST_SLUG_MISSING",
+      }),
+      {
+        status: 400,
+        headers: { "content-type": "application/json" },
+      }
+    );
   }
 
   const db = getDb(locals);
@@ -24,10 +31,13 @@ export const GET: APIRoute = async ({ locals, params }) => {
     .first<PostRecord>();
 
   if (!record) {
-    return new Response(JSON.stringify({ error: "Not found", code: "POST_NOT_FOUND" }), {
-      status: 404,
-      headers: { "content-type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ error: "Not found", detail: "Post not found.", code: "POST_NOT_FOUND" }),
+      {
+        status: 404,
+        headers: { "content-type": "application/json" },
+      }
+    );
   }
 
   return new Response(JSON.stringify({ post: record }), {

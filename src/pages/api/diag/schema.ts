@@ -18,10 +18,16 @@ const extractChecks = (sql: string | null) => {
 
 export const GET: APIRoute = async ({ locals, request }) => {
   if (!(await requireAdminSession(request, locals))) {
-    return json({ error: "Unauthorized", code: "ADMIN_UNAUTHORIZED" }, 401);
+    return json(
+      { error: "Unauthorized", detail: "Admin session required.", code: "ADMIN_UNAUTHORIZED" },
+      401
+    );
   }
   if (!locals.runtime?.env?.DB) {
-    return json({ error: "Missing DB binding", code: "DB_BINDING_MISSING" }, 500);
+    return json(
+      { error: "Missing DB binding", detail: "DB binding is required.", code: "DB_BINDING_MISSING" },
+      500
+    );
   }
   try {
     const db = getDb(locals);
@@ -51,6 +57,6 @@ export const GET: APIRoute = async ({ locals, request }) => {
     return json({ ok: true, tables: tableMap });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load schema.";
-    return json({ error: message, code: "DIAG_SCHEMA_FAILED" }, 500);
+    return json({ error: message, detail: message, code: "DIAG_SCHEMA_FAILED" }, 500);
   }
 };

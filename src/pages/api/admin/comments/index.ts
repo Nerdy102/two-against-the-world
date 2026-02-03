@@ -13,7 +13,7 @@ const json = (data: unknown, status = 200) =>
 
 export const GET: APIRoute = async ({ locals, request, url }) => {
   if (!(await requireAdminSession(request, locals))) {
-    return json({ error: "Unauthorized" }, 401);
+    return json({ error: "Unauthorized", detail: "Admin session required.", code: "ADMIN_UNAUTHORIZED" }, 401);
   }
   try {
     const statusParam = url.searchParams.get("status");
@@ -26,7 +26,10 @@ export const GET: APIRoute = async ({ locals, request, url }) => {
     if (statusParam) {
       const normalized = normalizeCommentStatus(statusParam);
       if (!normalized || !COMMENT_STATUSES.includes(normalized)) {
-        return json({ error: "Invalid status", code: "COMMENT_STATUS_INVALID" }, 400);
+        return json(
+          { error: "Invalid status", detail: "Status not allowed.", code: "COMMENT_STATUS_INVALID" },
+          400
+        );
       }
       where += " AND status = ?";
       params.push(normalized);
@@ -48,6 +51,6 @@ export const GET: APIRoute = async ({ locals, request, url }) => {
     return json({ comments: results ?? [] });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load comments.";
-    return json({ error: message, code: "ADMIN_COMMENTS_FETCH_FAILED" }, 500);
+    return json({ error: message, detail: message, code: "ADMIN_COMMENTS_FETCH_FAILED" }, 500);
   }
 };
