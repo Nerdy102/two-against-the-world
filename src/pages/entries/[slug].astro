@@ -80,14 +80,10 @@ const useBlendedStory = isSingleImage;
       <RansomTitle text={post.title} as="h1" stampEvery={0} class="mt-3 text-[40px] sm:text-[56px]" />
 
       {(post.summary || author) && (
-        <p class="mt-4 text-[rgba(0,0,0,0.70)] max-w-2xl entry-summary">
-          {post.summary}
-          {author && (
-            <span class="entry-summary__author">
-              {post.summary ? " · " : ""}by {author}
-            </span>
-          )}
-        </p>
+        <div class="mt-4 max-w-2xl entry-summary">
+          {post.summary && <p class="entry-summary__desc">{post.summary}</p>}
+          {author && <span class="entry-summary__author">— {author}</span>}
+        </div>
       )}
 
       <div class="entry-meta mt-5 flex flex-wrap items-center gap-3 text-[12px] text-black/60">
