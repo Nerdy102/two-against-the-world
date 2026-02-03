@@ -8,6 +8,7 @@ import {
   getDb,
 } from "../../../../lib/d1";
 import { requireAdminSession, verifyCsrf } from "../../../../lib/adminAuth";
+import { getRuntimeEnv, isSchemaBootstrapEnabled } from "../../../../lib/runtimeEnv";
 
 export const prerender = false;
 
@@ -67,6 +68,7 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
   }
 
   try {
+    const env = getRuntimeEnv(locals);
     const payload = await request.json().catch(() => null);
     if (!payload) {
       return json(
@@ -76,7 +78,7 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
     }
 
     const db = getDb(locals);
-    const allowBootstrap = locals.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
+    const allowBootstrap = isSchemaBootstrapEnabled(env);
     await ensurePostsSchema(db, { allowBootstrap });
     await ensureCommentsSchema(db, { allowBootstrap });
     await ensureReactionsSchema(db, { allowBootstrap });
@@ -232,8 +234,9 @@ export const DELETE: APIRoute = async ({ locals, params, request }) => {
     );
   }
   try {
+    const env = getRuntimeEnv(locals);
     const db = getDb(locals);
-    const allowBootstrap = locals.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
+    const allowBootstrap = isSchemaBootstrapEnabled(env);
     await ensurePostsSchema(db, { allowBootstrap });
     await ensureCommentsSchema(db, { allowBootstrap });
     await ensureReactionsSchema(db, { allowBootstrap });

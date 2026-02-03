@@ -1,14 +1,18 @@
 import type { D1Database } from "@cloudflare/workers-types";
 import type { CommentStatus, PostStatus } from "./constants";
+import { getRuntimeEnv } from "./runtimeEnv";
 
 export type D1Env = {
   DB: D1Database;
 };
 
 export function getDb(locals: App.Locals): D1Database {
-  const db = locals.runtime?.env?.DB;
+  const env = getRuntimeEnv(locals);
+  const db = env.DB;
   if (!db) {
-    throw new Error("D1 database binding not found (DB).");
+    throw new Error(
+      "D1 database binding not found (DB). Set the D1 binding in wrangler.jsonc and Cloudflare Worker settings."
+    );
   }
   return db;
 }

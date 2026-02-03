@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { ensurePostsSchema, getDb } from "../../../../../lib/d1";
 import { requireAdminSession, verifyCsrf } from "../../../../../lib/adminAuth";
+import { getRuntimeEnv, isSchemaBootstrapEnabled } from "../../../../../lib/runtimeEnv";
 
 export const prerender = false;
 
@@ -32,8 +33,9 @@ export const POST: APIRoute = async ({ locals, params, request }) => {
   }
 
   try {
+    const env = getRuntimeEnv(locals);
     const db = getDb(locals);
-    const allowBootstrap = locals.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
+    const allowBootstrap = isSchemaBootstrapEnabled(env);
     await ensurePostsSchema(db, { allowBootstrap });
     await db
       .prepare(

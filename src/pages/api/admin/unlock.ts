@@ -9,6 +9,7 @@ import {
   recordAdminLoginFailure,
   verifyAdminPassword,
 } from "../../../lib/adminAuth";
+import { getRuntimeEnv } from "../../../lib/runtimeEnv";
 
 export const prerender = false;
 
@@ -25,6 +26,7 @@ const json = (data: unknown, status = 200, headers?: Headers) => {
 
 export const POST: APIRoute = async ({ request, locals }) => {
   try {
+    const env = getRuntimeEnv(locals);
     const payload = await request.json().catch(() => null);
     if (!payload) {
       return json(
@@ -64,19 +66,22 @@ export const POST: APIRoute = async ({ request, locals }) => {
           ok: false,
           error: "Missing ADMIN_PASSWORD",
           detail,
-          howToFixProd: "Set ADMIN_PASSWORD in Cloudflare Worker Variables/Secrets",
+          howToFixProd:
+            "Set ADMIN_PASSWORD in Cloudflare Worker two-against-the-world1 Variables/Secrets.",
           howToFixLocal: "Set ADMIN_PASSWORD in .dev.vars for wrangler dev",
           code: "ADMIN_PASSWORD_ENV_MISSING",
         },
         400
       );
     }
-    if (!locals.runtime?.env?.DB) {
+    if (!env.DB) {
       return json(
         {
           ok: false,
           error: "Missing DB binding",
           detail: "DB binding is required.",
+          howToFix:
+            "Add D1 binding named DB in wrangler.jsonc and Cloudflare dashboard for two-against-the-world1, then redeploy.",
           code: "DB_BINDING_MISSING",
         },
         500
@@ -128,7 +133,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const message = error instanceof Error ? error.message : "Server error.";
     if (message.includes("D1 database binding not found")) {
       return json(
-        { ok: false, error: "Missing DB binding", detail: "DB binding is required.", code: "DB_BINDING_MISSING" },
+        {
+          ok: false,
+          error: "Missing DB binding",
+          detail: "DB binding is required.",
+          howToFix:
+            "Add D1 binding named DB in wrangler.jsonc and Cloudflare dashboard, then redeploy.",
+          code: "DB_BINDING_MISSING",
+        },
         500
       );
     }

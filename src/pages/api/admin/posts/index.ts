@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import type { D1Database } from "@cloudflare/workers-types";
 import { ensurePostsSchema, getDb, type PostRecord } from "../../../../lib/d1";
 import { requireAdminSession, verifyCsrf } from "../../../../lib/adminAuth";
+import { getRuntimeEnv, isSchemaBootstrapEnabled } from "../../../../lib/runtimeEnv";
 
 export const prerender = false;
 
@@ -47,8 +48,9 @@ export const GET: APIRoute = async ({ locals, request }) => {
     );
   }
   try {
+    const env = getRuntimeEnv(locals);
     const db = getDb(locals);
-    const allowBootstrap = locals.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
+    const allowBootstrap = isSchemaBootstrapEnabled(env);
     await ensurePostsSchema(db, { allowBootstrap });
     const { results } = await db
       .prepare(
@@ -77,6 +79,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
     );
   }
   try {
+    const env = getRuntimeEnv(locals);
     const payload = await request.json().catch(() => null);
     if (!payload) {
       return json(
@@ -125,7 +128,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
 
     const id = crypto.randomUUID();
     const db = getDb(locals);
-    const allowBootstrap = locals.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
+    const allowBootstrap = isSchemaBootstrapEnabled(env);
     await ensurePostsSchema(db, { allowBootstrap });
     const baseSlug = slugify(rawSlug || title);
     if (!baseSlug) {

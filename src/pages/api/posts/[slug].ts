@@ -19,29 +19,46 @@ export const GET: APIRoute = async ({ locals, params }) => {
     );
   }
 
-  const db = getDb(locals);
-  const record = await db
-    .prepare(
-      `SELECT *
-       FROM posts
-       WHERE slug = ? AND status = 'published'
-       LIMIT 1`
-    )
-    .bind(slug)
-    .first<PostRecord>();
+  try {
+    const db = getDb(locals);
+    const record = await db
+      .prepare(
+        `SELECT *
+         FROM posts
+         WHERE slug = ? AND status = 'published'
+         LIMIT 1`
+      )
+      .bind(slug)
+      .first<PostRecord>();
 
-  if (!record) {
+    if (!record) {
+      return new Response(
+        JSON.stringify({ error: "Not found", detail: "Post not found.", code: "POST_NOT_FOUND" }),
+        {
+          status: 404,
+          headers: { "content-type": "application/json" },
+        }
+      );
+    }
+
+    return new Response(JSON.stringify({ post: record }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to load post.";
     return new Response(
-      JSON.stringify({ error: "Not found", detail: "Post not found.", code: "POST_NOT_FOUND" }),
+      JSON.stringify({
+        error: "Missing DB binding",
+        detail: message,
+        howToFix:
+          "Add D1 binding named DB in wrangler.jsonc and Cloudflare dashboard, then redeploy.",
+        code: "DB_BINDING_MISSING",
+      }),
       {
-        status: 404,
+        status: 500,
         headers: { "content-type": "application/json" },
       }
     );
   }
-
-  return new Response(JSON.stringify({ post: record }), {
-    status: 200,
-    headers: { "content-type": "application/json" },
-  });
 };

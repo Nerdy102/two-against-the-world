@@ -1,6 +1,6 @@
 import process from "node:process";
 
-const baseUrl = process.env.BASE_URL || "http://localhost:8788";
+const baseUrl = process.env.BASE_URL || "https://tinyeu.blog";
 const adminPassword = process.env.ADMIN_PASSWORD;
 const reactionKind = "🥺";
 
@@ -54,6 +54,10 @@ console.log(`🔎 Doctor check: ${baseUrl}`);
 
 const health = await requestJson("/api/health");
 assertOk(health.res.ok, `Health failed: ${health.payload?.error ?? health.res.status}`);
+const buildHeader = health.res.headers.get("x-app-build");
+if (buildHeader) {
+  console.log(`ℹ️ build: ${buildHeader}`);
+}
 console.log("✅ /api/health ok");
 
 const unlock = await requestJson("/api/admin/unlock", {
@@ -76,6 +80,7 @@ const createPost = await requestJson("/api/admin/posts", {
     slug,
     summary: "Integration test post",
     content_md: "Testing post content.",
+    topic: "two-of-us",
     status: "draft",
     author: "admin",
   }),

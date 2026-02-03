@@ -28,6 +28,8 @@ ALLOW_SCHEMA_BOOTSTRAP=true
 
 ## Production setup (Cloudflare)
 
+Production is **worker two-against-the-world1** (tinyeu.blog). The old worker `two-against-the-world` is deprecated/dev-only.
+
 Thiết lập trong Cloudflare Dashboard (Workers → Settings → Variables/Secrets):
 
 - `ADMIN_PASSWORD` (required): password admin (không commit vào repo).
@@ -52,11 +54,33 @@ Thiết lập trong Cloudflare Dashboard (Workers → Settings → Variables/Sec
 - `PUBLIC_ENABLE_UPLOAD_HELPERS`: bật UI hỗ trợ upload (progress/cancel).
 - `PUBLIC_ENABLE_LOVE_WIDGETS`: bật day counter + clocks.
 
-Nếu muốn set nhanh bằng CLI:
+Nếu muốn set nhanh bằng CLI (production world1):
 
 ```bash
-wrangler secret put ADMIN_PASSWORD
+wrangler secret put ADMIN_PASSWORD --name two-against-the-world1
 ```
+
+## Production bring-up checklist
+
+1. **Set admin password (world1)**
+   - CLI: `wrangler secret put ADMIN_PASSWORD --name two-against-the-world1`
+   - Dashboard: Workers → Settings → Variables/Secrets → add `ADMIN_PASSWORD` on **two-against-the-world1**.
+2. **Confirm D1 binding (world1)**
+   - Ensure `DB` binding exists in `wrangler.jsonc` and Cloudflare dashboard for **two-against-the-world1**.
+3. **Apply remote migrations**
+   - `wrangler d1 migrations apply <DB_NAME> --remote --name two-against-the-world1`
+   - Replace `<DB_NAME>` with the database name in `wrangler.jsonc`.
+4. **Configure R2 + base URL (world1)**
+   - Bind R2 bucket as `MEDIA` on **two-against-the-world1**.
+   - Set `PUBLIC_R2_BASE_URL` to the public bucket URL.
+5. **Configure Turnstile (recommended)**
+   - `PUBLIC_TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET`.
+6. **Verify health**
+   - `GET /api/health` should show:
+     - `env.hasAdminPassword: true`
+     - `schema.postMedia: true`
+     - `build.id` or `build.sha` (and response header `X-App-Build`).
+     - `workerName: "two-against-the-world1"`
 
 ## Sessions (không dùng Astro.session)
 
@@ -74,10 +98,10 @@ Cloudflare Workers không hỗ trợ `sharp` runtime. Project đã cấu hình i
 wrangler d1 migrations apply two-against-the-world --local
 ```
 
-Áp dụng migrations lên remote:
+Áp dụng migrations lên remote (world1):
 
 ```bash
-wrangler d1 migrations apply two-against-the-world --remote
+wrangler d1 migrations apply two-against-the-world --remote --name two-against-the-world1
 ```
 
 Lưu ý: thêm migration pinning (`0003_pinned_fields.sql`) trước khi bật ghim bài.
@@ -173,9 +197,14 @@ Ví dụ response:
     "postMedia": true
   },
   "build": {
+    "id": "build-2026-02-02",
     "sha": "abc123",
     "time": "2026-02-02T10:00:00Z"
-  }
+  },
+  "workerName": "two-against-the-world1",
+  "deployTarget": "workers",
+  "environment": "production",
+  "warnings": []
 }
 ```
 

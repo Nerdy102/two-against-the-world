@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { ensureReactionsSchema, getDb } from "../../../lib/d1";
 import { isReactionKind } from "../../../lib/constants";
+import { getRuntimeEnv, isSchemaBootstrapEnabled } from "../../../lib/runtimeEnv";
 
 export const prerender = false;
 
@@ -11,6 +12,7 @@ const json = (data: unknown, status = 200, headers?: HeadersInit) =>
   });
 
 export const GET: APIRoute = async ({ locals, url }) => {
+  const env = getRuntimeEnv(locals);
   const slug = url.searchParams.get("slug");
   const kind = url.searchParams.get("kind");
   if (!slug) {
@@ -28,7 +30,7 @@ export const GET: APIRoute = async ({ locals, url }) => {
 
   try {
     const db = getDb(locals);
-    const allowBootstrap = locals.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
+    const allowBootstrap = isSchemaBootstrapEnabled(env);
     await ensureReactionsSchema(db, { allowBootstrap });
     if (kind) {
       const { results } = await db
@@ -62,11 +64,25 @@ export const GET: APIRoute = async ({ locals, url }) => {
     return json({ ok: true, counts, total });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load reactions.";
+    if (message.includes("D1 database binding not found")) {
+      return json(
+        {
+          ok: false,
+          error: "Missing DB binding",
+          detail: "Check wrangler D1 bindings.",
+          howToFix:
+            "Add D1 binding named DB in wrangler.jsonc and Cloudflare dashboard for two-against-the-world1, then redeploy.",
+          code: "DB_BINDING_MISSING",
+        },
+        500
+      );
+    }
     return json({ ok: false, error: message, detail: message, code: "REACTIONS_FETCH_FAILED" }, 500);
   }
 };
 
 export const POST: APIRoute = async ({ locals, request }) => {
+  const env = getRuntimeEnv(locals);
   const payload = await request.json().catch(() => null);
   if (!payload) {
     return json(
@@ -98,7 +114,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
 
   try {
     const db = getDb(locals);
-    const allowBootstrap = locals.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
+    const allowBootstrap = isSchemaBootstrapEnabled(env);
     await ensureReactionsSchema(db, { allowBootstrap });
     await db
       .prepare(
@@ -129,6 +145,19 @@ export const POST: APIRoute = async ({ locals, request }) => {
     return json({ ok: true, counts, total });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to update reaction.";
+    if (message.includes("D1 database binding not found")) {
+      return json(
+        {
+          ok: false,
+          error: "Missing DB binding",
+          detail: "Check wrangler D1 bindings.",
+          howToFix:
+            "Add D1 binding named DB in wrangler.jsonc and Cloudflare dashboard for two-against-the-world1, then redeploy.",
+          code: "DB_BINDING_MISSING",
+        },
+        500
+      );
+    }
     return json({ ok: false, error: message, detail: message, code: "REACTION_UPDATE_FAILED" }, 500);
   }
 };

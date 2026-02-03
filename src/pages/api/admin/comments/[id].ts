@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { ensureCommentsSchema, getDb } from "../../../../lib/d1";
 import { requireAdminSession, verifyCsrf } from "../../../../lib/adminAuth";
 import { normalizeCommentStatus } from "../../../../lib/constants";
+import { getRuntimeEnv, isSchemaBootstrapEnabled } from "../../../../lib/runtimeEnv";
 
 export const prerender = false;
 
@@ -47,8 +48,9 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
     );
   }
   try {
+    const env = getRuntimeEnv(locals);
     const db = getDb(locals);
-    const allowBootstrap = locals.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
+    const allowBootstrap = isSchemaBootstrapEnabled(env);
     await ensureCommentsSchema(db, { allowBootstrap });
     await db
       .prepare(`UPDATE comments SET status = ? WHERE id = ?`)
@@ -82,8 +84,9 @@ export const DELETE: APIRoute = async ({ locals, params, request }) => {
     );
   }
   try {
+    const env = getRuntimeEnv(locals);
     const db = getDb(locals);
-    const allowBootstrap = locals.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
+    const allowBootstrap = isSchemaBootstrapEnabled(env);
     await ensureCommentsSchema(db, { allowBootstrap });
     await db.prepare(`DELETE FROM comments WHERE id = ?`).bind(id).run();
     return json({ ok: true });

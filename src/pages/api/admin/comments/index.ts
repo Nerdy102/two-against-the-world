@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { ensureCommentsSchema, getDb } from "../../../../lib/d1";
 import { requireAdminSession } from "../../../../lib/adminAuth";
 import { COMMENT_STATUSES, normalizeCommentStatus } from "../../../../lib/constants";
+import { getRuntimeEnv, isSchemaBootstrapEnabled } from "../../../../lib/runtimeEnv";
 
 export const prerender = false;
 
@@ -19,10 +20,11 @@ export const GET: APIRoute = async ({ locals, request, url }) => {
     );
   }
   try {
+    const env = getRuntimeEnv(locals);
     const statusParam = url.searchParams.get("status");
     const slug = url.searchParams.get("slug");
     const db = getDb(locals);
-    const allowBootstrap = locals.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
+    const allowBootstrap = isSchemaBootstrapEnabled(env);
     await ensureCommentsSchema(db, { allowBootstrap });
     const params: unknown[] = [];
     let where = "1=1";
