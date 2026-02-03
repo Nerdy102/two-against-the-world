@@ -995,14 +995,23 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       );
     };
 
-    const toJpegBlob = async (file, quality = 0.82) => {
+    const convertHeic = async (file, quality = 0.82) => {
       if (!isHeic(file)) return file;
-      try {
-        const blob = await heic2any({ blob: file, toType: "image/jpeg", quality });
-        return blob instanceof Blob ? blob : new Blob([blob], { type: "image/jpeg" });
-      } catch (error) {
-        throw new Error("HEIC_UNSUPPORTED");
+      const attempts = [
+        { toType: "image/jpeg", quality },
+        { toType: "image/jpeg", quality: Math.max(0.6, quality - 0.2) },
+        { toType: "image/jpeg", quality: 0.5 },
+        { toType: "image/png" },
+      ];
+      for (const attempt of attempts) {
+        try {
+          const blob = await heic2any({ blob: file, ...attempt });
+          return blob instanceof Blob ? blob : new Blob([blob], { type: attempt.toType });
+        } catch (error) {
+          continue;
+        }
       }
+      throw new Error("HEIC_CONVERT_FAILED");
     };
 
     const encodeJpeg = (canvas, quality) =>
@@ -1035,8 +1044,13 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
     };
 
     const resizeImage = async (file, maxSize = 2048, quality = 0.82) => {
-      const source = await toJpegBlob(file, quality);
-      const decoded = await decodeImage(source);
+      const source = await convertHeic(file, quality);
+      let decoded = null;
+      try {
+        decoded = await decodeImage(source);
+      } catch (error) {
+        throw new Error("IMAGE_DECODE_FAILED");
+      }
       const ratio = Math.min(1, maxSize / Math.max(decoded.width, decoded.height));
       const targetWidth = Math.round(decoded.width * ratio);
       const targetHeight = Math.round(decoded.height * ratio);
@@ -1208,10 +1222,14 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
         } catch (error) {
           if (error?.name === "AbortError") {
             uploadNote.textContent = "Đã hủy upload ảnh.";
-          } else if (error?.message === "HEIC_UNSUPPORTED") {
+          } else if (error?.message === "HEIC_CONVERT_FAILED") {
             uploadNote.textContent =
-              "Ảnh HEIC chưa hỗ trợ trên trình duyệt này. Hãy đổi Camera → Formats → Most Compatible hoặc chuyển sang JPG.";
-            showToast("Ảnh HEIC chưa hỗ trợ. Vui lòng đổi sang JPG.", "error");
+              "Không chuyển đổi được ảnh HEIC. Hãy đổi Camera → Formats → Most Compatible hoặc chuyển sang JPG.";
+            showToast("Không chuyển đổi được HEIC. Vui lòng đổi sang JPG.", "error");
+          } else if (error?.message === "IMAGE_DECODE_FAILED") {
+            uploadNote.textContent =
+              "Không giải mã được ảnh này. Hãy đổi Camera → Formats → Most Compatible hoặc chuyển sang JPG.";
+            showToast("Không giải mã được ảnh. Vui lòng đổi sang JPG.", "error");
           } else {
             uploadNote.textContent =
               "Có ảnh upload lỗi. Thử ảnh khác hoặc đổi Camera → Formats → Most Compatible.";
