@@ -840,11 +840,15 @@ a { color: inherit; text-decoration: none; }
    ----------------- */
 
 .pinterest-grid {
-  columns: 2;
+  columns: 1;
   column-gap: 16px;
   width: min(1200px, 92vw);
   margin: 0 auto;
-  column-fill: balance;
+  column-fill: auto;
+}
+
+@media (min-width: 720px) {
+  .pinterest-grid { columns: 2; }
 }
 
 @media (min-width: 900px) {
@@ -882,6 +886,14 @@ a { color: inherit; text-decoration: none; }
   opacity: 1;
   transform: none;
   filter: none;
+}
+
+@media (max-width: 720px) {
+  [data-motion="ok"] .pinterest-grid [data-reveal] {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
 }
 
 .feed-card.is-pinned {

@@ -361,19 +361,10 @@ const useBlendedStory = isSingleImage;
           .join("");
       };
 
-      const refresh = async () => {
-        try {
-          const res = await fetch(`/api/comments?slug=${encodeURIComponent(slug)}`);
-          if (!res.ok) throw new Error("Failed");
-          const data = await res.json();
-          render(data.comments || []);
-        } catch (error) {
-          if (err) err.textContent = "Chưa tải được lời nhắn.";
-        }
+      const formatApiError = (payload, fallback) => {
+        const message = [payload?.error, payload?.detail].filter(Boolean).join(" — ");
+        return message || fallback;
       };
-
-      refresh();
-      const poll = setInterval(refresh, 5000);
 
       let toastTimeout = null;
       const showToast = (message, variant = "error") => {
@@ -388,6 +379,26 @@ const useBlendedStory = isSingleImage;
           toast.dataset.state = "";
         }, 2200);
       };
+
+      const refresh = async () => {
+        try {
+          const res = await fetch(`/api/comments?slug=${encodeURIComponent(slug)}`);
+          if (!res.ok) {
+            const payload = await res.json().catch(() => ({}));
+            const message = formatApiError(payload, "Chưa tải được lời nhắn.");
+            if (err) err.textContent = message;
+            showToast(message);
+            return;
+          }
+          const data = await res.json();
+          render(data.comments || []);
+        } catch (error) {
+          if (err) err.textContent = "Chưa tải được lời nhắn.";
+        }
+      };
+
+      refresh();
+      const poll = setInterval(refresh, 5000);
 
       form.addEventListener("submit", (e) => {
         e.preventDefault();
@@ -411,7 +422,7 @@ const useBlendedStory = isSingleImage;
           .then(async (res) => {
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
-              const messageText = data?.error || "Gửi chưa được, thử lại sau nha.";
+              const messageText = formatApiError(data, "Gửi chưa được, thử lại sau nha.");
               if (err) err.textContent = messageText;
               showToast(messageText);
               return;
@@ -462,6 +473,15 @@ const useBlendedStory = isSingleImage;
       const buttons = Array.from(bar.querySelectorAll("[data-reaction-kind]"));
       const slug = form.dataset.commentSlug || "unknown";
 
+      const formatApiError = (payload, fallback) => {
+        const message = [payload?.error, payload?.detail].filter(Boolean).join(" — ");
+        return message || fallback;
+      };
+
+      const showReactionError = (message) => {
+        if (stateEl) stateEl.textContent = message;
+      };
+
       const render = ({ counts = {}, reactedKinds = [], total = 0 }) => {
         buttons.forEach((button) => {
           const kind = button.dataset.reactionKind;
@@ -480,7 +500,11 @@ const useBlendedStory = isSingleImage;
 
       const load = async () => {
         const res = await fetch(`/api/reactions?slug=${encodeURIComponent(slug)}`);
-        if (!res.ok) return;
+        if (!res.ok) {
+          const payload = await res.json().catch(() => ({}));
+          showReactionError(formatApiError(payload, "Chưa tải được cảm xúc."));
+          return;
+        }
         const data = await res.json();
         render(data);
       };
@@ -494,7 +518,11 @@ const useBlendedStory = isSingleImage;
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ slug, kind }),
           });
-          if (!res.ok) return;
+          if (!res.ok) {
+            const payload = await res.json().catch(() => ({}));
+            showReactionError(formatApiError(payload, "Chưa gửi được cảm xúc."));
+            return;
+          }
           const data = await res.json();
           render(data);
         });

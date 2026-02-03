@@ -40,13 +40,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
         400
       );
     }
-    const adminPassword = getAdminPassword(locals);
+    const adminPassword = locals.runtime?.env?.ADMIN_PASSWORD ?? getAdminPassword(locals);
     console.info("[admin:unlock] hasAdminPassword=%s", Boolean(adminPassword));
     if (!adminPassword) {
       return json(
         {
-          error: "Missing ADMIN_PASSWORD (set it in .dev.vars for wrangler dev)",
+          error: "Missing ADMIN_PASSWORD",
           detail: "ADMIN_PASSWORD is not set in runtime env.",
+          howToFixProd: "Set it in Cloudflare Worker Variables/Secrets",
+          howToFixLocal: "Set it in .dev.vars for wrangler dev",
           code: "ADMIN_PASSWORD_ENV_MISSING",
         },
         400
