@@ -4,7 +4,7 @@ import { ensureAdminSchema, getDb } from "./d1";
 const ADMIN_SESSION_COOKIE = "twaw_admin_session";
 const ADMIN_CSRF_COOKIE = "twaw_admin_csrf";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
-const PBKDF2_ITERATIONS = 120000;
+const PBKDF2_ITERATIONS = 100000;
 const LOGIN_WINDOW_MS = 10 * 60 * 1000;
 const LOGIN_LOCK_MS = 15 * 60 * 1000;
 const LOGIN_MAX_FAILURES = 5;

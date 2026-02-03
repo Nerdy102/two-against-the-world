@@ -93,6 +93,7 @@ export const GET: APIRoute = async ({ locals }) => {
 
   return json({
     ok: true,
+    workerName: asString(env.WORKER_NAME),
     env: {
       hasAdminPassword: Boolean(env.ADMIN_PASSWORD),
       adminPasswordStatus: env.ADMIN_PASSWORD ? "set" : "missing",

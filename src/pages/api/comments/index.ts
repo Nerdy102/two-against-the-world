@@ -15,6 +15,9 @@ const json = (data: unknown, status = 200) =>
     headers: { "content-type": "application/json" },
   });
 
+const PROD_TARGET_DETAIL =
+  "Production is https://tinyeu.blog on worker two-against-the-world1 with D1 database two-against-the-world.";
+
 const hashIp = async (ip: string) => {
   const data = new TextEncoder().encode(ip);
   const digest = await crypto.subtle.digest("SHA-256", data);
@@ -76,8 +79,8 @@ export const GET: APIRoute = async ({ locals, url }) => {
       return json(
         {
           ok: false,
-          error: "Missing DB schema; apply migrations locally",
-          detail: message,
+          error: "Missing DB schema; run repair/migrations",
+          detail: `${message} ${PROD_TARGET_DETAIL}`,
           code: "DB_SCHEMA_MISSING",
         },
         500
@@ -221,8 +224,8 @@ export const POST: APIRoute = async ({ locals, request }) => {
       return json(
         {
           ok: false,
-          error: "Missing DB schema; apply migrations locally",
-          detail: message,
+          error: "Missing DB schema; run repair/migrations",
+          detail: `${message} ${PROD_TARGET_DETAIL}`,
           code: "DB_SCHEMA_MISSING",
         },
         500
