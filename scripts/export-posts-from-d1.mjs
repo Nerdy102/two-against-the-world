@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { execSync } from "node:child_process";
-import matter from "gray-matter";
+import { stringifyFrontmatter } from "./frontmatter.mjs";
 
 const OUTPUT_ROOT = path.join(process.cwd(), "export");
 const OUTPUT_DIR = path.join(OUTPUT_ROOT, "posts");
@@ -24,7 +24,7 @@ const parseArgs = () => {
   };
 };
 
-const runWranglerQuery = (dbName: string, sql: string, local: boolean) => {
+const runWranglerQuery = (dbName, sql, local) => {
   const flags = local ? "--local" : "";
   const output = execSync(`wrangler d1 execute ${dbName} --json --command ${JSON.stringify(sql)} ${flags}`, {
     encoding: "utf8",
@@ -34,7 +34,7 @@ const runWranglerQuery = (dbName: string, sql: string, local: boolean) => {
   return first?.results ?? [];
 };
 
-const normalizeTags = (row: Record<string, unknown>) => {
+const normalizeTags = (row) => {
   if (row.tags_json) {
     try {
       const parsed = JSON.parse(String(row.tags_json));
@@ -52,7 +52,7 @@ const normalizeTags = (row: Record<string, unknown>) => {
   return [];
 };
 
-const toDate = (value: unknown) => {
+const toDate = (value) => {
   if (!value) return new Date().toISOString();
   const date = new Date(String(value));
   return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
@@ -107,7 +107,7 @@ const main = async () => {
       sortOrder: Number(row.sort_order ?? 0),
     };
     const content = row.body_markdown ?? row.content_md ?? "";
-    const output = matter.stringify(content, frontmatter);
+    const output = stringifyFrontmatter(content, frontmatter);
     const filename = `${slug}.md`;
     const filepath = path.join(OUTPUT_DIR, filename);
     if (!force) {

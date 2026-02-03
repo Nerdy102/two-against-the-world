@@ -32,6 +32,8 @@ if (!post) throw new Error(`Post not found: ${slug}`);
 
 const contentHtml = marked.parse(post.body_markdown ?? post.content_md ?? "");
 const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "";
+const siteUrl = import.meta.env.PUBLIC_SITE_URL ?? "";
+const canonicalUrl = siteUrl ? new URL(`/entries/${post.slug}`, siteUrl).toString() : "";
 
 // Safe helpers (avoid blank rendering)
 const s = (v: unknown) => (typeof v === "string" ? v.trim() : "");
@@ -65,20 +67,26 @@ const wallImages = [
   { src: post.cover_url ?? "/noise.svg", alt: `${post.title} — cover` },
   ...photos.map((src, i) => ({ src, alt: `${post.title} — photo ${i + 1}` })),
 ];
-const useBlendedStory = photos.length === 0;
+const isSingleImage = wallImages.length === 1;
+const useBlendedStory = isSingleImage;
 ---
 
 <BaseLayout title={post.title} description={post.summary ?? ""}>
   <main class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-10">
     {/* TOP PAPER (TITLE + META) */}
-    <div class="paper edge-torn p-6 sm:p-10" data-reveal>
+    <div class="paper edge-torn p-6 sm:p-10 entry-hero" data-reveal>
       <div class="kicker text-xs text-[rgba(0,0,0,0.58)]">Emotional Anchor</div>
 
       <RansomTitle text={post.title} as="h1" stampEvery={0} class="mt-3 text-[40px] sm:text-[56px]" />
 
-      {post.summary && (
-        <p class="mt-4 text-[rgba(0,0,0,0.70)] max-w-2xl">
+      {(post.summary || author) && (
+        <p class="mt-4 text-[rgba(0,0,0,0.70)] max-w-2xl entry-summary">
           {post.summary}
+          {author && (
+            <span class="entry-summary__author">
+              {post.summary ? " · " : ""}by {author}
+            </span>
+          )}
         </p>
       )}
 
@@ -86,6 +94,38 @@ const useBlendedStory = photos.length === 0;
         <span>Chủ đề: {topicLabel(post.topic ?? undefined)}</span>
         <span>•</span>
         <span>{formatDate(post.published_at ?? post.created_at)}</span>
+      </div>
+
+      <div class="entry-share">
+        <button
+          class="share-btn share-btn--hero"
+          type="button"
+          data-share-link
+          data-share-url={canonicalUrl}
+          aria-label="Chia sẻ bài viết"
+          title="Chia sẻ"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path
+              d="M21.8 3.2L10.2 12.7"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M21.8 3.2l-5.9 17.4-3.2-6.1-6.9-2.1 16-9.2z"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          <span class="share-btn__label">SHARE</span>
+        </button>
+        <span class="share-toast" data-share-state role="status" aria-live="polite" aria-atomic="true"></span>
       </div>
     </div>
 
@@ -115,11 +155,11 @@ const useBlendedStory = photos.length === 0;
     {/* NOTES / BODY */}
     <section class="mt-10" aria-label="Ghi chú" data-reveal>
       {useBlendedStory ? (
-        <div class="paper edge-torn post-blend">
-          <div class="post-blend__media">
-            <FrameWall images={wallImages} seed={post.slug} />
+        <div class="paper edge-torn post-story">
+          <div class="post-story__media">
+            <img src={wallImages[0]?.src} alt={wallImages[0]?.alt ?? ""} loading="lazy" decoding="async" />
           </div>
-          <div class="post-blend__body p-6 sm:p-10 prose prose-scrap max-w-none">
+          <div class="post-story__body p-6 sm:p-10 prose prose-scrap max-w-none">
             <div set:html={contentHtml} />
           </div>
         </div>
@@ -132,7 +172,7 @@ const useBlendedStory = photos.length === 0;
 
     {/* COMMENTS */}
     <section class="mt-10" aria-label="Bình luận" data-reveal>
-      <div class="paper paper--alt edge-torn p-6 sm:p-10">
+      <div class="paper paper--alt edge-torn p-6 sm:p-10 comment-slab">
         <div class="kicker text-xs text-black/50">💬</div>
         <h2 class="mt-3 text-[26px] sm:text-[32px] font-semibold text-black/80">Để lại lời nhắn xàm xí</h2>
         <p class="mt-2 text-black/60">Nhập biệt danh rồi thả vài dòng nha.</p>
@@ -194,29 +234,7 @@ const useBlendedStory = photos.length === 0;
               👀 <span data-reaction-count>0</span>
             </button>
           </div>
-          <button class="share-btn" type="button" data-share-link aria-label="Chia sẻ bài viết" title="Chia sẻ">
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path
-                d="M21 3L10.5 13.5"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-              <path
-                d="M21 3l-7.5 18-3.2-6.3L4 11.5 21 3z"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
-            <span class="sr-only">Copy link</span>
-          </button>
           <span class="text-xs text-black/50" data-reaction-state>Chọn icon để thả cảm xúc.</span>
-          <span class="share-toast" data-share-state role="status" aria-live="polite" aria-atomic="true"></span>
         </div>
 
         <form class="comment-form mt-6" data-comment-form data-comment-slug={post.slug}>
@@ -230,6 +248,7 @@ const useBlendedStory = photos.length === 0;
           </label>
           <button class="btn comment-submit" type="submit">Gửi lời nhắn</button>
           <p class="comment-hint" data-comment-error></p>
+          <div class="comment-toast" data-comment-toast role="status" aria-live="polite" aria-atomic="true"></div>
         </form>
 
         {turnstileSiteKey && (
@@ -321,6 +340,7 @@ const useBlendedStory = photos.length === 0;
       const form = document.querySelector("[data-comment-form]");
       const list = document.querySelector("[data-comment-list]");
       const err = document.querySelector("[data-comment-error]");
+      const toast = document.querySelector("[data-comment-toast]");
       const hasTurnstile = Boolean(document.querySelector("[data-turnstile-widget]"));
 
       if (!form || !list) return;
@@ -369,12 +389,27 @@ const useBlendedStory = photos.length === 0;
       refresh();
       const poll = setInterval(refresh, 5000);
 
+      let toastTimeout = null;
+      const showToast = (message, variant = "error") => {
+        if (!toast) return;
+        toast.textContent = message;
+        toast.dataset.state = variant;
+        toast.classList.add("is-visible");
+        if (toastTimeout) window.clearTimeout(toastTimeout);
+        toastTimeout = window.setTimeout(() => {
+          toast.classList.remove("is-visible");
+          toast.textContent = "";
+          toast.dataset.state = "";
+        }, 2200);
+      };
+
       form.addEventListener("submit", (e) => {
         e.preventDefault();
         const nickname = form.querySelector("input[name='nickname']")?.value?.trim();
         const message = form.querySelector("textarea[name='message']")?.value?.trim();
         if (!nickname || !message) {
           if (err) err.textContent = "Nhập biệt danh + lời nhắn mới được nhé!";
+          showToast("Nhập biệt danh + lời nhắn mới được nhé!");
           return;
         }
         fetch("/api/comments", {
@@ -388,14 +423,19 @@ const useBlendedStory = photos.length === 0;
           }),
         })
           .then(async (res) => {
-            if (!res.ok) throw new Error("Failed");
             const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+              const messageText = data?.error || "Gửi chưa được, thử lại sau nha.";
+              if (err) err.textContent = messageText;
+              showToast(messageText);
+              return;
+            }
             form.reset();
             if (err) {
-              err.textContent =
-                data?.status === "pending"
-                  ? "Comment đang chờ duyệt."
-                  : "";
+              err.textContent = data?.status === "pending" ? "Comment đang chờ duyệt." : "";
+            }
+            if (data?.status === "pending") {
+              showToast("Comment đang chờ duyệt.", "info");
             }
             if (hasTurnstile && window.turnstile) {
               window.turnstile.reset();
@@ -403,7 +443,9 @@ const useBlendedStory = photos.length === 0;
             refresh();
           })
           .catch(() => {
-            if (err) err.textContent = "Gửi chưa được, thử lại sau nha.";
+            const messageText = "Gửi chưa được, thử lại sau nha.";
+            if (err) err.textContent = messageText;
+            showToast(messageText);
           });
       });
 
@@ -481,26 +523,40 @@ const useBlendedStory = photos.length === 0;
           shareState.classList.remove("is-visible");
           shareState.textContent = "";
           shareState.dataset.state = "";
-        }, 1200);
+        }, 2000);
+      };
+
+      const fallbackCopy = (text) => {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "absolute";
+        textarea.style.left = "-9999px";
+        document.body.appendChild(textarea);
+        textarea.select();
+        const ok = document.execCommand("copy");
+        document.body.removeChild(textarea);
+        return ok;
       };
 
       shareBtn?.addEventListener("click", async () => {
-        const url = window.location.href;
+        const url = shareBtn.getAttribute("data-share-url") || window.location.href;
         if (navigator.clipboard?.writeText) {
           try {
             await navigator.clipboard.writeText(url);
-            showShareToast("Đã sao chép liên kết");
+            showShareToast("Copied!");
             return;
           } catch (error) {
             // fall through to manual copy prompt
           }
         }
-        const manual = window.prompt("Sao chép liên kết:", url);
-        if (manual !== null) {
-          showShareToast("Đã mở hộp sao chép");
-        } else {
-          showShareToast("Không sao chép được", "error");
+        const ok = fallbackCopy(url);
+        if (ok) {
+          showShareToast("Copied!");
+          return;
         }
+        const manual = window.prompt("Sao chép liên kết:", url);
+        showShareToast(manual !== null ? "Copied!" : "Không sao chép được", manual !== null ? "success" : "error");
       });
 
       load();

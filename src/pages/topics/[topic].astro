@@ -15,11 +15,12 @@ const isLocked = topic === "trash-bin";
 
 let allPosts: PostRecord[] = [];
 try {
+  const allowBootstrap = Astro.locals?.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
   const db = getDb(Astro.locals);
-  await ensurePostsSchema(db);
+  await ensurePostsSchema(db, { allowBootstrap });
   const { results = [] } = await db
     .prepare(
-      `SELECT id, slug, title, summary, cover_url, topic, published_at, status,
+      `SELECT id, slug, title, summary, cover_url, topic, author, published_at, status,
         CASE
           WHEN pinned = 1 AND (pinned_until IS NULL OR datetime(pinned_until) > datetime('now')) THEN 1
           ELSE 0
@@ -58,7 +59,7 @@ for (const p of allPosts) {
 ---
 
 <BaseLayout title={label} active="topics">
-  <main class="mx-auto max-w-6xl px-5 pb-20">
+  <main class="mx-auto max-w-7xl px-5 pb-20">
     <section class="paper edge-torn mt-8 p-6 sm:p-10" data-reveal>
       <p class="kicker text-[11px] text-black/50">Chủ đề</p>
       <RansomTitle text={label} as="h1" stampEvery={0} class="text-[40px] sm:text-[56px]" />
@@ -96,6 +97,7 @@ for (const p of allPosts) {
               image={p.cover_url ?? "/noise.svg"}
               title={p.title}
               description={p.summary ?? ""}
+              author={p.author ?? ""}
               date={p.published_at ?? ""}
               topic={p.topic ?? undefined}
               locked={isLocked}

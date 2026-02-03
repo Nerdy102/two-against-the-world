@@ -49,21 +49,27 @@ export const GET: APIRoute = async ({ locals, url }) => {
   if (!slug) {
     return json({ error: "Missing slug" }, 400);
   }
-  const db = getDb(locals);
-  await ensureCommentsSchema(db);
-  await ensureAdminSchema(db);
-  await ensurePostsSchema(db);
-  const { results } = await db
-    .prepare(
-      `SELECT id, post_slug, parent_id, display_name, body, status, created_at
-       FROM comments
-       WHERE post_slug = ? AND status IN ('approved', 'visible')
-       ORDER BY datetime(created_at) DESC
-       LIMIT 200`
-    )
-    .bind(slug)
-    .all<CommentRecord>();
-  return json({ comments: results ?? [] });
+  try {
+    const db = getDb(locals);
+    const allowBootstrap = locals.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
+    await ensureCommentsSchema(db, { allowBootstrap });
+    await ensureAdminSchema(db, { allowBootstrap });
+    await ensurePostsSchema(db, { allowBootstrap });
+    const { results } = await db
+      .prepare(
+        `SELECT id, post_slug, parent_id, display_name, body, status, created_at
+         FROM comments
+         WHERE post_slug = ? AND status IN ('approved', 'visible')
+         ORDER BY datetime(created_at) DESC
+         LIMIT 200`
+      )
+      .bind(slug)
+      .all<CommentRecord>();
+    return json({ comments: results ?? [] });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to load comments.";
+    return json({ error: message }, 500);
+  }
 };
 
 export const POST: APIRoute = async ({ locals, request }) => {
@@ -87,65 +93,72 @@ export const POST: APIRoute = async ({ locals, request }) => {
     return json({ error: "Comment too long" }, 400);
   }
 
-  const db = getDb(locals);
-  await ensureCommentsSchema(db);
-  await ensureAdminSchema(db);
-  await ensurePostsSchema(db);
-  const id = crypto.randomUUID();
-  const post = await db
-    .prepare(`SELECT id, status FROM posts WHERE slug = ? LIMIT 1`)
-    .bind(slug)
-    .first<{ id: string; status: string }>();
-  if (!post || post.status !== "published") {
-    return json({ error: "Post not available" }, 400);
-  }
-  const ip =
-    request.headers.get("CF-Connecting-IP") ||
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    null;
-  const ipHash = ip ? await hashIp(ip) : null;
-  const userAgent = request.headers.get("user-agent") ?? "";
-  const userAgentHash = userAgent ? await hashIp(userAgent) : null;
-  const secret = locals.runtime?.env?.TURNSTILE_SECRET;
-  if (secret) {
-    if (!turnstileToken) return json({ error: "Turnstile required" }, 400);
-    const ok = await verifyTurnstile(secret, turnstileToken, ip);
-    if (!ok) return json({ error: "Turnstile failed" }, 400);
-  }
-
-  if (ipHash) {
-    const banned = await db
-      .prepare(`SELECT id FROM comment_bans WHERE ip_hash = ? LIMIT 1`)
-      .bind(ipHash)
-      .first<{ id: string }>();
-    if (banned?.id) {
-      return json({ error: "You are blocked from commenting." }, 403);
+  try {
+    const db = getDb(locals);
+    const allowBootstrap = locals.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
+    await ensureCommentsSchema(db, { allowBootstrap });
+    await ensureAdminSchema(db, { allowBootstrap });
+    await ensurePostsSchema(db, { allowBootstrap });
+    const id = crypto.randomUUID();
+    const post = await db
+      .prepare(`SELECT id, status FROM posts WHERE slug = ? LIMIT 1`)
+      .bind(slug)
+      .first<{ id: string; status: string }>();
+    if (!post || post.status !== "published") {
+      return json({ error: "Post not available" }, 400);
     }
-  }
+    const ip =
+      request.headers.get("CF-Connecting-IP") ||
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      null;
+    const ipHash = ip ? await hashIp(ip) : null;
+    const userAgent = request.headers.get("user-agent") ?? "";
+    const userAgentHash = userAgent ? await hashIp(userAgent) : null;
+    const secret = locals.runtime?.env?.TURNSTILE_SECRET;
+    if (secret) {
+      if (!turnstileToken) return json({ error: "Turnstile required" }, 400);
+      const ok = await verifyTurnstile(secret, turnstileToken, ip);
+      if (!ok) return json({ error: "Turnstile failed" }, 400);
+    }
 
-  if (ipHash) {
-    const { results } = await db
+    if (ipHash) {
+      const banned = await db
+        .prepare(`SELECT id FROM comment_bans WHERE ip_hash = ? LIMIT 1`)
+        .bind(ipHash)
+        .first<{ id: string }>();
+      if (banned?.id) {
+        return json({ error: "You are blocked from commenting." }, 403);
+      }
+    }
+
+    if (ipHash) {
+      const { results } = await db
+        .prepare(
+          `SELECT COUNT(*) as count
+           FROM comments
+           WHERE ip_hash = ? AND datetime(created_at) > datetime('now', '-10 minutes')`
+        )
+        .bind(ipHash)
+        .all<{ count: number }>();
+      const count = Number(results?.[0]?.count ?? 0);
+      if (count >= 5) {
+        return json({ error: "Too many comments, slow down." }, 429);
+      }
+    }
+
+    const requireReview = locals.runtime?.env?.COMMENTS_REQUIRE_REVIEW === "true";
+    const status = requireReview || shouldHoldForReview(body) ? "pending" : "approved";
+    await db
       .prepare(
-        `SELECT COUNT(*) as count
-         FROM comments
-         WHERE ip_hash = ? AND datetime(created_at) > datetime('now', '-10 minutes')`
+        `INSERT INTO comments (id, post_slug, post_id, parent_id, display_name, body, status, ip_hash, user_agent_hash)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
-      .bind(ipHash)
-      .all<{ count: number }>();
-    const count = Number(results?.[0]?.count ?? 0);
-    if (count >= 5) {
-      return json({ error: "Too many comments, slow down." }, 429);
-    }
+      .bind(id, slug, post.id, parentId, displayName, body, status, ipHash, userAgentHash)
+      .run();
+
+    return json({ ok: true, id, status });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to submit comment.";
+    return json({ error: message }, 500);
   }
-
-  const status = shouldHoldForReview(body) ? "pending" : "approved";
-  await db
-    .prepare(
-      `INSERT INTO comments (id, post_slug, post_id, parent_id, display_name, body, status, ip_hash, user_agent_hash)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    )
-    .bind(id, slug, post.id, parentId, displayName, body, status, ipHash, userAgentHash)
-    .run();
-
-  return json({ ok: true, id, status });
 };

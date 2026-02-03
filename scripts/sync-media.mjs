@@ -13,7 +13,7 @@ const readBucketName = async () => {
   return bucket;
 };
 
-const walk = async (dir: string, list: string[] = []) => {
+const walk = async (dir, list = []) => {
   const entries = await fs.readdir(dir, { withFileTypes: true });
   for (const entry of entries) {
     const full = path.join(dir, entry.name);

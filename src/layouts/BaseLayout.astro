@@ -5,6 +5,7 @@ import Background from "../components/Background.astro";
 import StickerLayer from "../components/StickerLayer.astro";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
+import LoveWidgets from "../components/LoveWidgets.astro";
 
 const {
   title = "Two Against The World",
@@ -15,6 +16,23 @@ const {
   description?: string;
   active?: "entries" | "topics" | "about";
 };
+
+const runtimeEnv = Astro.locals?.runtime?.env ?? {};
+const buildSha =
+  runtimeEnv.BUILD_SHA ??
+  runtimeEnv.PUBLIC_BUILD_SHA ??
+  runtimeEnv.CF_PAGES_COMMIT_SHA ??
+  runtimeEnv.GITHUB_SHA ??
+  import.meta.env.PUBLIC_BUILD_SHA ??
+  import.meta.env.CF_PAGES_COMMIT_SHA ??
+  "";
+const buildTime =
+  runtimeEnv.BUILD_TIME ??
+  runtimeEnv.PUBLIC_BUILD_TIME ??
+  runtimeEnv.CF_PAGES_BUILD_TIMESTAMP ??
+  import.meta.env.PUBLIC_BUILD_TIME ??
+  import.meta.env.CF_PAGES_BUILD_TIMESTAMP ??
+  "";
 ---
 
 <!doctype html>
@@ -34,11 +52,12 @@ const {
 
     <Header active={active} />
 
-    <main class="mx-auto max-w-6xl px-5 pt-6">
+    <main class="mx-auto max-w-7xl px-5 pt-6">
       <slot />
     </main>
 
-    <Footer />
+    <Footer buildSha={buildSha} buildTime={buildTime} />
+    <LoveWidgets />
 
     <script is:inline>
       // Respect reduced motion

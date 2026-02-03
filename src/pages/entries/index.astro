@@ -10,8 +10,9 @@ export const prerender = false;
 
 let posts: PostRecord[] = [];
 try {
+  const allowBootstrap = Astro.locals?.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
   const db = getDb(Astro.locals);
-  await ensurePostsSchema(db);
+  await ensurePostsSchema(db, { allowBootstrap });
   const { results = [] } = await db
     .prepare(
       `SELECT id, slug, title, summary, cover_url, topic, author, location, event_time, written_at, photo_time, tags_csv, side_note, published_at, created_at,
@@ -51,7 +52,7 @@ const dateStats = Object.entries(dateCounts)
 ---
 
 <BaseLayout title="Nhật ký" description="Kho lưu nhật ký tình yêu." active="entries">
-  <main class="mx-auto max-w-6xl px-5 pb-24 pt-10">
+  <main class="mx-auto max-w-7xl px-5 pb-24 pt-10">
     <section class="paper edge-torn p-6 sm:p-10" data-reveal>
       <div class="kicker text-xs text-black/50">LƯU TRỮ</div>
       <RansomTitle text="Nhật ký" as="h1" class="text-[44px] sm:text-[56px]" />
@@ -62,13 +63,23 @@ const dateStats = Object.entries(dateCounts)
           <div class="journal-tools__header">
             <span class="journal-tools__icon">📓</span>
             <span>Nhật ký</span>
-            <span class="journal-tools__hint">Tìm ảnh theo ngày</span>
+            <span class="journal-tools__hint">Tìm ảnh theo ngày & từ khoá</span>
           </div>
           <div class="journal-tools__content">
             <div class="journal-tools__fields">
               <label class="journal-tools__field">
                 <span>Ngày đăng</span>
-                <input class="input" type="date" data-search-date data-search-primary />
+                <input class="input" type="date" data-search-date />
+              </label>
+              <label class="journal-tools__field">
+                <span>Từ khoá</span>
+                <input
+                  class="input"
+                  type="search"
+                  placeholder="Nhập tiêu đề, tác giả, tóm tắt..."
+                  data-search-keyword
+                  data-search-primary
+                />
               </label>
               <button class="btn journal-tools__reset" type="button" data-search-reset>Đặt lại</button>
             </div>
@@ -101,6 +112,7 @@ const dateStats = Object.entries(dateCounts)
               href={`/entries/${post.slug}`}
               title={post.title}
               description={post.summary ?? ""}
+              author={post.author ?? ""}
               date={post.published_at ?? ""}
               image={post.cover_url ?? "/noise.svg"}
               topic={post.topic ?? undefined}
@@ -122,6 +134,7 @@ const dateStats = Object.entries(dateCounts)
       const dateInputs = Array.from(document.querySelectorAll("[data-search-date]"));
       const resets = Array.from(document.querySelectorAll("[data-search-reset]"));
       const cards = Array.from(document.querySelectorAll("[data-search-grid] .feed-card"));
+      const keywordInput = document.querySelector("[data-search-keyword]");
       const primaryInput = document.querySelector("[data-search-primary]");
 
       if (!dateInputs.length || !resets.length || !cards.length) return;
@@ -138,10 +151,13 @@ const dateStats = Object.entries(dateCounts)
 
       const filter = () => {
         const date = dateInputs[0]?.value ?? "";
+        const keyword = keywordInput?.value?.trim().toLowerCase() ?? "";
         cards.forEach((card) => {
           const cardDate = card.getAttribute("data-date") || "";
+          const haystack = card.getAttribute("data-search") || "";
           const matchesDate = date ? cardDate === date : true;
-          card.classList.toggle("is-filtered", !matchesDate);
+          const matchesKeyword = keyword ? haystack.includes(keyword) : true;
+          card.classList.toggle("is-filtered", !(matchesDate && matchesKeyword));
         });
       };
 
@@ -152,9 +168,12 @@ const dateStats = Object.entries(dateCounts)
         });
       });
 
+      keywordInput?.addEventListener("input", filter);
+
       resets.forEach((reset) => {
         reset.addEventListener("click", () => {
           syncDates("");
+          if (keywordInput) keywordInput.value = "";
           filter();
         });
       });
