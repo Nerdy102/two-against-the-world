@@ -3,9 +3,9 @@ title: "nothing can keep us apart"
 description: "...và đâu ai muốn làm người bình thường khi yêu? Như thằng điên!"
 pubDate: 2026-02-03
 topic: screenshots
-cover: "/noise.svg"
+cover: "/photos/2026-02-03-nothing-can-keep-us-apart/cover.jpg"
 photoDir: "2026-02-03-nothing-can-keep-us-apart"
-photoCount: 2
+photoCount: 1
 
 author: "vịu ơ"
 location: "trong túi áo Hoà"
