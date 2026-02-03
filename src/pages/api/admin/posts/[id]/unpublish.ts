@@ -22,18 +22,24 @@ export const POST: APIRoute = async ({ locals, params, request }) => {
     return json({ error: "Missing id" }, 400);
   }
 
-  const db = getDb(locals);
-  await ensurePostsSchema(db);
-  await db
-    .prepare(
-      `UPDATE posts
-       SET status = 'draft',
-           published_at = NULL,
-           updated_at = datetime('now')
-       WHERE id = ?`
-    )
-    .bind(id)
-    .run();
+  try {
+    const db = getDb(locals);
+    const allowBootstrap = locals.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
+    await ensurePostsSchema(db, { allowBootstrap });
+    await db
+      .prepare(
+        `UPDATE posts
+         SET status = 'draft',
+             published_at = NULL,
+             updated_at = datetime('now')
+         WHERE id = ?`
+      )
+      .bind(id)
+      .run();
 
-  return json({ ok: true });
+    return json({ ok: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to unpublish post.";
+    return json({ error: message }, 500);
+  }
 };

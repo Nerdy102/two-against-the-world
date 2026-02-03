@@ -10,8 +10,9 @@ export const prerender = false;
 
 let posts: PostRecord[] = [];
 try {
+  const allowBootstrap = Astro.locals?.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
   const db = getDb(Astro.locals);
-  await ensurePostsSchema(db);
+  await ensurePostsSchema(db, { allowBootstrap });
   const { results = [] } = await db
     .prepare(
       `SELECT id, slug, title, summary, cover_url, topic, published_at, created_at,

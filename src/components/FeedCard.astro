@@ -6,6 +6,7 @@ type Props = {
   href: string;
   title: string;
   description?: string;
+  author?: string;
   image: string;
   date?: Date | string;
   topic?: string;
@@ -21,6 +22,7 @@ const {
   href,
   title,
   description = "",
+  author = "",
   image,
   date,
   topic,
@@ -46,7 +48,7 @@ const pinLabel = pinnedStyle && pinLabelMap[pinnedStyle] ? pinLabelMap[pinnedSty
   href={href}
   class={`feed-card ${locked ? "is-locked" : ""} ${pinned ? "is-pinned" : ""}`}
   data-reveal
-  data-search={searchText}
+  data-search={searchText?.toLowerCase()}
   data-date={dateKey}
   id={anchorId}
 >
@@ -64,7 +66,16 @@ const pinLabel = pinnedStyle && pinLabelMap[pinnedStyle] ? pinLabelMap[pinnedSty
   )}
 
   <h3 class="feed-card__title">{title}</h3>
-  {description && !locked && <p class="feed-card__desc">{description}</p>}
+  {!locked && (description || author) && (
+    <p class="feed-card__desc">
+      {description}
+      {author && (
+        <span class="feed-card__byline">
+          {description ? " · " : ""}by {author}
+        </span>
+      )}
+    </p>
+  )}
   {locked && <p class="feed-card__desc">🔒 Đã khóa</p>}
 
   <div class="feed-card__media">

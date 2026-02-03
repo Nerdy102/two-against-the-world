@@ -24,6 +24,7 @@ Thiết lập trong Cloudflare Dashboard (Workers → Settings → Variables):
 - `TURNSTILE_SECRET`: secret key cho Turnstile.
 - `COMMENTS_REQUIRE_REVIEW`: `true` để mọi comment vào trạng thái pending.
 - `DISABLE_HTML_CACHE`: `true` để HTML trả về `Cache-Control: no-store`.
+- `ALLOW_SCHEMA_BOOTSTRAP`: `true` để auto-create schema khi chạy local (production nên để `false`).
 - `PUBLIC_BUILD_SHA`: short commit SHA hiển thị ở footer.
 - `PUBLIC_BUILD_TIME`: build timestamp (ISO).
 - `PUBLIC_ENABLE_CONTENT_FALLBACK`: bật fallback từ Markdown khi D1 rỗng (`true`/`false`).
@@ -61,6 +62,7 @@ wrangler d1 migrations apply two-against-the-world --remote
 ```
 
 Lưu ý: thêm migration pinning (`0003_pinned_fields.sql`) trước khi bật ghim bài.
+Production không nên rely vào auto-create schema (bật `ALLOW_SCHEMA_BOOTSTRAP=false`).
 
 ## Hybrid data workflow (Markdown ↔ D1)
 
@@ -108,14 +110,15 @@ npm run download:media -- --manifest=export/media.json
 - Đăng nhập bằng `ADMIN_PASSWORD`.
 - CRUD bài viết, upload ảnh (R2), publish/unpublish, và duyệt comment.
 
-## Auto deploy (GitHub Actions)
+## Auto deploy (Cloudflare Pages Git integration)
 
-Repo có workflow deploy khi push `main`. Cần set secrets:
+Repo deploy qua Cloudflare Pages (Git integration). Thiết lập:
 
-- `CF_API_TOKEN`: Cloudflare API token (Workers edit + D1 + R2).
-- `CF_ACCOUNT_ID`: Cloudflare Account ID.
+- Build command: `npm run build`
+- Output: `dist`
+- Root directory: repo root
 
-Workflow sẽ set build info tự động (SHA + timestamp) và deploy bằng `wrangler deploy`.
+Pages sẽ tự build khi push `main`. Build info lấy từ `CF_PAGES_COMMIT_SHA` + `CF_PAGES_BUILD_TIMESTAMP`.
 
 ## Cache purge (Cloudflare)
 
@@ -127,6 +130,24 @@ Nếu HTML bị cache cứng, có thể:
 ## Health check
 
 `GET /api/health` trả về trạng thái env + build info để debug production nhanh.
+
+## Fix lockfile / npm ci (Cloudflare build)
+
+Cloudflare Pages dùng `npm ci`, nên cần lockfile sync:
+
+```bash
+rm -rf node_modules
+npm install
+git add package-lock.json
+git commit -m "chore: refresh lockfile"
+```
+
+Nếu cần đồng bộ môi trường build:
+
+```bash
+npm -v   # nên là 10.9.2
+node -v  # nên là 22.16.x
+```
 
 ## Tạo project mới (không update GitHub cũ)
 

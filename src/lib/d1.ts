@@ -59,7 +59,25 @@ let postMediaSchemaReady: Promise<void> | null = null;
 let adminSchemaReady: Promise<void> | null = null;
 let mediaSchemaReady: Promise<void> | null = null;
 
-export async function ensurePostsSchema(db: D1Database): Promise<void> {
+type SchemaOptions = {
+  allowBootstrap?: boolean;
+};
+
+const assertSchemaReady = (table: string) => {
+  throw new Error(
+    `D1 schema missing for "${table}". Run: npx wrangler d1 migrations apply <DB_BINDING_NAME> --remote`
+  );
+};
+
+const tableExists = async (db: D1Database, table: string) => {
+  const { results } = await db.prepare(`PRAGMA table_info(${table})`).all<{ name: string }>();
+  return Boolean(results?.length);
+};
+
+export async function ensurePostsSchema(
+  db: D1Database,
+  { allowBootstrap = false }: SchemaOptions = {}
+): Promise<void> {
   if (postsSchemaReady) {
     return postsSchemaReady;
   }
@@ -68,6 +86,9 @@ export async function ensurePostsSchema(db: D1Database): Promise<void> {
       .prepare("PRAGMA table_info(posts)")
       .all<{ name: string }>();
     if (!results?.length) {
+      if (!allowBootstrap) {
+        assertSchemaReady("posts");
+      }
       await db
         .prepare(
           `CREATE TABLE IF NOT EXISTS posts (
@@ -129,7 +150,10 @@ export async function ensurePostsSchema(db: D1Database): Promise<void> {
   return postsSchemaReady;
 }
 
-export async function ensureCommentsSchema(db: D1Database): Promise<void> {
+export async function ensureCommentsSchema(
+  db: D1Database,
+  { allowBootstrap = false }: SchemaOptions = {}
+): Promise<void> {
   if (commentsSchemaReady) {
     return commentsSchemaReady;
   }
@@ -138,6 +162,9 @@ export async function ensureCommentsSchema(db: D1Database): Promise<void> {
       .prepare("PRAGMA table_info(comments)")
       .all<{ name: string }>();
     if (!results?.length) {
+      if (!allowBootstrap) {
+        assertSchemaReady("comments");
+      }
       await db
         .prepare(
           `CREATE TABLE IF NOT EXISTS comments (
@@ -175,11 +202,19 @@ export async function ensureCommentsSchema(db: D1Database): Promise<void> {
   return commentsSchemaReady;
 }
 
-export async function ensureReactionsSchema(db: D1Database): Promise<void> {
+export async function ensureReactionsSchema(
+  db: D1Database,
+  { allowBootstrap = false }: SchemaOptions = {}
+): Promise<void> {
   if (reactionsSchemaReady) {
     return reactionsSchemaReady;
   }
   reactionsSchemaReady = (async () => {
+    if (!allowBootstrap) {
+      if (!(await tableExists(db, "reactions"))) {
+        assertSchemaReady("reactions");
+      }
+    }
     await db
       .prepare(
         `CREATE TABLE IF NOT EXISTS reactions (
@@ -202,11 +237,19 @@ export async function ensureReactionsSchema(db: D1Database): Promise<void> {
   return reactionsSchemaReady;
 }
 
-export async function ensureMediaSchema(db: D1Database): Promise<void> {
+export async function ensureMediaSchema(
+  db: D1Database,
+  { allowBootstrap = false }: SchemaOptions = {}
+): Promise<void> {
   if (mediaSchemaReady) {
     return mediaSchemaReady;
   }
   mediaSchemaReady = (async () => {
+    if (!allowBootstrap) {
+      if (!(await tableExists(db, "media"))) {
+        assertSchemaReady("media");
+      }
+    }
     await db
       .prepare(
         `CREATE TABLE IF NOT EXISTS media (
@@ -229,11 +272,19 @@ export async function ensureMediaSchema(db: D1Database): Promise<void> {
   return mediaSchemaReady;
 }
 
-export async function ensurePostMediaSchema(db: D1Database): Promise<void> {
+export async function ensurePostMediaSchema(
+  db: D1Database,
+  { allowBootstrap = false }: SchemaOptions = {}
+): Promise<void> {
   if (postMediaSchemaReady) {
     return postMediaSchemaReady;
   }
   postMediaSchemaReady = (async () => {
+    if (!allowBootstrap) {
+      if (!(await tableExists(db, "post_media"))) {
+        assertSchemaReady("post_media");
+      }
+    }
     await db
       .prepare(
         `CREATE TABLE IF NOT EXISTS post_media (
@@ -258,11 +309,27 @@ export async function ensurePostMediaSchema(db: D1Database): Promise<void> {
   return postMediaSchemaReady;
 }
 
-export async function ensureAdminSchema(db: D1Database): Promise<void> {
+export async function ensureAdminSchema(
+  db: D1Database,
+  { allowBootstrap = false }: SchemaOptions = {}
+): Promise<void> {
   if (adminSchemaReady) {
     return adminSchemaReady;
   }
   adminSchemaReady = (async () => {
+    if (!allowBootstrap) {
+      const required = [
+        "admin_users",
+        "admin_sessions",
+        "comment_bans",
+        "admin_login_attempts",
+      ];
+      for (const table of required) {
+        if (!(await tableExists(db, table))) {
+          assertSchemaReady(table);
+        }
+      }
+    }
     await db
       .prepare(
         `CREATE TABLE IF NOT EXISTS admin_users (

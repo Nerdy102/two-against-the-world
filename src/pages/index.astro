@@ -11,8 +11,9 @@ export const prerender = false;
 
 let posts: PostRecord[] = [];
 try {
+  const allowBootstrap = Astro.locals?.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
   const db = getDb(Astro.locals);
-  await ensurePostsSchema(db);
+  await ensurePostsSchema(db, { allowBootstrap });
   const { results = [] } = await db
     .prepare(
       `SELECT id, slug, title, summary, cover_url, status, author, topic, published_at,
@@ -98,6 +99,7 @@ const entriesCard = {
           image={post.cover_url ?? "/noise.svg"}
           title={post.title}
           description={post.summary ?? ""}
+          author={post.author ?? ""}
           date={post.published_at ?? ""}
           topic={post.topic ?? undefined}
           locked={post.topic === "trash-bin"}

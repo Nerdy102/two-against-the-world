@@ -73,12 +73,15 @@ const getClientIp = (request: Request) => {
   return forwarded.split(",")[0]?.trim() ?? "";
 };
 
+const canBootstrapSchema = (locals: APIContext["locals"]) =>
+  locals.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
+
 export const checkAdminLoginRateLimit = async (request: Request, locals: APIContext["locals"]) => {
   const ip = getClientIp(request);
   if (!ip) return { allowed: true };
   const ipHash = await sha256(ip);
   const db = getDb(locals);
-  await ensureAdminSchema(db);
+  await ensureAdminSchema(db, { allowBootstrap: canBootstrapSchema(locals) });
   const record = await db
     .prepare(
       `SELECT failed_count as failedCount, last_attempt as lastAttempt, locked_until as lockedUntil
@@ -111,7 +114,7 @@ export const recordAdminLoginFailure = async (request: Request, locals: APIConte
   if (!ip) return;
   const ipHash = await sha256(ip);
   const db = getDb(locals);
-  await ensureAdminSchema(db);
+  await ensureAdminSchema(db, { allowBootstrap: canBootstrapSchema(locals) });
   const existing = await db
     .prepare(
       `SELECT failed_count as failedCount, last_attempt as lastAttempt, locked_until as lockedUntil
@@ -149,7 +152,7 @@ export const clearAdminLoginFailures = async (request: Request, locals: APIConte
   if (!ip) return;
   const ipHash = await sha256(ip);
   const db = getDb(locals);
-  await ensureAdminSchema(db);
+  await ensureAdminSchema(db, { allowBootstrap: canBootstrapSchema(locals) });
   await db.prepare(`DELETE FROM admin_login_attempts WHERE ip_hash = ?`).bind(ipHash).run();
 };
 
@@ -162,7 +165,7 @@ export const ensureAdminBootstrapUser = async (locals: APIContext["locals"]) => 
   const password = getAdminPassword(locals);
   if (!password) return;
   const db = getDb(locals);
-  await ensureAdminSchema(db);
+  await ensureAdminSchema(db, { allowBootstrap: canBootstrapSchema(locals) });
   const existing = await db
     .prepare(`SELECT id FROM admin_users WHERE username = ? LIMIT 1`)
     .bind(DEFAULT_ADMIN_USERNAME)
@@ -181,7 +184,7 @@ export const ensureAdminBootstrapUser = async (locals: APIContext["locals"]) => 
 
 export const verifyAdminPassword = async (locals: APIContext["locals"], password: string) => {
   const db = getDb(locals);
-  await ensureAdminSchema(db);
+  await ensureAdminSchema(db, { allowBootstrap: canBootstrapSchema(locals) });
   await ensureAdminBootstrapUser(locals);
   const { results } = await db
     .prepare(
@@ -201,7 +204,7 @@ export const verifyAdminPassword = async (locals: APIContext["locals"], password
 
 export const createAdminSession = async (locals: APIContext["locals"], adminUserId: string) => {
   const db = getDb(locals);
-  await ensureAdminSchema(db);
+  await ensureAdminSchema(db, { allowBootstrap: canBootstrapSchema(locals) });
   const token = crypto.randomUUID();
   const tokenHash = await sha256(token);
   const expiresAt = new Date(Date.now() + SESSION_TTL_SECONDS * 1000).toISOString();
@@ -217,7 +220,7 @@ export const createAdminSession = async (locals: APIContext["locals"], adminUser
 
 export const clearAdminSession = async (locals: APIContext["locals"], token: string) => {
   const db = getDb(locals);
-  await ensureAdminSchema(db);
+  await ensureAdminSchema(db, { allowBootstrap: canBootstrapSchema(locals) });
   const tokenHash = await sha256(token);
   await db
     .prepare(`DELETE FROM admin_sessions WHERE session_token_hash = ?`)
@@ -231,7 +234,7 @@ export const getAdminSession = async (request: Request, locals: APIContext["loca
   if (!token) return null;
   const tokenHash = await sha256(token);
   const db = getDb(locals);
-  await ensureAdminSchema(db);
+  await ensureAdminSchema(db, { allowBootstrap: canBootstrapSchema(locals) });
   const session = await db
     .prepare(
       `SELECT admin_user_id as adminUserId, expires_at as expiresAt
