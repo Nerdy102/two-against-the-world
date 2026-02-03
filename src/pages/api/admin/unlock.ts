@@ -27,8 +27,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (!password) {
       return json({ error: "Missing password" }, 400);
     }
-    if (!getAdminPassword(locals)) {
-      return json({ error: "Admin password not configured" }, 500);
+    const adminPassword = getAdminPassword(locals);
+    if (!adminPassword) {
+      return json(
+        { error: "Missing ADMIN_PASSWORD (set it in .dev.vars for wrangler dev)" },
+        400
+      );
+    }
+    if (!locals.runtime?.env?.DB) {
+      return json({ error: "Missing DB binding in local runtime" }, 500);
     }
 
     const rateLimit = await checkAdminLoginRateLimit(request, locals);
@@ -57,6 +64,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return json({ ok: true, authenticated: true }, 200, headers);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Server error.";
+    if (message.includes("D1 database binding not found")) {
+      return json({ error: "Missing DB binding in local runtime" }, 500);
+    }
+    if (message.startsWith('D1 schema missing for "')) {
+      return json({ error: "Missing DB schema; apply migrations locally" }, 500);
+    }
     return json({ error: message }, 500);
   }
 };
