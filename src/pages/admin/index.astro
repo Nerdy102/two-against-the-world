@@ -398,6 +398,11 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
 
     const getSiteBase = () => import.meta.env.PUBLIC_SITE_URL || window.location.origin;
 
+    const setLoginLoading = (isLoading) => {
+      if (loginBtn) loginBtn.disabled = isLoading;
+      if (passwordInput) passwordInput.disabled = isLoading;
+    };
+
     const getSlugValue = () => {
       const slugInput = form?.querySelector("[name='slug']");
       const rawSlug = slugInput?.value?.trim();
@@ -431,23 +436,34 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
         showToast("Nhập password để mở khóa.");
         return;
       }
-      const res = await fetch("/api/admin/unlock", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ password: passwordInput.value }),
-      });
-      if (!res.ok) {
+      setLoginLoading(true);
+      try {
+        const res = await fetch("/api/admin/unlock", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ password: passwordInput.value }),
+        });
         const payload = await res.json().catch(() => ({}));
-        lockStatus.textContent = "Không mở khóa được";
-        showToast(payload?.error || "Không mở khóa được. Thử lại nhé.");
-        return;
+        if (!res.ok) {
+          lockStatus.textContent = "Không mở khóa được";
+          showToast(payload?.error || "Không mở khóa được. Thử lại nhé.");
+          setLocked(true);
+          return;
+        }
+        unlocked = Boolean(payload?.authenticated);
+        if (!unlocked) {
+          lockStatus.textContent = "Không mở khóa được";
+          showToast("Không mở khóa được. Thử lại nhé.");
+          setLocked(true);
+          return;
+        }
+        passwordInput.value = "";
+        setLocked(false);
+        await loadPosts();
+        await loadComments();
+      } finally {
+        setLoginLoading(false);
       }
-      await res.json().catch(() => ({}));
-      unlocked = true;
-      passwordInput.value = "";
-      setLocked(false);
-      await loadPosts();
-      await loadComments();
     };
 
     const checkSession = async () => {
@@ -943,8 +959,12 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
 
     const toJpegBlob = async (file, quality = 0.82) => {
       if (!isHeic(file)) return file;
-      const blob = await heic2any({ blob: file, toType: "image/jpeg", quality });
-      return blob instanceof Blob ? blob : new Blob([blob], { type: "image/jpeg" });
+      try {
+        const blob = await heic2any({ blob: file, toType: "image/jpeg", quality });
+        return blob instanceof Blob ? blob : new Blob([blob], { type: "image/jpeg" });
+      } catch (error) {
+        throw new Error("HEIC_UNSUPPORTED");
+      }
     };
 
     const encodeJpeg = (canvas, quality) =>
@@ -1123,6 +1143,10 @@ const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "fa
         } catch (error) {
           if (error?.name === "AbortError") {
             uploadNote.textContent = "Đã hủy upload ảnh.";
+          } else if (error?.message === "HEIC_UNSUPPORTED") {
+            uploadNote.textContent =
+              "Ảnh HEIC chưa hỗ trợ trên trình duyệt này. Hãy đổi Camera → Formats → Most Compatible hoặc chuyển sang JPG.";
+            showToast("Ảnh HEIC chưa hỗ trợ. Vui lòng đổi sang JPG.", "error");
           } else {
             uploadNote.textContent =
               "Có ảnh upload lỗi. Thử ảnh khác hoặc đổi Camera → Formats → Most Compatible.";

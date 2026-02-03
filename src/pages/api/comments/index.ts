@@ -2,7 +2,6 @@ import type { APIRoute } from "astro";
 import {
   ensureAdminSchema,
   ensureCommentsSchema,
-  ensurePostsSchema,
   getDb,
   type CommentRecord,
 } from "../../../lib/d1";
@@ -54,7 +53,6 @@ export const GET: APIRoute = async ({ locals, url }) => {
     const allowBootstrap = locals.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
     await ensureCommentsSchema(db, { allowBootstrap });
     await ensureAdminSchema(db, { allowBootstrap });
-    await ensurePostsSchema(db, { allowBootstrap });
     const { results } = await db
       .prepare(
         `SELECT id, post_slug, parent_id, display_name, body, status, created_at
@@ -68,6 +66,15 @@ export const GET: APIRoute = async ({ locals, url }) => {
     return json({ comments: results ?? [] });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load comments.";
+    if (message.includes("D1 database binding not found")) {
+      return json({ error: "Missing DB binding", detail: "Check wrangler D1 bindings." }, 500);
+    }
+    if (message.startsWith('D1 schema missing for "')) {
+      return json(
+        { error: "Missing DB schema; apply migrations locally", detail: message },
+        500
+      );
+    }
     return json({ error: message }, 500);
   }
 };
@@ -87,7 +94,10 @@ export const POST: APIRoute = async ({ locals, request }) => {
     typeof payload.turnstileToken === "string" ? payload.turnstileToken : null;
 
   if (!slug || !displayName || !body) {
-    return json({ error: "Missing fields" }, 400);
+    return json(
+      { error: "Missing fields", detail: "slug, displayName, and body are required." },
+      400
+    );
   }
   if (displayName.length > 60 || body.length > 2000) {
     return json({ error: "Comment too long" }, 400);
@@ -98,15 +108,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
     const allowBootstrap = locals.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
     await ensureCommentsSchema(db, { allowBootstrap });
     await ensureAdminSchema(db, { allowBootstrap });
-    await ensurePostsSchema(db, { allowBootstrap });
     const id = crypto.randomUUID();
-    const post = await db
-      .prepare(`SELECT id, status FROM posts WHERE slug = ? LIMIT 1`)
-      .bind(slug)
-      .first<{ id: string; status: string }>();
-    if (!post || post.status !== "published") {
-      return json({ error: "Post not available" }, 400);
-    }
     const ip =
       request.headers.get("CF-Connecting-IP") ||
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
@@ -153,12 +155,21 @@ export const POST: APIRoute = async ({ locals, request }) => {
         `INSERT INTO comments (id, post_slug, post_id, parent_id, display_name, body, status, ip_hash, user_agent_hash)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
-      .bind(id, slug, post.id, parentId, displayName, body, status, ipHash, userAgentHash)
+      .bind(id, slug, null, parentId, displayName, body, status, ipHash, userAgentHash)
       .run();
 
     return json({ ok: true, id, status });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to submit comment.";
+    if (message.includes("D1 database binding not found")) {
+      return json({ error: "Missing DB binding", detail: "Check wrangler D1 bindings." }, 500);
+    }
+    if (message.startsWith('D1 schema missing for "')) {
+      return json(
+        { error: "Missing DB schema; apply migrations locally", detail: message },
+        500
+      );
+    }
     return json({ error: message }, 500);
   }
 };
