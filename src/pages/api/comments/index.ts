@@ -39,11 +39,6 @@ const verifyTurnstile = async (secret: string, token: string | null, remoteIp?: 
 const normalizeText = (value: unknown) =>
   typeof value === "string" ? value.trim() : "";
 
-const shouldHoldForReview = (body: string) => {
-  const hasLink = /https?:\/\//i.test(body);
-  return body.length > 500 || hasLink;
-};
-
 export const GET: APIRoute = async ({ locals, url }) => {
   const slug = url.searchParams.get("slug");
   if (!slug) {
@@ -63,7 +58,7 @@ export const GET: APIRoute = async ({ locals, url }) => {
         `SELECT id, post_slug, parent_id, display_name, body, status, created_at
          FROM comments
          WHERE post_slug = ? AND status = ?
-         ORDER BY datetime(created_at) DESC
+         ORDER BY datetime(created_at) ASC
          LIMIT 200`
       )
       .bind(slug, publicStatus)
@@ -101,7 +96,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
     );
   }
 
-  const slug = normalizeText(payload.slug);
+  const slug = normalizeText(payload.slug || payload.postSlug);
   const displayName = normalizeText(payload.displayName);
   const body = normalizeText(payload.body);
   const parentId =
@@ -120,7 +115,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
       400
     );
   }
-  if (displayName.length > 60 || body.length > 2000) {
+  if (displayName.length > 40 || body.length > 2000) {
     return json(
       {
         ok: false,
@@ -198,10 +193,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
       }
     }
 
-    const requireReview = locals.runtime?.env?.COMMENTS_REQUIRE_REVIEW === "true";
-    const status = normalizeCommentStatus(
-      requireReview || shouldHoldForReview(body) ? "pending" : "visible"
-    );
+    const status = normalizeCommentStatus("visible");
     if (!status) {
       return json(
         { ok: false, error: "Invalid comment status", detail: "Status not allowed.", code: "COMMENT_STATUS_INVALID" },
@@ -210,10 +202,10 @@ export const POST: APIRoute = async ({ locals, request }) => {
     }
     await db
       .prepare(
-        `INSERT INTO comments (id, post_slug, post_id, parent_id, display_name, body, status, ip_hash, user_agent_hash)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO comments (id, post_slug, parent_id, display_name, body, status, ip_hash, user_agent_hash)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
       )
-      .bind(id, slug, null, parentId, displayName, body, status, ipHash, userAgentHash)
+      .bind(id, slug, parentId, displayName, body, status, ipHash, userAgentHash)
       .run();
 
     return json({ ok: true, id, status });

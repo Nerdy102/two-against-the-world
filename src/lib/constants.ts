@@ -14,7 +14,7 @@ export const normalizeCommentStatus = (value: string): CommentStatus | null => {
   return COMMENT_STATUS_ALIASES[value] ?? null;
 };
 
-export const POST_STATUSES = ["draft", "published"] as const;
+export const POST_STATUSES = ["draft", "published", "archived"] as const;
 export type PostStatus = (typeof POST_STATUSES)[number];
 
 export const REACTION_KINDS = [

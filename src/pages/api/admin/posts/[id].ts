@@ -1,6 +1,12 @@
 import type { APIRoute } from "astro";
 import type { D1Database } from "@cloudflare/workers-types";
-import { ensurePostsSchema, getDb } from "../../../../lib/d1";
+import {
+  ensureCommentsSchema,
+  ensurePostMediaSchema,
+  ensurePostsSchema,
+  ensureReactionsSchema,
+  getDb,
+} from "../../../../lib/d1";
 import { requireAdminSession, verifyCsrf } from "../../../../lib/adminAuth";
 
 export const prerender = false;
@@ -72,6 +78,9 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
     const db = getDb(locals);
     const allowBootstrap = locals.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
     await ensurePostsSchema(db, { allowBootstrap });
+    await ensureCommentsSchema(db, { allowBootstrap });
+    await ensureReactionsSchema(db, { allowBootstrap });
+    await ensurePostMediaSchema(db, { allowBootstrap });
     const current = await db
       .prepare(`SELECT slug FROM posts WHERE id = ? LIMIT 1`)
       .bind(id)
@@ -98,6 +107,17 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
       }
       nextSlug = await ensureUniqueSlug(db, baseSlug, id);
     }
+    const authorName = typeof payload.author_name === "string"
+      ? payload.author_name.trim()
+      : typeof payload.author === "string"
+        ? payload.author.trim()
+        : null;
+    const topic = typeof payload.topic === "string" ? payload.topic.trim() : null;
+    const bodyMarkdown = typeof payload.body_markdown === "string"
+      ? payload.body_markdown.trim()
+      : typeof payload.content_md === "string"
+        ? payload.content_md.trim()
+        : null;
     const tagsJson =
       payload.tags_json ??
       (payload.tags_csv
@@ -108,7 +128,10 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
               .filter(Boolean)
           )
         : null);
-    const status = payload.status === "published" ? "published" : "draft";
+    const status =
+      payload.status === "published" || payload.status === "archived"
+        ? payload.status
+        : "draft";
     const publishedAt =
       status === "published"
         ? payload.published_at ?? new Date().toISOString()
@@ -120,12 +143,12 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
          SET title = ?,
              slug = ?,
              summary = ?,
-             content_md = ?,
              body_markdown = ?,
              tags_json = ?,
              cover_key = ?,
              cover_url = ?,
-             author = ?,
+             content_md = ?,
+             author_name = ?,
              topic = ?,
              location = ?,
              event_time = ?,
@@ -152,13 +175,13 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
         payload.title ?? "",
         nextSlug,
         payload.summary ?? null,
-        payload.content_md ?? null,
-        payload.body_markdown ?? payload.content_md ?? null,
+        bodyMarkdown ?? payload.body_markdown ?? payload.content_md ?? null,
         tagsJson,
         payload.cover_key ?? null,
         payload.cover_url ?? null,
-        payload.author ?? null,
-        payload.topic ?? null,
+        payload.content_md ?? null,
+        authorName ?? null,
+        topic ?? null,
         payload.location ?? null,
         payload.event_time ?? null,
         payload.written_at ?? null,
@@ -212,6 +235,18 @@ export const DELETE: APIRoute = async ({ locals, params, request }) => {
     const db = getDb(locals);
     const allowBootstrap = locals.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
     await ensurePostsSchema(db, { allowBootstrap });
+    await ensureCommentsSchema(db, { allowBootstrap });
+    await ensureReactionsSchema(db, { allowBootstrap });
+    await ensurePostMediaSchema(db, { allowBootstrap });
+    const post = await db
+      .prepare(`SELECT slug FROM posts WHERE id = ? LIMIT 1`)
+      .bind(id)
+      .first<{ slug: string }>();
+    if (post?.slug) {
+      await db.prepare(`DELETE FROM comments WHERE post_slug = ?`).bind(post.slug).run();
+      await db.prepare(`DELETE FROM reactions WHERE post_slug = ?`).bind(post.slug).run();
+    }
+    await db.prepare(`DELETE FROM post_media WHERE post_id = ?`).bind(id).run();
     await db.prepare(`DELETE FROM posts WHERE id = ?`).bind(id).run();
     return json({ ok: true });
   } catch (error) {

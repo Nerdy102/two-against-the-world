@@ -18,7 +18,7 @@ export const mapContentEntryToPostRecord = (
     body_markdown: entry.body || null,
     cover_url: entry.data.cover || null,
     status: entry.data.draft ? "draft" : "published",
-    author: entry.data.author || null,
+    author_name: entry.data.author || null,
     topic: entry.data.topic || null,
     location: entry.data.location || null,
     event_time: entry.data.eventTime || null,

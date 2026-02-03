@@ -87,9 +87,38 @@ export const POST: APIRoute = async ({ locals, request }) => {
 
     const title = typeof payload.title === "string" ? payload.title.trim() : "";
     const rawSlug = typeof payload.slug === "string" ? payload.slug.trim() : "";
+    const authorName = typeof payload.author_name === "string"
+      ? payload.author_name.trim()
+      : typeof payload.author === "string"
+        ? payload.author.trim()
+        : "";
+    const topic = typeof payload.topic === "string" ? payload.topic.trim() : "";
+    const bodyMarkdown = typeof payload.body_markdown === "string"
+      ? payload.body_markdown.trim()
+      : typeof payload.content_md === "string"
+        ? payload.content_md.trim()
+        : "";
     if (!title) {
       return json(
         { ok: false, error: "Missing title", detail: "Title is required.", code: "POST_TITLE_MISSING" },
+        400
+      );
+    }
+    if (!topic) {
+      return json(
+        { ok: false, error: "Missing topic", detail: "Topic is required.", code: "POST_TOPIC_MISSING" },
+        400
+      );
+    }
+    if (!authorName) {
+      return json(
+        { ok: false, error: "Missing author", detail: "Author is required.", code: "POST_AUTHOR_MISSING" },
+        400
+      );
+    }
+    if (!bodyMarkdown) {
+      return json(
+        { ok: false, error: "Missing body", detail: "Content is required.", code: "POST_BODY_MISSING" },
         400
       );
     }
@@ -117,7 +146,10 @@ export const POST: APIRoute = async ({ locals, request }) => {
               .filter(Boolean)
           )
         : null);
-    const status = payload.status === "published" ? "published" : "draft";
+    const status =
+      payload.status === "published" || payload.status === "archived"
+        ? payload.status
+        : "draft";
     const publishedAt =
       status === "published"
         ? payload.published_at ?? new Date().toISOString()
@@ -126,8 +158,8 @@ export const POST: APIRoute = async ({ locals, request }) => {
     await db
       .prepare(
         `INSERT INTO posts (
-          id, slug, title, summary, content_md, body_markdown, tags_json, cover_key, cover_url,
-          status, author, topic, location, event_time, written_at, photo_time, tags_csv,
+          id, slug, title, summary, body_markdown, tags_json, cover_key, cover_url, content_md,
+          status, author_name, topic, location, event_time, written_at, photo_time, tags_csv,
           side_note, voice_memo, voice_memo_title, photo_dir, photo_count, pinned, pinned_priority,
           pinned_until, pinned_style, layout, sort_order, published_at
         )
@@ -143,14 +175,14 @@ export const POST: APIRoute = async ({ locals, request }) => {
         slug,
         title,
         payload.summary ?? null,
-        payload.content_md ?? null,
-        payload.body_markdown ?? payload.content_md ?? null,
+        bodyMarkdown,
         tagsJson,
         payload.cover_key ?? null,
         payload.cover_url ?? null,
+        payload.content_md ?? null,
         status,
-        payload.author ?? null,
-        payload.topic ?? null,
+        authorName,
+        topic,
         payload.location ?? null,
         payload.event_time ?? null,
         payload.written_at ?? null,

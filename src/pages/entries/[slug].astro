@@ -42,7 +42,7 @@ const joinTags = (tags: unknown) =>
   Array.isArray(tags) ? tags.filter(Boolean).join(", ") : "";
 
 // Pull meta fields (your schema provides defaults, but this keeps it robust)
-const author = s(post.author);
+const author = s(post.author_name);
 const location = s(post.location);
 const eventTime = s(post.event_time);
 const writtenAt = s(post.written_at);
@@ -227,11 +227,11 @@ const useBlendedStory = isSingleImage;
         <form class="comment-form mt-6" data-comment-form data-comment-slug={post.slug}>
           <label class="comment-field">
             <span>Biệt danh</span>
-            <input class="input" name="nickname" placeholder="Biệt danh (ẩn danh)" required />
+            <input class="input" name="nickname" placeholder="Biệt danh (ẩn danh)" maxlength="40" required />
           </label>
           <label class="comment-field comment-field--full">
             <span>Nội dung</span>
-            <textarea class="input comment-textarea" name="message" rows={4} placeholder="Viết gì đó..." required></textarea>
+            <textarea class="input comment-textarea" name="message" rows={4} placeholder="Viết gì đó..." maxlength="2000" required></textarea>
           </label>
           <button class="btn comment-submit" type="submit">Gửi lời nhắn</button>
           <p class="comment-hint" data-comment-error></p>
@@ -430,13 +430,9 @@ const useBlendedStory = isSingleImage;
             }
             form.reset();
             if (err) {
-              err.textContent = data?.status === "pending" ? "Comment đang chờ duyệt." : "";
+              err.textContent = "";
             }
-            if (data?.status === "pending") {
-              showToast("Comment đang chờ duyệt.", "info");
-            } else {
-              showToast("Đã gửi lời nhắn.", "success");
-            }
+            showToast("Đã gửi lời nhắn.", "success");
             if (hasTurnstile && window.turnstile) {
               window.turnstile.reset();
             }
@@ -501,14 +497,13 @@ const useBlendedStory = isSingleImage;
         showToast(message, "error");
       };
 
-      const render = ({ counts = {}, reactedKinds = [], total = 0 }) => {
+      const render = ({ counts = {}, total = 0 }) => {
         buttons.forEach((button) => {
           const kind = button.dataset.reactionKind;
           if (!kind) return;
           const countEl = button.querySelector("[data-reaction-count]");
           const count = Number(counts[kind] ?? 0);
           if (countEl) countEl.textContent = count;
-          button.classList.toggle("is-active", reactedKinds.includes(kind));
         });
         if (stateEl) {
           stateEl.textContent = total
