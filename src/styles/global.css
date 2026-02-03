@@ -840,17 +840,32 @@ a { color: inherit; text-decoration: none; }
    ----------------- */
 
 .pinterest-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
+  columns: 1;
+  column-gap: 16px;
   width: min(1200px, 92vw);
   margin: 0 auto;
+  column-fill: auto;
+}
+
+@media (min-width: 720px) {
+  .pinterest-grid { columns: 2; }
+}
+
+@media (min-width: 900px) {
+  .pinterest-grid { columns: 3; }
+}
+
+@media (min-width: 1200px) {
+  .pinterest-grid { columns: 4; }
 }
 
 .feed-card {
   position: relative;
   z-index: 0;
-  display: block;
+  display: inline-block;
+  width: 100%;
+  break-inside: avoid;
+  margin: 0 0 16px;
   padding: 16px;
   border-radius: 20px;
   border: 1px solid rgba(255,255,255,0.12);
