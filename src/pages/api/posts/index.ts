@@ -13,26 +13,25 @@ export const GET: APIRoute = async ({ locals, request }) => {
     const likeQuery = `%${query}%`;
     const statement = query
       ? db.prepare(
-          `SELECT id, slug, title, summary, cover_url, status, author, topic, published_at, created_at, updated_at
+          `SELECT id, slug, title, summary, cover_url, status, author_name, topic, published_at, created_at, updated_at
            FROM posts
            WHERE status = 'published'
              AND (
                LOWER(title) LIKE ?
                OR LOWER(COALESCE(summary, '')) LIKE ?
-               OR LOWER(COALESCE(author, '')) LIKE ?
-               OR LOWER(COALESCE(content_md, '')) LIKE ?
                OR LOWER(COALESCE(body_markdown, '')) LIKE ?
+               OR LOWER(COALESCE(author_name, '')) LIKE ?
              )
            ORDER BY datetime(published_at) DESC`
         )
       : db.prepare(
-          `SELECT id, slug, title, summary, cover_url, status, author, topic, published_at, created_at, updated_at
+          `SELECT id, slug, title, summary, cover_url, status, author_name, topic, published_at, created_at, updated_at
            FROM posts
            WHERE status = 'published'
            ORDER BY datetime(published_at) DESC`
         );
     const bound = query
-      ? statement.bind(likeQuery, likeQuery, likeQuery, likeQuery, likeQuery)
+      ? statement.bind(likeQuery, likeQuery, likeQuery, likeQuery)
       : statement;
     const { results } = await bound.all<PostRecord>();
 

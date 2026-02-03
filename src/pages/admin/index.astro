@@ -249,6 +249,7 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
                 <select class="input" name="status">
                   <option value="draft">Draft</option>
                   <option value="published">Published</option>
+                  <option value="archived">Archived</option>
                 </select>
               </label>
             </div>
@@ -282,7 +283,7 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       <div class="paper edge-torn p-6 sm:p-8" data-reveal>
         <h2 class="text-lg font-semibold">Moderation</h2>
         <p class="mt-2 text-xs text-black/60">
-          Chọn trạng thái để duyệt/ẩn comment. Comment có link hoặc dài sẽ vào pending tự động.
+          Chọn trạng thái để hiển thị hoặc ẩn comment sau khi đã đăng.
         </p>
         <p class="mt-4 text-xs text-black/50" data-comment-note></p>
       </div>
@@ -596,6 +597,14 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       fields.forEach((name) => {
         const input = form.querySelector(`[name="${name}"]`);
         if (!input) return;
+        if (name === "author") {
+          input.value = post.author ?? post.author_name ?? "";
+          return;
+        }
+        if (name === "content_md") {
+          input.value = post.content_md ?? post.body_markdown ?? "";
+          return;
+        }
         input.value = post[name] ?? (input.type === "number" ? 0 : "");
       });
       if (uploadInput) uploadInput.value = "";
@@ -653,7 +662,7 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
 
     const loadComments = async () => {
       if (!commentList || !isUnlocked()) return;
-      const filter = commentFilter?.value ?? "pending";
+      const filter = commentFilter?.value ?? "visible";
       const res = await fetch(`/api/admin/comments?status=${encodeURIComponent(filter)}`);
       if (!res.ok) {
         const payload = await res.json().catch(() => ({}));

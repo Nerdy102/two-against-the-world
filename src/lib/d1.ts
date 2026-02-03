@@ -20,14 +20,21 @@ type PostColumnDefinition = {
 
 const POST_COLUMNS: PostColumnDefinition[] = [
   { name: "summary", sql: "summary TEXT" },
-  { name: "content_md", sql: "content_md TEXT" },
-  { name: "body_markdown", sql: "body_markdown TEXT" },
-  { name: "tags_json", sql: "tags_json TEXT" },
+  { name: "author_name", sql: "author_name TEXT" },
+  { name: "topic", sql: "topic TEXT NOT NULL DEFAULT 'uncategorized'" },
+  { name: "body_markdown", sql: "body_markdown TEXT NOT NULL DEFAULT ''" },
+  { name: "status", sql: "status TEXT NOT NULL DEFAULT 'draft'" },
+  { name: "published_at", sql: "published_at TEXT" },
+  { name: "created_at", sql: "created_at TEXT NOT NULL DEFAULT (datetime('now'))" },
+  { name: "updated_at", sql: "updated_at TEXT NOT NULL DEFAULT (datetime('now'))" },
+  { name: "pinned", sql: "pinned INTEGER NOT NULL DEFAULT 0" },
+  { name: "pinned_priority", sql: "pinned_priority INTEGER NOT NULL DEFAULT 0" },
+  { name: "pinned_until", sql: "pinned_until TEXT" },
+  { name: "pinned_style", sql: "pinned_style TEXT" },
   { name: "cover_key", sql: "cover_key TEXT" },
   { name: "cover_url", sql: "cover_url TEXT" },
-  { name: "status", sql: "status TEXT NOT NULL DEFAULT 'draft'" },
-  { name: "author", sql: "author TEXT" },
-  { name: "topic", sql: "topic TEXT" },
+  { name: "tags_json", sql: "tags_json TEXT" },
+  { name: "content_md", sql: "content_md TEXT" },
   { name: "location", sql: "location TEXT" },
   { name: "event_time", sql: "event_time TEXT" },
   { name: "written_at", sql: "written_at TEXT" },
@@ -38,17 +45,11 @@ const POST_COLUMNS: PostColumnDefinition[] = [
   { name: "voice_memo_title", sql: "voice_memo_title TEXT" },
   { name: "photo_dir", sql: "photo_dir TEXT" },
   { name: "photo_count", sql: "photo_count INTEGER DEFAULT 0" },
-  { name: "pinned", sql: "pinned INTEGER DEFAULT 0" },
-  { name: "pinned_priority", sql: "pinned_priority INTEGER DEFAULT 0" },
-  { name: "pinned_until", sql: "pinned_until TEXT" },
-  { name: "pinned_style", sql: "pinned_style TEXT" },
   { name: "layout", sql: "layout TEXT DEFAULT 'normal'" },
   { name: "sort_order", sql: "sort_order INTEGER DEFAULT 0" },
-  { name: "published_at", sql: "published_at TEXT" },
 ];
 
 const COMMENT_COLUMNS: PostColumnDefinition[] = [
-  { name: "post_id", sql: "post_id TEXT" },
   { name: "user_agent_hash", sql: "user_agent_hash TEXT" },
   { name: "status", sql: "status TEXT NOT NULL DEFAULT 'visible'" },
 ];
@@ -97,14 +98,21 @@ export async function ensurePostsSchema(
             slug TEXT NOT NULL UNIQUE,
             title TEXT NOT NULL,
             summary TEXT,
-            content_md TEXT,
-            body_markdown TEXT,
+            author_name TEXT,
+            topic TEXT NOT NULL DEFAULT 'uncategorized',
+            body_markdown TEXT NOT NULL DEFAULT '',
+            status TEXT NOT NULL CHECK(status IN ('draft','published','archived')),
+            published_at TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+            pinned INTEGER NOT NULL DEFAULT 0,
+            pinned_priority INTEGER NOT NULL DEFAULT 0,
+            pinned_until TEXT,
+            pinned_style TEXT,
             tags_json TEXT,
             cover_key TEXT,
             cover_url TEXT,
-            status TEXT NOT NULL DEFAULT 'draft',
-            author TEXT,
-            topic TEXT,
+            content_md TEXT,
             location TEXT,
             event_time TEXT,
             written_at TEXT,
@@ -115,15 +123,8 @@ export async function ensurePostsSchema(
             voice_memo_title TEXT,
             photo_dir TEXT,
             photo_count INTEGER DEFAULT 0,
-            pinned INTEGER DEFAULT 0,
-            pinned_priority INTEGER DEFAULT 0,
-            pinned_until TEXT,
-            pinned_style TEXT,
             layout TEXT DEFAULT 'normal',
-            sort_order INTEGER DEFAULT 0,
-            published_at TEXT,
-            created_at TEXT NOT NULL DEFAULT (datetime('now')),
-            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+            sort_order INTEGER DEFAULT 0
           )`
         )
         .run();
@@ -177,7 +178,6 @@ export async function ensureCommentsSchema(
             status TEXT NOT NULL DEFAULT 'visible' CHECK(status IN ('visible','pending','hidden')),
             ip_hash TEXT,
             user_agent_hash TEXT,
-            post_id TEXT,
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
           )`
         )
@@ -222,9 +222,9 @@ export async function ensureReactionsSchema(
           id TEXT PRIMARY KEY,
           post_slug TEXT NOT NULL,
           kind TEXT NOT NULL,
-          visitor_id TEXT NOT NULL,
-          created_at TEXT NOT NULL DEFAULT (datetime('now')),
-          UNIQUE(post_slug, kind, visitor_id)
+          count INTEGER NOT NULL DEFAULT 0,
+          updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+          UNIQUE(post_slug, kind)
         )`
       )
       .run();
@@ -388,14 +388,14 @@ export type PostRecord = {
   slug: string;
   title: string;
   summary: string | null;
+  author_name?: string | null;
+  topic: string | null;
   content_md: string | null;
-  body_markdown?: string | null;
+  body_markdown: string | null;
   tags_json?: string | null;
   cover_key?: string | null;
   cover_url: string | null;
   status: PostStatus;
-  author: string | null;
-  topic: string | null;
   location: string | null;
   event_time: string | null;
   written_at: string | null;
@@ -420,7 +420,6 @@ export type PostRecord = {
 export type CommentRecord = {
   id: string;
   post_slug: string;
-  post_id?: string | null;
   parent_id: string | null;
   display_name: string;
   body: string;
@@ -434,4 +433,5 @@ export type ReactionRecord = {
   post_slug: string;
   kind: string;
   count: number;
+  updated_at?: string;
 };
