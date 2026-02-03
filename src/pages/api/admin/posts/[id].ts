@@ -6,6 +6,7 @@ import {
   ensurePostsSchema,
   ensureReactionsSchema,
   getDb,
+  tableHasColumn,
 } from "../../../../lib/d1";
 import { requireAdminSession, verifyCsrf } from "../../../../lib/adminAuth";
 
@@ -81,6 +82,7 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
     await ensureCommentsSchema(db, { allowBootstrap });
     await ensureReactionsSchema(db, { allowBootstrap });
     await ensurePostMediaSchema(db, { allowBootstrap });
+    const hasLegacyAuthor = await tableHasColumn(db, "posts", "author");
     const current = await db
       .prepare(`SELECT slug FROM posts WHERE id = ? LIMIT 1`)
       .bind(id)
@@ -137,6 +139,8 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
         ? payload.published_at ?? new Date().toISOString()
         : payload.published_at ?? null;
 
+    const legacyAuthorSet = hasLegacyAuthor ? ", author = ?" : "";
+    const legacyAuthorBind = hasLegacyAuthor ? [authorName ?? ""] : [];
     await db
       .prepare(
         `UPDATE posts
@@ -168,7 +172,7 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
              sort_order = ?,
              status = ?,
              published_at = ?,
-             updated_at = datetime('now')
+             updated_at = datetime('now')${legacyAuthorSet}
          WHERE id = ?`
       )
       .bind(
@@ -200,6 +204,7 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
         payload.sort_order ?? 0,
         status,
         publishedAt,
+        ...legacyAuthorBind,
         id
       )
       .run();
