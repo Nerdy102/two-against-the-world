@@ -105,6 +105,7 @@ export const GET: APIRoute = async ({ locals }) => {
     ok: true,
     env: {
       hasAdminPassword: Boolean(env.ADMIN_PASSWORD),
+      adminPasswordStatus: env.ADMIN_PASSWORD ? "set" : "missing",
       hasDBBinding: Boolean(env.DB),
       hasR2Binding: Boolean(env.MEDIA),
       hasTurnstile: Boolean(env.TURNSTILE_SECRET),

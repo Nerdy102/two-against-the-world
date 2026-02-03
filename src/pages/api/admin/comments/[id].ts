@@ -14,27 +14,27 @@ const json = (data: unknown, status = 200) =>
 export const PUT: APIRoute = async ({ locals, params, request }) => {
   if (!(await requireAdminSession(request, locals))) {
     return json(
-      { error: "Unauthorized", detail: "Admin session required.", code: "ADMIN_UNAUTHORIZED" },
+      { ok: false, error: "Unauthorized", detail: "Admin session required.", code: "ADMIN_UNAUTHORIZED" },
       401
     );
   }
   if (!verifyCsrf(request)) {
     return json(
-      { error: "Unauthorized", detail: "CSRF validation failed.", code: "ADMIN_CSRF_INVALID" },
+      { ok: false, error: "Unauthorized", detail: "CSRF validation failed.", code: "ADMIN_CSRF_INVALID" },
       401
     );
   }
   const id = params.id;
   if (!id) {
     return json(
-      { error: "Missing id", detail: "Comment id is required.", code: "COMMENT_ID_MISSING" },
+      { ok: false, error: "Missing id", detail: "Comment id is required.", code: "COMMENT_ID_MISSING" },
       400
     );
   }
   const payload = await request.json().catch(() => null);
   if (!payload) {
     return json(
-      { error: "Invalid JSON", detail: "Request body must be valid JSON.", code: "INVALID_JSON" },
+      { ok: false, error: "Invalid JSON", detail: "Request body must be valid JSON.", code: "INVALID_JSON" },
       400
     );
   }
@@ -42,7 +42,7 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
   const normalized = normalizeCommentStatus(status);
   if (!normalized) {
     return json(
-      { error: "Missing status", detail: "Status is required.", code: "COMMENT_STATUS_INVALID" },
+      { ok: false, error: "Missing status", detail: "Status is required.", code: "COMMENT_STATUS_INVALID" },
       400
     );
   }
@@ -57,27 +57,27 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
     return json({ ok: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to update comment.";
-    return json({ error: message, detail: message, code: "COMMENT_UPDATE_FAILED" }, 500);
+    return json({ ok: false, error: message, detail: message, code: "COMMENT_UPDATE_FAILED" }, 500);
   }
 };
 
 export const DELETE: APIRoute = async ({ locals, params, request }) => {
   if (!(await requireAdminSession(request, locals))) {
     return json(
-      { error: "Unauthorized", detail: "Admin session required.", code: "ADMIN_UNAUTHORIZED" },
+      { ok: false, error: "Unauthorized", detail: "Admin session required.", code: "ADMIN_UNAUTHORIZED" },
       401
     );
   }
   if (!verifyCsrf(request)) {
     return json(
-      { error: "Unauthorized", detail: "CSRF validation failed.", code: "ADMIN_CSRF_INVALID" },
+      { ok: false, error: "Unauthorized", detail: "CSRF validation failed.", code: "ADMIN_CSRF_INVALID" },
       401
     );
   }
   const id = params.id;
   if (!id) {
     return json(
-      { error: "Missing id", detail: "Comment id is required.", code: "COMMENT_ID_MISSING" },
+      { ok: false, error: "Missing id", detail: "Comment id is required.", code: "COMMENT_ID_MISSING" },
       400
     );
   }
@@ -89,6 +89,6 @@ export const DELETE: APIRoute = async ({ locals, params, request }) => {
     return json({ ok: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to delete comment.";
-    return json({ error: message, detail: message, code: "COMMENT_DELETE_FAILED" }, 500);
+    return json({ ok: false, error: message, detail: message, code: "COMMENT_DELETE_FAILED" }, 500);
   }
 };

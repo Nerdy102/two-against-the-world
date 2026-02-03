@@ -42,7 +42,7 @@ const ensureUniqueSlug = async (db: D1Database, baseSlug: string, excludeId?: st
 export const GET: APIRoute = async ({ locals, request }) => {
   if (!(await requireAdminSession(request, locals))) {
     return json(
-      { error: "Unauthorized", detail: "Admin session required.", code: "ADMIN_UNAUTHORIZED" },
+      { ok: false, error: "Unauthorized", detail: "Admin session required.", code: "ADMIN_UNAUTHORIZED" },
       401
     );
   }
@@ -56,23 +56,23 @@ export const GET: APIRoute = async ({ locals, request }) => {
          ORDER BY pinned DESC, pinned_priority DESC, sort_order DESC, datetime(updated_at) DESC`
       )
       .all<PostRecord>();
-    return json({ posts: results ?? [] });
+    return json({ ok: true, posts: results ?? [] });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load posts.";
-    return json({ error: message, detail: message, code: "ADMIN_POSTS_FETCH_FAILED" }, 500);
+    return json({ ok: false, error: message, detail: message, code: "ADMIN_POSTS_FETCH_FAILED" }, 500);
   }
 };
 
 export const POST: APIRoute = async ({ locals, request }) => {
   if (!(await requireAdminSession(request, locals))) {
     return json(
-      { error: "Unauthorized", detail: "Admin session required.", code: "ADMIN_UNAUTHORIZED" },
+      { ok: false, error: "Unauthorized", detail: "Admin session required.", code: "ADMIN_UNAUTHORIZED" },
       401
     );
   }
   if (!verifyCsrf(request)) {
     return json(
-      { error: "Unauthorized", detail: "CSRF validation failed.", code: "ADMIN_CSRF_INVALID" },
+      { ok: false, error: "Unauthorized", detail: "CSRF validation failed.", code: "ADMIN_CSRF_INVALID" },
       401
     );
   }
@@ -80,7 +80,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
     const payload = await request.json().catch(() => null);
     if (!payload) {
       return json(
-        { error: "Invalid JSON", detail: "Request body must be valid JSON.", code: "INVALID_JSON" },
+        { ok: false, error: "Invalid JSON", detail: "Request body must be valid JSON.", code: "INVALID_JSON" },
         400
       );
     }
@@ -89,7 +89,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
     const rawSlug = typeof payload.slug === "string" ? payload.slug.trim() : "";
     if (!title) {
       return json(
-        { error: "Missing title", detail: "Title is required.", code: "POST_TITLE_MISSING" },
+        { ok: false, error: "Missing title", detail: "Title is required.", code: "POST_TITLE_MISSING" },
         400
       );
     }
@@ -101,7 +101,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
     const baseSlug = slugify(rawSlug || title);
     if (!baseSlug) {
       return json(
-        { error: "Missing slug", detail: "Slug is required.", code: "POST_SLUG_MISSING" },
+        { ok: false, error: "Missing slug", detail: "Slug is required.", code: "POST_SLUG_MISSING" },
         400
       );
     }
@@ -174,6 +174,6 @@ export const POST: APIRoute = async ({ locals, request }) => {
     return json({ ok: true, id, slug });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to create post.";
-    return json({ error: message, detail: message, code: "ADMIN_POST_CREATE_FAILED" }, 500);
+    return json({ ok: false, error: message, detail: message, code: "ADMIN_POST_CREATE_FAILED" }, 500);
   }
 };

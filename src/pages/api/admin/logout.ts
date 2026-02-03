@@ -1,5 +1,10 @@
 import type { APIRoute } from "astro";
-import { clearAdminCookies, clearAdminSession, getAdminSession } from "../../../lib/adminAuth";
+import {
+  clearAdminCookies,
+  clearAdminSession,
+  getAdminSession,
+  isSecureRequest,
+} from "../../../lib/adminAuth";
 
 export const prerender = false;
 
@@ -14,7 +19,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
   if (session?.token) {
     await clearAdminSession(locals, session.token);
   }
-  const cookies = clearAdminCookies();
+  const cookies = clearAdminCookies(isSecureRequest(request));
   const headers = new Headers({ "content-type": "application/json" });
   cookies.forEach((cookie) => headers.append("set-cookie", cookie));
   return json({ ok: true }, 200, headers);

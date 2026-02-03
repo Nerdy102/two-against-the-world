@@ -31,13 +31,13 @@ export const GET: APIRoute = async ({ locals, request, url }) => {
   const kind = url.searchParams.get("kind");
   if (!slug) {
     return json(
-      { error: "Missing slug", detail: "slug is required.", code: "REACTION_SLUG_MISSING" },
+      { ok: false, error: "Missing slug", detail: "slug is required.", code: "REACTION_SLUG_MISSING" },
       400
     );
   }
   if (kind && !isReactionKind(kind)) {
     return json(
-      { error: "Invalid reaction kind", detail: "Reaction not allowed.", code: "REACTION_KIND_INVALID" },
+      { ok: false, error: "Invalid reaction kind", detail: "Reaction not allowed.", code: "REACTION_KIND_INVALID" },
       400
     );
   }
@@ -72,7 +72,7 @@ export const GET: APIRoute = async ({ locals, request, url }) => {
         reacted = Boolean(existing?.id);
       }
 
-      return json({ count, reacted });
+      return json({ ok: true, count, reacted });
     }
 
     const { results } = await db
@@ -106,10 +106,10 @@ export const GET: APIRoute = async ({ locals, request, url }) => {
 
     const total = Object.values(counts).reduce((sum, value) => sum + Number(value || 0), 0);
 
-    return json({ counts, reactedKinds, total });
+    return json({ ok: true, counts, reactedKinds, total });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load reactions.";
-    return json({ error: message, detail: message, code: "REACTIONS_FETCH_FAILED" }, 500);
+    return json({ ok: false, error: message, detail: message, code: "REACTIONS_FETCH_FAILED" }, 500);
   }
 };
 
@@ -117,7 +117,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
   const payload = await request.json().catch(() => null);
   if (!payload) {
     return json(
-      { error: "Invalid JSON", detail: "Request body must be valid JSON.", code: "INVALID_JSON" },
+      { ok: false, error: "Invalid JSON", detail: "Request body must be valid JSON.", code: "INVALID_JSON" },
       400
     );
   }
@@ -126,19 +126,19 @@ export const POST: APIRoute = async ({ locals, request }) => {
   const kind = typeof payload.kind === "string" ? payload.kind.trim() : "";
   if (!slug) {
     return json(
-      { error: "Missing slug", detail: "slug is required.", code: "REACTION_SLUG_MISSING" },
+      { ok: false, error: "Missing slug", detail: "slug is required.", code: "REACTION_SLUG_MISSING" },
       400
     );
   }
   if (!kind) {
     return json(
-      { error: "Missing kind", detail: "kind is required.", code: "REACTION_KIND_MISSING" },
+      { ok: false, error: "Missing kind", detail: "kind is required.", code: "REACTION_KIND_MISSING" },
       400
     );
   }
   if (!isReactionKind(kind)) {
     return json(
-      { error: "Invalid reaction kind", detail: "Reaction not allowed.", code: "REACTION_KIND_INVALID" },
+      { ok: false, error: "Invalid reaction kind", detail: "Reaction not allowed.", code: "REACTION_KIND_INVALID" },
       400
     );
   }
@@ -207,12 +207,12 @@ export const POST: APIRoute = async ({ locals, request }) => {
     const total = Object.values(counts).reduce((sum, value) => sum + Number(value || 0), 0);
 
     return json(
-      { counts, reactedKinds, total },
+      { ok: true, counts, reactedKinds, total },
       200,
       setCookieHeader ? { "set-cookie": setCookieHeader } : undefined
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to update reaction.";
-    return json({ error: message, detail: message, code: "REACTION_UPDATE_FAILED" }, 500);
+    return json({ ok: false, error: message, detail: message, code: "REACTION_UPDATE_FAILED" }, 500);
   }
 };
