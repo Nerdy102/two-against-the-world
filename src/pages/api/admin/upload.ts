@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { ensurePostMediaSchema, ensurePostsSchema, getDb } from "../../../lib/d1";
+import { ensureMediaSchema, ensurePostMediaSchema, ensurePostsSchema, getDb } from "../../../lib/d1";
 import { requireAdminSession, verifyCsrf } from "../../../lib/adminAuth";
 
 export const prerender = false;
@@ -65,6 +65,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
 
   const db = getDb(locals);
   await ensurePostsSchema(db);
+  await ensureMediaSchema(db);
   await ensurePostMediaSchema(db);
   const post = await db
     .prepare(`SELECT id FROM posts WHERE slug = ? LIMIT 1`)

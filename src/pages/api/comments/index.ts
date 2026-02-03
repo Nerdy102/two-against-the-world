@@ -138,7 +138,8 @@ export const POST: APIRoute = async ({ locals, request }) => {
     }
   }
 
-  const status = shouldHoldForReview(body) ? "pending" : "approved";
+  const requireReview = locals.runtime?.env?.COMMENTS_REQUIRE_REVIEW === "true";
+  const status = requireReview || shouldHoldForReview(body) ? "pending" : "approved";
   await db
     .prepare(
       `INSERT INTO comments (id, post_slug, post_id, parent_id, display_name, body, status, ip_hash, user_agent_hash)

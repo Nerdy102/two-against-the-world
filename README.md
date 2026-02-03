@@ -17,12 +17,15 @@ wrangler dev
 
 Thiết lập trong Cloudflare Dashboard (Workers → Settings → Variables):
 
-- `ADMIN_USERNAME` (required): username admin.
 - `ADMIN_PASSWORD` (required): password admin (không commit vào repo).
 - `PUBLIC_SITE_URL`: URL site (ví dụ `https://tinyeu.blog`).
 - `PUBLIC_R2_BASE_URL`: base URL để render ảnh từ R2 (ví dụ `https://tinyeu.blog/media`).
 - `PUBLIC_TURNSTILE_SITE_KEY`: public site key cho Turnstile.
 - `TURNSTILE_SECRET`: secret key cho Turnstile.
+- `COMMENTS_REQUIRE_REVIEW`: `true` để mọi comment vào trạng thái pending.
+- `DISABLE_HTML_CACHE`: `true` để HTML trả về `Cache-Control: no-store`.
+- `PUBLIC_BUILD_SHA`: short commit SHA hiển thị ở footer.
+- `PUBLIC_BUILD_TIME`: build timestamp (ISO).
 - `PUBLIC_ENABLE_CONTENT_FALLBACK`: bật fallback từ Markdown khi D1 rỗng (`true`/`false`).
 - `PUBLIC_ENABLE_PINNED_BADGE`: hiển thị huy hiệu ghim trên card bài viết.
 - `PUBLIC_ENABLE_SITE_CREDITS`: hiển thị credits ở footer.
@@ -33,6 +36,7 @@ Thiết lập trong Cloudflare Dashboard (Workers → Settings → Variables):
 - `PUBLIC_ENABLE_COMPOSE_PAGE`: bật trang `/compose` (mặc định tắt).
 - `PUBLIC_ENABLE_PINNED_FIELDS`: bật trường ghim bài trong Admin.
 - `PUBLIC_ENABLE_UPLOAD_HELPERS`: bật UI hỗ trợ upload (progress/cancel).
+- `PUBLIC_ENABLE_LOVE_WIDGETS`: bật day counter + clocks.
 
 ## Sessions (không dùng Astro.session)
 
@@ -53,10 +57,10 @@ wrangler d1 migrations apply two-against-the-world --local
 Áp dụng migrations lên remote:
 
 ```bash
-wrangler d1 migrations apply two-against-the-world
+wrangler d1 migrations apply two-against-the-world --remote
 ```
 
-Lưu ý: thêm migration pinning (`0004_pinned_fields.sql`) trước khi bật ghim bài.
+Lưu ý: thêm migration pinning (`0003_pinned_fields.sql`) trước khi bật ghim bài.
 
 ## Hybrid data workflow (Markdown ↔ D1)
 
@@ -101,8 +105,28 @@ npm run download:media -- --manifest=export/media.json
 ## Admin
 
 - Mở `/admin`.
-- Đăng nhập bằng `ADMIN_USERNAME` + `ADMIN_PASSWORD`.
+- Đăng nhập bằng `ADMIN_PASSWORD`.
 - CRUD bài viết, upload ảnh (R2), publish/unpublish, và duyệt comment.
+
+## Auto deploy (GitHub Actions)
+
+Repo có workflow deploy khi push `main`. Cần set secrets:
+
+- `CF_API_TOKEN`: Cloudflare API token (Workers edit + D1 + R2).
+- `CF_ACCOUNT_ID`: Cloudflare Account ID.
+
+Workflow sẽ set build info tự động (SHA + timestamp) và deploy bằng `wrangler deploy`.
+
+## Cache purge (Cloudflare)
+
+Nếu HTML bị cache cứng, có thể:
+
+1. Bật env `DISABLE_HTML_CACHE=true` để disable cache HTML tạm thời.
+2. Hoặc purge cache trong Cloudflare Dashboard → Caching → Purge Everything.
+
+## Health check
+
+`GET /api/health` trả về trạng thái env + build info để debug production nhanh.
 
 ## Tạo project mới (không update GitHub cũ)
 

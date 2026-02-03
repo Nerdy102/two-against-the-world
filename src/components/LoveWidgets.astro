@@ -1,0 +1,101 @@
+---
+const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
+---
+
+{enabled && (
+  <div class="love-widgets" data-love-widgets>
+    <div class="love-widgets__panel">
+      <div class="love-widgets__day" data-love-day>Day 0</div>
+      <div class="love-widgets__clocks">
+        <div class="love-widgets__clock" data-love-clock="vn">
+          <span>VN</span>
+          <strong>--:--</strong>
+        </div>
+        <div class="love-widgets__clock" data-love-clock="jp">
+          <span>JP</span>
+          <strong>--:--</strong>
+        </div>
+        <div class="love-widgets__clock" data-love-clock="us">
+          <span>NY</span>
+          <strong>--:--</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+{enabled && (
+  <script is:inline>
+    const initLoveWidgets = () => {
+      const root = document.querySelector("[data-love-widgets]");
+      if (!root || root.dataset.bound === "1") return;
+      root.dataset.bound = "1";
+
+      const dayEl = root.querySelector("[data-love-day]");
+      const clockEls = {
+        vn: root.querySelector("[data-love-clock='vn'] strong"),
+        jp: root.querySelector("[data-love-clock='jp'] strong"),
+        us: root.querySelector("[data-love-clock='us'] strong"),
+      };
+
+      const startDate = new Date("2025-12-28T00:00:00+07:00");
+
+      const getDateParts = (timeZone) => {
+        const formatter = new Intl.DateTimeFormat("en-CA", {
+          timeZone,
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        });
+        const parts = formatter.formatToParts(new Date());
+        const lookup = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+        return {
+          year: Number(lookup.year),
+          month: Number(lookup.month),
+          day: Number(lookup.day),
+        };
+      };
+
+      const updateDay = () => {
+        if (!dayEl) return;
+        const parts = getDateParts("Asia/Ho_Chi_Minh");
+        const todayUtc = Date.UTC(parts.year, parts.month - 1, parts.day);
+        const startUtc = Date.UTC(
+          startDate.getUTCFullYear(),
+          startDate.getUTCMonth(),
+          startDate.getUTCDate()
+        );
+        const diff = Math.max(0, Math.floor((todayUtc - startUtc) / (1000 * 60 * 60 * 24)) + 1);
+        dayEl.textContent = `Day ${diff}`;
+      };
+
+      const makeClock = (timeZone) =>
+        new Intl.DateTimeFormat("en-GB", {
+          timeZone,
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        });
+
+      const clocks = {
+        vn: makeClock("Asia/Ho_Chi_Minh"),
+        jp: makeClock("Asia/Tokyo"),
+        us: makeClock("America/New_York"),
+      };
+
+      const tick = () => {
+        const now = new Date();
+        if (clockEls.vn) clockEls.vn.textContent = clocks.vn.format(now);
+        if (clockEls.jp) clockEls.jp.textContent = clocks.jp.format(now);
+        if (clockEls.us) clockEls.us.textContent = clocks.us.format(now);
+        updateDay();
+      };
+
+      tick();
+      setInterval(tick, 1000);
+    };
+
+    initLoveWidgets();
+    document.addEventListener("astro:page-load", initLoveWidgets);
+  </script>
+)}

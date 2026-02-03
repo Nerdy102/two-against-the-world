@@ -57,13 +57,14 @@ let commentsSchemaReady: Promise<void> | null = null;
 let reactionsSchemaReady: Promise<void> | null = null;
 let postMediaSchemaReady: Promise<void> | null = null;
 let adminSchemaReady: Promise<void> | null = null;
+let mediaSchemaReady: Promise<void> | null = null;
 
 export async function ensurePostsSchema(db: D1Database): Promise<void> {
   if (postsSchemaReady) {
     return postsSchemaReady;
   }
   postsSchemaReady = (async () => {
-    const { results } = await db
+    let { results } = await db
       .prepare("PRAGMA table_info(posts)")
       .all<{ name: string }>();
     if (!results?.length) {
@@ -104,6 +105,8 @@ export async function ensurePostsSchema(db: D1Database): Promise<void> {
           )`
         )
         .run();
+      const refreshed = await db.prepare("PRAGMA table_info(posts)").all<{ name: string }>();
+      results = refreshed.results;
     }
     const existing = new Set((results ?? []).map((row) => row.name));
     for (const column of POST_COLUMNS) {
@@ -131,26 +134,28 @@ export async function ensureCommentsSchema(db: D1Database): Promise<void> {
     return commentsSchemaReady;
   }
   commentsSchemaReady = (async () => {
-    const { results } = await db
+    let { results } = await db
       .prepare("PRAGMA table_info(comments)")
       .all<{ name: string }>();
     if (!results?.length) {
-    await db
-      .prepare(
-        `CREATE TABLE IF NOT EXISTS comments (
-          id TEXT PRIMARY KEY,
-          post_slug TEXT NOT NULL,
-          parent_id TEXT,
-          display_name TEXT NOT NULL,
-          body TEXT NOT NULL,
-          status TEXT NOT NULL DEFAULT 'approved',
-          ip_hash TEXT,
-          user_agent_hash TEXT,
-          post_id TEXT,
-          created_at TEXT NOT NULL DEFAULT (datetime('now'))
-        )`
-      )
-      .run();
+      await db
+        .prepare(
+          `CREATE TABLE IF NOT EXISTS comments (
+            id TEXT PRIMARY KEY,
+            post_slug TEXT NOT NULL,
+            parent_id TEXT,
+            display_name TEXT NOT NULL,
+            body TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'approved',
+            ip_hash TEXT,
+            user_agent_hash TEXT,
+            post_id TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+          )`
+        )
+        .run();
+      const refreshed = await db.prepare("PRAGMA table_info(comments)").all<{ name: string }>();
+      results = refreshed.results;
     }
     const existing = new Set((results ?? []).map((row) => row.name));
     for (const column of COMMENT_COLUMNS) {
@@ -195,6 +200,33 @@ export async function ensureReactionsSchema(db: D1Database): Promise<void> {
       .run();
   })();
   return reactionsSchemaReady;
+}
+
+export async function ensureMediaSchema(db: D1Database): Promise<void> {
+  if (mediaSchemaReady) {
+    return mediaSchemaReady;
+  }
+  mediaSchemaReady = (async () => {
+    await db
+      .prepare(
+        `CREATE TABLE IF NOT EXISTS media (
+          id TEXT PRIMARY KEY,
+          url TEXT NOT NULL,
+          type TEXT NOT NULL CHECK(type IN ('image','audio')),
+          meta_json TEXT,
+          uploaded_by TEXT,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )`
+      )
+      .run();
+    await db
+      .prepare(
+        `CREATE INDEX IF NOT EXISTS idx_media_type_created_at
+         ON media(type, created_at)`
+      )
+      .run();
+  })();
+  return mediaSchemaReady;
 }
 
 export async function ensurePostMediaSchema(db: D1Database): Promise<void> {

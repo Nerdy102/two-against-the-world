@@ -1,0 +1,16 @@
+---
+const { sha = "", time = "" } = Astro.props as { sha?: string; time?: string };
+const shortSha = sha ? sha.slice(0, 7) : "";
+const parsedTime = time ? new Date(time) : null;
+const timeLabel =
+  parsedTime && !Number.isNaN(parsedTime.getTime()) ? parsedTime.toISOString() : time;
+const shouldRender = Boolean(shortSha || timeLabel);
+---
+
+{shouldRender && (
+  <div class="build-info" aria-label="Build info">
+    {shortSha && <span>Build {shortSha}</span>}
+    {shortSha && timeLabel && <span>•</span>}
+    {timeLabel && <span>{timeLabel}</span>}
+  </div>
+)}
