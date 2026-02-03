@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { ensureMediaSchema, ensurePostMediaSchema, ensurePostsSchema, getDb } from "../../../lib/d1";
 import { requireAdminSession, verifyCsrf } from "../../../lib/adminAuth";
+import { getRuntimeEnv, isSchemaBootstrapEnabled } from "../../../lib/runtimeEnv";
 
 export const prerender = false;
 
@@ -27,6 +28,7 @@ const buildKey = (slug: string, batchId: number | string, index: number) => {
 };
 
 export const POST: APIRoute = async ({ locals, request }) => {
+  const env = getRuntimeEnv(locals);
   if (!(await requireAdminSession(request, locals))) {
     return json(
       { ok: false, error: "Unauthorized", detail: "Admin session required.", code: "ADMIN_UNAUTHORIZED" },
@@ -79,10 +81,17 @@ export const POST: APIRoute = async ({ locals, request }) => {
     }
     const key = buildKey(slug, parsedMeta?.batch_id ?? Date.now(), parsedMeta?.index ?? 1);
     const contentType = file.type || "image/jpeg";
-    const bucket = locals.runtime?.env?.MEDIA;
+    const bucket = env.MEDIA;
     if (!bucket) {
       return json(
-        { ok: false, error: "Missing MEDIA binding", detail: "R2 binding is required.", code: "R2_BINDING_MISSING" },
+        {
+          ok: false,
+          error: "Missing MEDIA binding",
+          detail: "R2 binding is required.",
+          howToFix:
+            "Add R2 binding named MEDIA in wrangler.jsonc and Cloudflare dashboard for two-against-the-world1, then redeploy.",
+          code: "R2_BINDING_MISSING",
+        },
         500
       );
     }
@@ -91,11 +100,11 @@ export const POST: APIRoute = async ({ locals, request }) => {
       httpMetadata: { contentType },
     });
 
-    const baseUrl = locals.runtime?.env?.PUBLIC_R2_BASE_URL?.replace(/\/$/, "");
+    const baseUrl = env.PUBLIC_R2_BASE_URL?.replace(/\/$/, "");
     const url = baseUrl ? `${baseUrl}/${key}` : key;
 
     const db = getDb(locals);
-    const allowBootstrap = locals.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
+    const allowBootstrap = isSchemaBootstrapEnabled(env);
     await ensurePostsSchema(db, { allowBootstrap });
     await ensureMediaSchema(db, { allowBootstrap });
     await ensurePostMediaSchema(db, { allowBootstrap });
@@ -128,7 +137,17 @@ export const POST: APIRoute = async ({ locals, request }) => {
         .run();
     }
 
-    return json({ ok: true, url, key });
+    return json({
+      ok: true,
+      url,
+      key,
+      warning: baseUrl
+        ? undefined
+        : "PUBLIC_R2_BASE_URL is not set. Set it to return fully-qualified image URLs.",
+      howToFix: baseUrl
+        ? undefined
+        : "Set PUBLIC_R2_BASE_URL in two-against-the-world1 variables (e.g. https://<account>.r2.dev/<bucket>).",
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Upload failed.";
     return json({ ok: false, error: message, detail: message, code: "UPLOAD_FAILED" }, 500);

@@ -1,10 +1,11 @@
 import type { APIContext } from "astro";
 import { ensureAdminSchema, getDb } from "./d1";
+import { getRuntimeEnv, isSchemaBootstrapEnabled } from "./runtimeEnv";
 
 const ADMIN_SESSION_COOKIE = "twaw_admin_session";
 const ADMIN_CSRF_COOKIE = "twaw_admin_csrf";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
-const PBKDF2_ITERATIONS = 120000;
+const PBKDF2_ITERATIONS = 100000;
 const LOGIN_WINDOW_MS = 10 * 60 * 1000;
 const LOGIN_LOCK_MS = 15 * 60 * 1000;
 const LOGIN_MAX_FAILURES = 5;
@@ -74,7 +75,7 @@ const getClientIp = (request: Request) => {
 };
 
 const canBootstrapSchema = (locals: APIContext["locals"]) =>
-  locals.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
+  isSchemaBootstrapEnabled(getRuntimeEnv(locals));
 
 export const checkAdminLoginRateLimit = async (request: Request, locals: APIContext["locals"]) => {
   const ip = getClientIp(request);
@@ -159,7 +160,7 @@ export const clearAdminLoginFailures = async (request: Request, locals: APIConte
 const DEFAULT_ADMIN_USERNAME = "admin";
 
 export const getAdminPassword = (locals: APIContext["locals"]) =>
-  locals.runtime?.env?.ADMIN_PASSWORD ?? null;
+  getRuntimeEnv(locals).ADMIN_PASSWORD ?? null;
 
 export const isSecureRequest = (request: Request) => {
   const forwardedProto = request.headers.get("x-forwarded-proto");
@@ -186,18 +187,30 @@ export const ensureAdminBootstrapUser = async (locals: APIContext["locals"]) => 
   const db = getDb(locals);
   await ensureAdminSchema(db, { allowBootstrap: canBootstrapSchema(locals) });
   const existing = await db
-    .prepare(`SELECT id FROM admin_users WHERE username = ? LIMIT 1`)
+    .prepare(`SELECT id, password_hash, password_salt FROM admin_users WHERE username = ? LIMIT 1`)
     .bind(DEFAULT_ADMIN_USERNAME)
-    .first<{ id: string }>();
-  if (existing?.id) return;
+    .first<{ id: string; password_hash: string; password_salt: string }>();
   const salt = crypto.randomUUID();
-  const hash = await pbkdf2Hash(password, salt);
+  const hash = await pbkdf2Hash(password, existing?.password_salt ?? salt);
+  if (existing?.id) {
+    if (hash === existing.password_hash) return;
+    await db
+      .prepare(
+        `UPDATE admin_users
+         SET password_hash = ?, password_salt = ?
+         WHERE id = ?`
+      )
+      .bind(hash, existing.password_salt ?? salt, existing.id)
+      .run();
+    await db.prepare(`DELETE FROM admin_sessions`).run();
+    return;
+  }
   await db
     .prepare(
       `INSERT INTO admin_users (id, username, password_hash, password_salt)
        VALUES (?, ?, ?, ?)`
     )
-    .bind(crypto.randomUUID(), DEFAULT_ADMIN_USERNAME, hash, salt)
+    .bind(crypto.randomUUID(), DEFAULT_ADMIN_USERNAME, hash, existing?.password_salt ?? salt)
     .run();
 };
 

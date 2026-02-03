@@ -39,7 +39,9 @@ export const POST: APIRoute = async ({ locals, request }) => {
         {
           ok: false,
           error: "Missing ADMIN_PASSWORD",
-          detail: "Missing ADMIN_PASSWORD in Cloudflare Worker variables/secrets",
+          detail: "Missing ADMIN_PASSWORD in Cloudflare Worker variables/secrets.",
+          howToFix:
+            "Cloudflare dashboard → Worker (two-against-the-world1) → Settings → Variables/Secrets → add ADMIN_PASSWORD or run `wrangler secret put ADMIN_PASSWORD --name two-against-the-world1`.",
           code: "ADMIN_PASSWORD_ENV_MISSING",
         },
         500

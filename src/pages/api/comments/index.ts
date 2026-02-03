@@ -6,6 +6,7 @@ import {
   type CommentRecord,
 } from "../../../lib/d1";
 import { normalizeCommentStatus } from "../../../lib/constants";
+import { getRuntimeEnv, isSchemaBootstrapEnabled } from "../../../lib/runtimeEnv";
 
 export const prerender = false;
 
@@ -39,12 +40,8 @@ const verifyTurnstile = async (secret: string, token: string | null, remoteIp?: 
 const normalizeText = (value: unknown) =>
   typeof value === "string" ? value.trim() : "";
 
-const shouldHoldForReview = (body: string) => {
-  const hasLink = /https?:\/\//i.test(body);
-  return body.length > 500 || hasLink;
-};
-
 export const GET: APIRoute = async ({ locals, url }) => {
+  const env = getRuntimeEnv(locals);
   const slug = url.searchParams.get("slug");
   if (!slug) {
     return json(
@@ -54,7 +51,7 @@ export const GET: APIRoute = async ({ locals, url }) => {
   }
   try {
     const db = getDb(locals);
-    const allowBootstrap = locals.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
+    const allowBootstrap = isSchemaBootstrapEnabled(env);
     await ensureCommentsSchema(db, { allowBootstrap });
     await ensureAdminSchema(db, { allowBootstrap });
     const publicStatus: CommentRecord["status"] = "visible";
@@ -63,7 +60,7 @@ export const GET: APIRoute = async ({ locals, url }) => {
         `SELECT id, post_slug, parent_id, display_name, body, status, created_at
          FROM comments
          WHERE post_slug = ? AND status = ?
-         ORDER BY datetime(created_at) DESC
+         ORDER BY datetime(created_at) ASC
          LIMIT 200`
       )
       .bind(slug, publicStatus)
@@ -73,7 +70,14 @@ export const GET: APIRoute = async ({ locals, url }) => {
     const message = error instanceof Error ? error.message : "Failed to load comments.";
     if (message.includes("D1 database binding not found")) {
       return json(
-        { ok: false, error: "Missing DB binding", detail: "Check wrangler D1 bindings.", code: "DB_BINDING_MISSING" },
+        {
+          ok: false,
+          error: "Missing DB binding",
+          detail: "Check wrangler D1 bindings.",
+          howToFix:
+            "Add D1 binding named DB in wrangler.jsonc and Cloudflare dashboard for two-against-the-world1, then redeploy.",
+          code: "DB_BINDING_MISSING",
+        },
         500
       );
     }
@@ -93,6 +97,7 @@ export const GET: APIRoute = async ({ locals, url }) => {
 };
 
 export const POST: APIRoute = async ({ locals, request }) => {
+  const env = getRuntimeEnv(locals);
   const payload = await request.json().catch(() => null);
   if (!payload) {
     return json(
@@ -101,7 +106,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
     );
   }
 
-  const slug = normalizeText(payload.slug);
+  const slug = normalizeText(payload.slug || payload.postSlug);
   const displayName = normalizeText(payload.displayName);
   const body = normalizeText(payload.body);
   const parentId =
@@ -120,7 +125,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
       400
     );
   }
-  if (displayName.length > 60 || body.length > 2000) {
+  if (displayName.length > 40 || body.length > 2000) {
     return json(
       {
         ok: false,
@@ -134,7 +139,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
 
   try {
     const db = getDb(locals);
-    const allowBootstrap = locals.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
+    const allowBootstrap = isSchemaBootstrapEnabled(env);
     await ensureCommentsSchema(db, { allowBootstrap });
     await ensureAdminSchema(db, { allowBootstrap });
     const id = crypto.randomUUID();
@@ -145,7 +150,20 @@ export const POST: APIRoute = async ({ locals, request }) => {
     const ipHash = ip ? await hashIp(ip) : null;
     const userAgent = request.headers.get("user-agent") ?? "";
     const userAgentHash = userAgent ? await hashIp(userAgent) : null;
-    const secret = locals.runtime?.env?.TURNSTILE_SECRET;
+    const secret = env.TURNSTILE_SECRET;
+    if (!secret && turnstileToken) {
+      return json(
+        {
+          ok: false,
+          error: "Turnstile not configured",
+          detail: "TURNSTILE_SECRET is missing in Worker secrets.",
+          howToFix:
+            "Set TURNSTILE_SECRET in Cloudflare Worker secrets and PUBLIC_TURNSTILE_SITE_KEY in public env.",
+          code: "TURNSTILE_SECRET_MISSING",
+        },
+        500
+      );
+    }
     if (secret) {
       if (!turnstileToken) {
         return json(
@@ -198,10 +216,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
       }
     }
 
-    const requireReview = locals.runtime?.env?.COMMENTS_REQUIRE_REVIEW === "true";
-    const status = normalizeCommentStatus(
-      requireReview || shouldHoldForReview(body) ? "pending" : "visible"
-    );
+    const status = normalizeCommentStatus("visible");
     if (!status) {
       return json(
         { ok: false, error: "Invalid comment status", detail: "Status not allowed.", code: "COMMENT_STATUS_INVALID" },
@@ -210,10 +225,10 @@ export const POST: APIRoute = async ({ locals, request }) => {
     }
     await db
       .prepare(
-        `INSERT INTO comments (id, post_slug, post_id, parent_id, display_name, body, status, ip_hash, user_agent_hash)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO comments (id, post_slug, parent_id, display_name, body, status, ip_hash, user_agent_hash)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
       )
-      .bind(id, slug, null, parentId, displayName, body, status, ipHash, userAgentHash)
+      .bind(id, slug, parentId, displayName, body, status, ipHash, userAgentHash)
       .run();
 
     return json({ ok: true, id, status });
@@ -221,7 +236,14 @@ export const POST: APIRoute = async ({ locals, request }) => {
     const message = error instanceof Error ? error.message : "Failed to submit comment.";
     if (message.includes("D1 database binding not found")) {
       return json(
-        { ok: false, error: "Missing DB binding", detail: "Check wrangler D1 bindings.", code: "DB_BINDING_MISSING" },
+        {
+          ok: false,
+          error: "Missing DB binding",
+          detail: "Check wrangler D1 bindings.",
+          howToFix:
+            "Add D1 binding named DB in wrangler.jsonc and Cloudflare dashboard for two-against-the-world1, then redeploy.",
+          code: "DB_BINDING_MISSING",
+        },
         500
       );
     }

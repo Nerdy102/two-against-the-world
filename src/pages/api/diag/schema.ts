@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { requireAdminSession } from "../../../lib/adminAuth";
 import { getDb } from "../../../lib/d1";
+import { getRuntimeEnv } from "../../../lib/runtimeEnv";
 
 export const prerender = false;
 
@@ -23,9 +24,16 @@ export const GET: APIRoute = async ({ locals, request }) => {
       401
     );
   }
-  if (!locals.runtime?.env?.DB) {
+  const env = getRuntimeEnv(locals);
+  if (!env.DB) {
     return json(
-      { error: "Missing DB binding", detail: "DB binding is required.", code: "DB_BINDING_MISSING" },
+      {
+        error: "Missing DB binding",
+        detail: "DB binding is required.",
+        code: "DB_BINDING_MISSING",
+        howToFix:
+          "Add D1 binding named DB in wrangler.jsonc and Cloudflare dashboard for two-against-the-world1, then redeploy.",
+      },
       500
     );
   }
@@ -54,7 +62,21 @@ export const GET: APIRoute = async ({ locals, request }) => {
       tableMap[row.name] = { sql: row.sql ?? null, checks: extractChecks(row.sql ?? null) };
     }
 
-    return json({ ok: true, tables: tableMap });
+    const missingTables = tables.filter((table) => !tableMap[table]?.sql);
+
+    return json({
+      ok: true,
+      tables: tableMap,
+      missingTables,
+      howToFix:
+        missingTables.length > 0
+          ? {
+              listMigrations: "npx wrangler d1 migrations list <DB_NAME> --name two-against-the-world1",
+              applyMigrations: "npx wrangler d1 migrations apply <DB_NAME> --remote --name two-against-the-world1",
+              note: "Replace <DB_NAME> with the database name in wrangler.jsonc.",
+            }
+          : undefined,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load schema.";
     return json({ error: message, detail: message, code: "DIAG_SCHEMA_FAILED" }, 500);

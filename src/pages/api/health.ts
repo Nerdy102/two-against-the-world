@@ -2,28 +2,25 @@ import type { APIRoute } from "astro";
 import type { D1Database } from "@cloudflare/workers-types";
 import { getDb } from "../../lib/d1";
 import { getPublishedPostsFromContent, shouldUseContentFallback } from "../../lib/posts";
+import {
+  asString,
+  getBuildInfo,
+  getDeployTarget,
+  getEnvironmentName,
+  getRuntimeEnv,
+} from "../../lib/runtimeEnv";
 
 export const prerender = false;
 
-const json = (data: unknown, status = 200) =>
-  new Response(JSON.stringify(data), {
+const json = (data: unknown, status = 200, headers?: Headers) => {
+  const responseHeaders = headers ?? new Headers();
+  if (!responseHeaders.has("content-type")) {
+    responseHeaders.set("content-type", "application/json");
+  }
+  return new Response(JSON.stringify(data), {
     status,
-    headers: { "content-type": "application/json" },
+    headers: responseHeaders,
   });
-
-const asString = (value: unknown) => (typeof value === "string" ? value : "");
-
-const getBuildInfo = (env: Record<string, unknown>) => {
-  const sha =
-    asString(env.BUILD_SHA) ||
-    asString(env.PUBLIC_BUILD_SHA) ||
-    asString(env.CF_PAGES_COMMIT_SHA) ||
-    asString(env.GITHUB_SHA);
-  const time =
-    asString(env.BUILD_TIME) ||
-    asString(env.PUBLIC_BUILD_TIME) ||
-    asString(env.CF_PAGES_BUILD_TIMESTAMP);
-  return { sha, time };
 };
 
 const tableExists = async (db: D1Database, table: string) => {
@@ -32,8 +29,20 @@ const tableExists = async (db: D1Database, table: string) => {
 };
 
 export const GET: APIRoute = async ({ locals }) => {
-  const env = locals.runtime?.env ?? {};
+  const env = getRuntimeEnv(locals);
   const build = getBuildInfo(env);
+  const deployTarget = getDeployTarget(env);
+  const environment = getEnvironmentName(env);
+  const workerName = asString(env.WORKER_NAME);
+  const warnings: { code: string; detail: string; howToFix: string }[] = [];
+  if (workerName && workerName !== "two-against-the-world1") {
+    warnings.push({
+      code: "WORKER_NAME_MISMATCH",
+      detail: `WORKER_NAME is "${workerName}". Production should be two-against-the-world1.`,
+      howToFix:
+        "Set WORKER_NAME=two-against-the-world1 in vars and deploy to the world1 worker.",
+    });
+  }
   const schema = {
     posts: false,
     comments: false,
@@ -91,6 +100,63 @@ export const GET: APIRoute = async ({ locals }) => {
     mergedCount = shouldUseContentFallback() ? contentPostCount : d1PublishedCount;
   }
 
+  if (!env.ADMIN_PASSWORD) {
+    warnings.push({
+      code: "ADMIN_PASSWORD_MISSING",
+      detail: "ADMIN_PASSWORD is not set.",
+      howToFix:
+        "Cloudflare dashboard → Worker (two-against-the-world1) → Settings → Variables/Secrets → add ADMIN_PASSWORD or run `wrangler secret put ADMIN_PASSWORD --name two-against-the-world1`.",
+    });
+  }
+  if (!env.DB) {
+    warnings.push({
+      code: "DB_BINDING_MISSING",
+      detail: "DB binding is missing.",
+      howToFix:
+        "Add D1 binding named DB in wrangler.jsonc and Cloudflare dashboard for two-against-the-world1, then redeploy.",
+    });
+  }
+  if (!env.MEDIA) {
+    warnings.push({
+      code: "R2_BINDING_MISSING",
+      detail: "MEDIA (R2) binding is missing.",
+      howToFix:
+        "Add R2 binding named MEDIA in wrangler.jsonc and Cloudflare dashboard for two-against-the-world1.",
+    });
+  }
+  if (!asString(env.PUBLIC_R2_BASE_URL)) {
+    warnings.push({
+      code: "PUBLIC_R2_BASE_URL_MISSING",
+      detail: "PUBLIC_R2_BASE_URL is not set.",
+      howToFix:
+        "Set PUBLIC_R2_BASE_URL on two-against-the-world1 (e.g. https://<account>.r2.dev/<bucket>).",
+    });
+  }
+  if (!env.TURNSTILE_SECRET) {
+    warnings.push({
+      code: "TURNSTILE_SECRET_MISSING",
+      detail: "TURNSTILE_SECRET is not set.",
+      howToFix:
+        "Create a Turnstile site and set TURNSTILE_SECRET in Worker secrets for two-against-the-world1.",
+    });
+  }
+  const missingTables = Object.entries(schema)
+    .filter(([, exists]) => !exists)
+    .map(([name]) => name);
+  if (missingTables.length > 0) {
+    warnings.push({
+      code: "DB_SCHEMA_MISSING",
+      detail: `Missing tables: ${missingTables.join(", ")}`,
+      howToFix:
+        "Run `npx wrangler d1 migrations apply <DB_NAME> --remote --name two-against-the-world1` (replace <DB_NAME> with the database name in wrangler.jsonc).",
+    });
+  }
+
+  const headers = new Headers();
+  if (build.id || build.sha) {
+    headers.set("x-app-build", build.id || build.sha);
+  }
+
   return json({
     ok: true,
     env: {
@@ -107,5 +173,9 @@ export const GET: APIRoute = async ({ locals }) => {
       mergedCount,
     },
     build,
-  });
+    workerName,
+    deployTarget,
+    environment,
+    warnings,
+  }, 200, headers);
 };
