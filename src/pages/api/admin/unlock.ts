@@ -28,6 +28,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return json({ error: "Missing password" }, 400);
     }
     const adminPassword = getAdminPassword(locals);
+    console.info("[admin:unlock] hasAdminPassword=%s", Boolean(adminPassword));
     if (!adminPassword) {
       return json(
         { error: "Missing ADMIN_PASSWORD (set it in .dev.vars for wrangler dev)" },
@@ -35,7 +36,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       );
     }
     if (!locals.runtime?.env?.DB) {
-      return json({ error: "Missing DB binding in local runtime" }, 500);
+      return json({ error: "Missing DB binding" }, 500);
     }
 
     const rateLimit = await checkAdminLoginRateLimit(request, locals);
@@ -50,7 +51,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const user = await verifyAdminPassword(locals, password);
     if (!user) {
       await recordAdminLoginFailure(request, locals);
-      return json({ error: "Invalid credentials" }, 401);
+      return json({ error: "Wrong password" }, 401);
     }
 
     await clearAdminLoginFailures(request, locals);
@@ -65,11 +66,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Server error.";
     if (message.includes("D1 database binding not found")) {
-      return json({ error: "Missing DB binding in local runtime" }, 500);
+      return json({ error: "Missing DB binding" }, 500);
     }
     if (message.startsWith('D1 schema missing for "')) {
       return json({ error: "Missing DB schema; apply migrations locally" }, 500);
     }
+    console.error("[admin:unlock] error", message);
     return json({ error: message }, 500);
   }
 };
