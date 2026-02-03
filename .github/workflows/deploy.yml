@@ -17,11 +17,14 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22.16.0
           cache: npm
 
+      - name: Ensure npm version
+        run: npm install -g npm@10.9.2
+
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Show tool versions
         run: |
