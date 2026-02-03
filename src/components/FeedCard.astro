@@ -67,14 +67,10 @@ const pinLabel = pinnedStyle && pinLabelMap[pinnedStyle] ? pinLabelMap[pinnedSty
 
   <h3 class="feed-card__title">{title}</h3>
   {!locked && (description || author) && (
-    <p class="feed-card__desc">
-      {description}
-      {author && (
-        <span class="feed-card__byline">
-          {description ? " · " : ""}by {author}
-        </span>
-      )}
-    </p>
+    <div class="feed-card__meta-line">
+      {description && <p class="feed-card__desc">{description}</p>}
+      {author && <span class="feed-card__author">— {author}</span>}
+    </div>
   )}
   {locked && <p class="feed-card__desc">🔒 Đã khóa</p>}
 

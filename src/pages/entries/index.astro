@@ -15,7 +15,7 @@ try {
   await ensurePostsSchema(db, { allowBootstrap });
   const { results = [] } = await db
     .prepare(
-      `SELECT id, slug, title, summary, cover_url, topic, author, location, event_time, written_at, photo_time, tags_csv, side_note, published_at, created_at,
+      `SELECT id, slug, title, summary, cover_url, topic, author, location, event_time, written_at, photo_time, tags_csv, side_note, content_md, body_markdown, published_at, created_at,
         CASE
           WHEN pinned = 1 AND (pinned_until IS NULL OR datetime(pinned_until) > datetime('now')) THEN 1
           ELSE 0
@@ -76,7 +76,7 @@ const dateStats = Object.entries(dateCounts)
                 <input
                   class="input"
                   type="search"
-                  placeholder="Nhập tiêu đề, tác giả, tóm tắt..."
+                  placeholder="Tìm trong tiêu đề / nội dung..."
                   data-search-keyword
                   data-search-primary
                 />
@@ -121,7 +121,11 @@ const dateStats = Object.entries(dateCounts)
               pinnedStyle={post.pinned_style ?? undefined}
               dateKey={dateKey}
               anchorId={anchorId}
-              searchText={`${post.title} ${post.summary ?? ""} ${post.author ?? ""} ${post.location ?? ""} ${post.event_time ?? ""} ${post.written_at ?? ""} ${post.photo_time ?? ""} ${post.side_note ?? ""} ${post.tags_csv ?? ""} ${post.topic ?? ""}`}
+              searchText={`${post.title} ${post.summary ?? ""} ${post.author ?? ""} ${post.location ?? ""} ${
+                post.event_time ?? ""
+              } ${post.written_at ?? ""} ${post.photo_time ?? ""} ${post.side_note ?? ""} ${post.tags_csv ?? ""} ${
+                post.topic ?? ""
+              } ${post.content_md ?? ""} ${post.body_markdown ?? ""}`}
             />
           );
         })}
@@ -154,7 +158,7 @@ const dateStats = Object.entries(dateCounts)
         const keyword = keywordInput?.value?.trim().toLowerCase() ?? "";
         cards.forEach((card) => {
           const cardDate = card.getAttribute("data-date") || "";
-          const haystack = card.getAttribute("data-search") || "";
+          const haystack = (card.getAttribute("data-search") || "").toLowerCase();
           const matchesDate = date ? cardDate === date : true;
           const matchesKeyword = keyword ? haystack.includes(keyword) : true;
           card.classList.toggle("is-filtered", !(matchesDate && matchesKeyword));
@@ -168,7 +172,11 @@ const dateStats = Object.entries(dateCounts)
         });
       });
 
-      keywordInput?.addEventListener("input", filter);
+      let keywordDebounce = null;
+      keywordInput?.addEventListener("input", () => {
+        if (keywordDebounce) window.clearTimeout(keywordDebounce);
+        keywordDebounce = window.setTimeout(filter, 300);
+      });
 
       resets.forEach((reset) => {
         reset.addEventListener("click", () => {

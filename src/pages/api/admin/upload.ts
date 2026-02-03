@@ -19,12 +19,11 @@ const sanitizeSlug = (value: string) =>
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-");
 
-const sanitizeFilename = (filename: string) => filename.replace(/[^\w.-]/g, "_");
-
-const buildKey = (slug: string, filename: string) => {
+const buildKey = (slug: string, batchId: number | string, index: number) => {
   const safeSlug = sanitizeSlug(slug || "untitled") || "untitled";
-  const date = new Date().toISOString().slice(0, 10);
-  return `web/${date}/${safeSlug}/${sanitizeFilename(filename)}`;
+  const safeBatch = String(batchId || Date.now()).replace(/[^\w-]/g, "");
+  const safeIndex = Number.isFinite(index) && index > 0 ? index : 1;
+  return `posts/${safeSlug}/${safeBatch}-${safeIndex}.jpg`;
 };
 
 export const POST: APIRoute = async ({ locals, request }) => {
@@ -49,8 +48,14 @@ export const POST: APIRoute = async ({ locals, request }) => {
       return json({ error: "Only images are supported" }, 400);
     }
 
-    const filename = file.name || `upload-${Date.now()}.jpg`;
-    const key = buildKey(slug, filename);
+    let parsedMeta: { width?: number; height?: number; sort_order?: number; batch_id?: number; index?: number } | null =
+      null;
+    try {
+      parsedMeta = meta ? JSON.parse(meta) : null;
+    } catch {
+      parsedMeta = null;
+    }
+    const key = buildKey(slug, parsedMeta?.batch_id ?? Date.now(), parsedMeta?.index ?? 1);
     const contentType = file.type || "image/jpeg";
     const bucket = locals.runtime?.env?.MEDIA;
     if (!bucket) {
@@ -81,12 +86,6 @@ export const POST: APIRoute = async ({ locals, request }) => {
       .bind(crypto.randomUUID(), url, "image", meta, "admin")
       .run();
     if (post?.id) {
-      let parsedMeta: { width?: number; height?: number; sort_order?: number } | null = null;
-      try {
-        parsedMeta = meta ? JSON.parse(meta) : null;
-      } catch {
-        parsedMeta = null;
-      }
       await db
         .prepare(
           `INSERT INTO post_media (id, post_id, r2_key, url, width, height, sort_order)
