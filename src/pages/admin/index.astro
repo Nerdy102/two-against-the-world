@@ -1071,8 +1071,20 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       return { blob, width: targetWidth, height: targetHeight };
     };
 
+    const prepareUpload = async (file) => {
+      try {
+        const { blob, width, height } = await resizeImage(file);
+        return { blob, width, height };
+      } catch (error) {
+        if (isHeic(file) && (error?.message === "HEIC_CONVERT_FAILED" || error?.message === "IMAGE_DECODE_FAILED")) {
+          return { blob: file, width: null, height: null, original: true };
+        }
+        throw error;
+      }
+    };
+
     const uploadImage = async ({ file, slug, filename, sortOrder, batchId, index, signal }) => {
-      const { blob, width, height } = await resizeImage(file);
+      const { blob, width, height, original } = await prepareUpload(file);
       const formData = new FormData();
       formData.append("file", blob, filename);
       formData.append("slug", slug);
@@ -1084,6 +1096,7 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
           size: blob.size,
           originalName: file.name,
           fileName: filename,
+          original,
           sort_order: sortOrder ?? 0,
           batch_id: batchId,
           index,
@@ -1224,12 +1237,12 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
             uploadNote.textContent = "Đã hủy upload ảnh.";
           } else if (error?.message === "HEIC_CONVERT_FAILED") {
             uploadNote.textContent =
-              "Không chuyển đổi được ảnh HEIC. Hãy đổi Camera → Formats → Most Compatible hoặc chuyển sang JPG.";
-            showToast("Không chuyển đổi được HEIC. Vui lòng đổi sang JPG.", "error");
+              "Không chuyển đổi được ảnh HEIC. Hệ thống sẽ cố upload bản gốc hoặc bạn hãy đổi Camera → Formats → Most Compatible.";
+            showToast("HEIC conversion failed. Uploading original if possible.", "info");
           } else if (error?.message === "IMAGE_DECODE_FAILED") {
             uploadNote.textContent =
-              "Không giải mã được ảnh này. Hãy đổi Camera → Formats → Most Compatible hoặc chuyển sang JPG.";
-            showToast("Không giải mã được ảnh. Vui lòng đổi sang JPG.", "error");
+              "Không giải mã được ảnh này. Hệ thống sẽ cố upload bản gốc hoặc bạn hãy đổi Camera → Formats → Most Compatible.";
+            showToast("Image decode failed. Uploading original if possible.", "info");
           } else {
             uploadNote.textContent =
               "Có ảnh upload lỗi. Thử ảnh khác hoặc đổi Camera → Formats → Most Compatible.";

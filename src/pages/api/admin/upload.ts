@@ -19,11 +19,25 @@ const sanitizeSlug = (value: string) =>
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-");
 
-const buildKey = (slug: string, batchId: number | string, index: number) => {
+const resolveExtension = (file: File) => {
+  const type = file.type || "";
+  if (type === "image/heic") return "heic";
+  if (type === "image/heif") return "heif";
+  if (type === "image/png") return "png";
+  if (type === "image/webp") return "webp";
+  if (type === "image/avif") return "avif";
+  if (type === "image/jpeg") return "jpg";
+  const name = file.name || "";
+  const match = name.match(/\.([a-z0-9]+)$/i);
+  return match?.[1]?.toLowerCase() || "jpg";
+};
+
+const buildKey = (slug: string, batchId: number | string, index: number, extension: string) => {
   const safeSlug = sanitizeSlug(slug || "untitled") || "untitled";
   const safeBatch = String(batchId || Date.now()).replace(/[^\w-]/g, "");
   const safeIndex = Number.isFinite(index) && index > 0 ? index : 1;
-  return `posts/${safeSlug}/${safeBatch}-${safeIndex}.jpg`;
+  const safeExt = extension.replace(/[^\w]/g, "") || "jpg";
+  return `posts/${safeSlug}/${safeBatch}-${safeIndex}.${safeExt}`;
 };
 
 export const POST: APIRoute = async ({ locals, request }) => {
@@ -77,7 +91,8 @@ export const POST: APIRoute = async ({ locals, request }) => {
     } catch {
       parsedMeta = null;
     }
-    const key = buildKey(slug, parsedMeta?.batch_id ?? Date.now(), parsedMeta?.index ?? 1);
+    const extension = resolveExtension(file);
+    const key = buildKey(slug, parsedMeta?.batch_id ?? Date.now(), parsedMeta?.index ?? 1, extension);
     const contentType = file.type || "image/jpeg";
     const bucket = locals.runtime?.env?.MEDIA;
     if (!bucket) {
