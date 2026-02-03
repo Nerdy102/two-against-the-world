@@ -51,9 +51,4 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
-          command: |
-            deploy \
-            --var BUILD_SHA:${{ env.BUILD_SHA }} \
-            --var BUILD_TIME:${{ env.BUILD_TIME }} \
-            --var PUBLIC_BUILD_SHA:${{ env.BUILD_SHA }} \
-            --var PUBLIC_BUILD_TIME:${{ env.BUILD_TIME }}
+          command: deploy --var BUILD_SHA:${{ env.BUILD_SHA }} --var BUILD_TIME:${{ env.BUILD_TIME }} --var PUBLIC_BUILD_SHA:${{ env.BUILD_SHA }} --var PUBLIC_BUILD_TIME:${{ env.BUILD_TIME }}
