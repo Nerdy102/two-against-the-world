@@ -1,5 +1,5 @@
 ---
-type WallImage = { src: string; alt?: string };
+type WallImage = { src: string; alt?: string; candidates?: string[] };
 
 const { images, seed = "wall" } = Astro.props as {
   images: WallImage[];
@@ -78,7 +78,7 @@ const isSingle = frames.length === 1;
 const isPair = frames.length === 2;
 ---
 
-<div class={`framewall ${isSingle ? "framewall--single" : ""} ${isPair ? "framewall--pair" : ""}`}>
+<div class={`framewall ${isSingle ? "framewall--single" : ""} ${isPair ? "framewall--pair" : ""}`} data-pair-layout="stack">
   <!-- dummy target for closing -->
   <span id="lb-close" class="lb-close-target" aria-hidden="true"></span>
 
@@ -96,7 +96,14 @@ const isPair = frames.length === 2;
       >
         <div class="frame-inner">
           <div class="mat">
-            <img src={f.src} alt={f.alt ?? ""} loading="lazy" decoding="async" />
+            <img
+              src={f.src}
+              alt={f.alt ?? ""}
+              loading="lazy"
+              decoding="async"
+              data-candidates={f.candidates?.join("|")}
+              data-candidate-index="0"
+            />
           </div>
         </div>
       </a>
@@ -118,7 +125,14 @@ const isPair = frames.length === 2;
           <a class="lb-nav lb-prev" href={`#lb-${prev}`} aria-label="Previous">‹</a>
 
           <div class="lb-frame">
-            <img class="lb-img" src={f.src} alt={f.alt ?? ""} decoding="async" />
+            <img
+              class="lb-img"
+              src={f.src}
+              alt={f.alt ?? ""}
+              decoding="async"
+              data-candidates={f.candidates?.join("|")}
+              data-candidate-index="0"
+            />
           </div>
 
           <a class="lb-nav lb-next" href={`#lb-${next}`} aria-label="Next">›</a>
@@ -132,7 +146,14 @@ const isPair = frames.length === 2;
           <div class="lb-thumbs" aria-label="Thumbnails">
             {frames.map((t) => (
               <a class={`lb-thumb ${t.idx === f.idx ? "is-active" : ""}`} href={`#lb-${t.idx}`} aria-label={`Go to ${t.idx + 1}`}>
-                <img src={t.src} alt="" loading="lazy" decoding="async" />
+                <img
+                  src={t.src}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  data-candidates={t.candidates?.join("|")}
+                  data-candidate-index="0"
+                />
               </a>
             ))}
           </div>
@@ -169,10 +190,15 @@ const isPair = frames.length === 2;
     }
 
     .framewall--pair .wall{
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      grid-auto-rows: minmax(220px, 1fr);
+      grid-template-columns: 1fr;
+      grid-auto-rows: minmax(260px, auto);
       gap: 12px;
       padding: 12px;
+    }
+
+    .framewall--pair[data-pair-layout="side"] .wall{
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-auto-rows: minmax(220px, 1fr);
     }
 
     .framewall--pair .frame{
@@ -446,4 +472,66 @@ const isPair = frames.length === 2;
     /* hide dummy close target */
     .lb-close-target{ position: fixed; width:1px; height:1px; left:-9999px; top:-9999px; }
   </style>
+
+  <script is:inline>
+    const resolvePairLayouts = () => {
+      const walls = document.querySelectorAll(".framewall--pair");
+      walls.forEach((wall) => {
+        if (!(wall instanceof HTMLElement)) return;
+        const pairImages = Array.from(wall.querySelectorAll(".wall > .frame .mat img")).slice(0, 2);
+        if (pairImages.length < 2) return;
+
+        const readyImages = pairImages.filter(
+          (img) => img instanceof HTMLImageElement && img.naturalWidth > 0 && img.naturalHeight > 0,
+        );
+        if (readyImages.length < 2) return;
+
+        const ratios = readyImages.map((img) => img.naturalWidth / img.naturalHeight);
+        const allLandscape = ratios.every((ratio) => ratio > 1.05);
+        wall.dataset.pairLayout = allLandscape ? "stack" : "side";
+      });
+    };
+
+    const initFallbacks = () => {
+      const images = document.querySelectorAll("img[data-candidates]");
+      images.forEach((img) => {
+        if (!(img instanceof HTMLImageElement)) return;
+        if (!img.dataset.candidateIndex) {
+          img.dataset.candidateIndex = "0";
+        }
+      });
+    };
+
+    document.addEventListener(
+      "error",
+      (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLImageElement)) return;
+        if (!target.dataset.candidates) return;
+        const raw = target.dataset.candidates;
+        const candidates = raw.split("|").filter(Boolean);
+        const nextIndex = Number(target.dataset.candidateIndex ?? "0") + 1;
+        if (nextIndex >= candidates.length) return;
+        target.dataset.candidateIndex = String(nextIndex);
+        target.src = candidates[nextIndex];
+      },
+      true,
+    );
+
+    document.addEventListener(
+      "load",
+      (event) => {
+        if (!(event.target instanceof HTMLImageElement)) return;
+        resolvePairLayouts();
+      },
+      true,
+    );
+
+    initFallbacks();
+    resolvePairLayouts();
+    document.addEventListener("astro:page-load", () => {
+      initFallbacks();
+      resolvePairLayouts();
+    });
+  </script>
 </div>
