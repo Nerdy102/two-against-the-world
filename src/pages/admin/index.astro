@@ -1072,6 +1072,9 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
     };
 
     const prepareUpload = async (file) => {
+      if (isHeic(file)) {
+        return { blob: file, width: null, height: null, original: true };
+      }
       try {
         const { blob, width, height } = await resizeImage(file);
         return { blob, width, height };
@@ -1193,7 +1196,7 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       for (const [index, file] of selectedFiles.entries()) {
         try {
           if (uploadController.signal.aborted) break;
-          const filename = file.name || `image-${index + 1}.jpg`;
+          const filename = file.name || `image-${index + 1}.${isHeic(file) ? "heic" : "jpg"}`;
           const sortOrder = index === coverIndex ? 0 : nextSortOrder++;
           if (uploadProgress) {
             uploadProgress.textContent = `Đang upload ${index + 1}/${selectedFiles.length}...`;
