@@ -2,6 +2,7 @@ export const TOPICS = [
   { slug: "two-of-us", label: "Hai đứa mình", icon: "💞", color: "#e35a6f" },
   { slug: "miu-notes", label: "Miu tâm sự", icon: "📝", color: "#f2b84b" },
   { slug: "oriyinframes", label: "oriyinframes", icon: "🎞️", color: "#6dc9ff" },
+  { slug: "oyirinframe", label: "oyirinframe", icon: "🖼️", color: "#8dd3ff" },
   { slug: "grown-up-yap", label: "yapping người lớn", icon: "🧠", color: "#9f7aea" },
   { slug: "sad-music", label: "nhạc văn nhẽo", icon: "🎵", color: "#6ee7b7" },
   { slug: "film-visuals", label: "phim thị ảnh", icon: "🎬", color: "#f59ab1" },
@@ -47,6 +48,7 @@ export const TOPIC_COPY: Record<string, string> = {
   "two-of-us": "Just the two of us",
   "miu-notes": "Em này quắn và miên lắmmmmmmmmmmmm",
   "oriyinframes": "the poets are dying, but no matter, poetry remains...",
+  "oyirinframe": "Khoảnh khắc lặng, ảnh kể chuyện tình.",
   "grey-h": "No cap, mong là không phải dùng đến thư mục này",
   "grown-up-yap":
     "Chính trị, kinh tế, đầu tư, tài chính,... mọi thứ mà người lớn cơ bản phải đắm chìm để trưởng thành",
