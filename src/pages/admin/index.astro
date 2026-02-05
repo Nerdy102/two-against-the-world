@@ -995,31 +995,72 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       );
     };
 
-    const toJpegBlob = async (file, quality = 0.82) => {
+    const convertHeic = async (file, quality = 0.82) => {
       if (!isHeic(file)) return file;
-      try {
-        const blob = await heic2any({ blob: file, toType: "image/jpeg", quality });
-        return blob instanceof Blob ? blob : new Blob([blob], { type: "image/jpeg" });
-      } catch (error) {
-        throw new Error("HEIC_UNSUPPORTED");
+      const attempts = [
+        { toType: "image/jpeg", quality },
+        { toType: "image/jpeg", quality: Math.max(0.6, quality - 0.2) },
+        { toType: "image/jpeg", quality: 0.5 },
+        { toType: "image/png" },
+      ];
+      for (const attempt of attempts) {
+        try {
+          const blob = await heic2any({ blob: file, ...attempt });
+          return blob instanceof Blob ? blob : new Blob([blob], { type: attempt.toType });
+        } catch (error) {
+          continue;
+        }
       }
+      throw new Error("HEIC_CONVERT_FAILED");
     };
 
     const encodeJpeg = (canvas, quality) =>
       new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
 
+    const decodeImage = async (source) => {
+      try {
+        const bitmap = await createImageBitmap(source, { imageOrientation: "from-image" });
+        return {
+          width: bitmap.width,
+          height: bitmap.height,
+          draw: (ctx, w, h) => ctx.drawImage(bitmap, 0, 0, w, h),
+          cleanup: () => bitmap.close?.(),
+        };
+      } catch (error) {
+        const url = URL.createObjectURL(source);
+        const image = await new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error("IMAGE_DECODE_FAILED"));
+          img.src = url;
+        });
+        return {
+          width: image.naturalWidth || image.width,
+          height: image.naturalHeight || image.height,
+          draw: (ctx, w, h) => ctx.drawImage(image, 0, 0, w, h),
+          cleanup: () => URL.revokeObjectURL(url),
+        };
+      }
+    };
+
     const resizeImage = async (file, maxSize = 2048, quality = 0.82) => {
-      const source = await toJpegBlob(file, quality);
-      const bitmap = await createImageBitmap(source, { imageOrientation: "from-image" });
-      const ratio = Math.min(1, maxSize / Math.max(bitmap.width, bitmap.height));
-      const targetWidth = Math.round(bitmap.width * ratio);
-      const targetHeight = Math.round(bitmap.height * ratio);
+      const source = await convertHeic(file, quality);
+      let decoded = null;
+      try {
+        decoded = await decodeImage(source);
+      } catch (error) {
+        throw new Error("IMAGE_DECODE_FAILED");
+      }
+      const ratio = Math.min(1, maxSize / Math.max(decoded.width, decoded.height));
+      const targetWidth = Math.round(decoded.width * ratio);
+      const targetHeight = Math.round(decoded.height * ratio);
       const canvas = document.createElement("canvas");
       canvas.width = targetWidth;
       canvas.height = targetHeight;
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("NO_CONTEXT");
-      ctx.drawImage(bitmap, 0, 0, targetWidth, targetHeight);
+      decoded.draw(ctx, targetWidth, targetHeight);
+      decoded.cleanup?.();
       let currentQuality = quality;
       let blob = await encodeJpeg(canvas, currentQuality);
       while (blob && blob.size > MAX_FILE_BYTES && currentQuality > 0.5) {
@@ -1030,8 +1071,20 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       return { blob, width: targetWidth, height: targetHeight };
     };
 
+    const prepareUpload = async (file) => {
+      try {
+        const { blob, width, height } = await resizeImage(file);
+        return { blob, width, height };
+      } catch (error) {
+        if (isHeic(file) && (error?.message === "HEIC_CONVERT_FAILED" || error?.message === "IMAGE_DECODE_FAILED")) {
+          return { blob: file, width: null, height: null, original: true };
+        }
+        throw error;
+      }
+    };
+
     const uploadImage = async ({ file, slug, filename, sortOrder, batchId, index, signal }) => {
-      const { blob, width, height } = await resizeImage(file);
+      const { blob, width, height, original } = await prepareUpload(file);
       const formData = new FormData();
       formData.append("file", blob, filename);
       formData.append("slug", slug);
@@ -1043,6 +1096,7 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
           size: blob.size,
           originalName: file.name,
           fileName: filename,
+          original,
           sort_order: sortOrder ?? 0,
           batch_id: batchId,
           index,
@@ -1181,10 +1235,14 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
         } catch (error) {
           if (error?.name === "AbortError") {
             uploadNote.textContent = "Đã hủy upload ảnh.";
-          } else if (error?.message === "HEIC_UNSUPPORTED") {
+          } else if (error?.message === "HEIC_CONVERT_FAILED") {
             uploadNote.textContent =
-              "Ảnh HEIC chưa hỗ trợ trên trình duyệt này. Hãy đổi Camera → Formats → Most Compatible hoặc chuyển sang JPG.";
-            showToast("Ảnh HEIC chưa hỗ trợ. Vui lòng đổi sang JPG.", "error");
+              "Không chuyển đổi được ảnh HEIC. Hệ thống sẽ cố upload bản gốc hoặc bạn hãy đổi Camera → Formats → Most Compatible.";
+            showToast("HEIC conversion failed. Uploading original if possible.", "info");
+          } else if (error?.message === "IMAGE_DECODE_FAILED") {
+            uploadNote.textContent =
+              "Không giải mã được ảnh này. Hệ thống sẽ cố upload bản gốc hoặc bạn hãy đổi Camera → Formats → Most Compatible.";
+            showToast("Image decode failed. Uploading original if possible.", "info");
           } else {
             uploadNote.textContent =
               "Có ảnh upload lỗi. Thử ảnh khác hoặc đổi Camera → Formats → Most Compatible.";
