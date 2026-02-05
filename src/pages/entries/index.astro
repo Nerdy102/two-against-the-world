@@ -203,6 +203,7 @@ const dateStats = Object.entries(dateCounts)
         }
       };
 
+      filter();
       maybeFocusFromHash();
       window.addEventListener("hashchange", maybeFocusFromHash);
     };

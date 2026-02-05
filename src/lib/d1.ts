@@ -76,6 +76,11 @@ const tableExists = async (db: D1Database, table: string) => {
   return Boolean(results?.length);
 };
 
+export const tableHasColumn = async (db: D1Database, table: string, column: string) => {
+  const { results } = await db.prepare(`PRAGMA table_info(${table})`).all<{ name: string }>();
+  return (results ?? []).some((row) => row.name === column);
+};
+
 export async function ensurePostsSchema(
   db: D1Database,
   { allowBootstrap = false }: SchemaOptions = {}
@@ -216,18 +221,57 @@ export async function ensureReactionsSchema(
         assertSchemaReady("reactions");
       }
     }
-    await db
-      .prepare(
-        `CREATE TABLE IF NOT EXISTS reactions (
-          id TEXT PRIMARY KEY,
-          post_slug TEXT NOT NULL,
-          kind TEXT NOT NULL,
-          count INTEGER NOT NULL DEFAULT 0,
-          updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-          UNIQUE(post_slug, kind)
-        )`
-      )
-      .run();
+    const { results } = await db.prepare("PRAGMA table_info(reactions)").all<{ name: string }>();
+    const existing = new Set((results ?? []).map((row) => row.name));
+    const needsMigration =
+      existing.size > 0 &&
+      (existing.has("visitor_id") || !existing.has("count") || !existing.has("updated_at"));
+    if (!results?.length) {
+      await db
+        .prepare(
+          `CREATE TABLE IF NOT EXISTS reactions (
+            id TEXT PRIMARY KEY,
+            post_slug TEXT NOT NULL,
+            kind TEXT NOT NULL,
+            count INTEGER NOT NULL DEFAULT 0,
+            updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE(post_slug, kind)
+          )`
+        )
+        .run();
+    } else if (needsMigration) {
+      const timestampColumn = existing.has("updated_at")
+        ? "updated_at"
+        : existing.has("created_at")
+          ? "created_at"
+          : "datetime('now')";
+      await db
+        .prepare(
+          `CREATE TABLE IF NOT EXISTS reactions_new (
+            id TEXT PRIMARY KEY,
+            post_slug TEXT NOT NULL,
+            kind TEXT NOT NULL,
+            count INTEGER NOT NULL DEFAULT 0,
+            updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE(post_slug, kind)
+          )`
+        )
+        .run();
+      await db
+        .prepare(
+          `INSERT INTO reactions_new (id, post_slug, kind, count, updated_at)
+           SELECT lower(hex(randomblob(16))),
+                  post_slug,
+                  kind,
+                  COUNT(*) as count,
+                  MAX(${timestampColumn}) as updated_at
+             FROM reactions
+            GROUP BY post_slug, kind`
+        )
+        .run();
+      await db.prepare("DROP TABLE reactions").run();
+      await db.prepare("ALTER TABLE reactions_new RENAME TO reactions").run();
+    }
     await db
       .prepare(
         `CREATE INDEX IF NOT EXISTS idx_reactions_post_slug_kind

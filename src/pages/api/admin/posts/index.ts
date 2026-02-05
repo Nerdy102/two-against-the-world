@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
 import type { D1Database } from "@cloudflare/workers-types";
-import { ensurePostsSchema, getDb, type PostRecord } from "../../../../lib/d1";
+import { ensurePostsSchema, getDb, tableHasColumn, type PostRecord } from "../../../../lib/d1";
 import { requireAdminSession, verifyCsrf } from "../../../../lib/adminAuth";
 
 export const prerender = false;
@@ -50,6 +50,7 @@ export const GET: APIRoute = async ({ locals, request }) => {
     const db = getDb(locals);
     const allowBootstrap = locals.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
     await ensurePostsSchema(db, { allowBootstrap });
+    const hasLegacyAuthor = await tableHasColumn(db, "posts", "author");
     const { results } = await db
       .prepare(
         `SELECT * FROM posts
@@ -127,6 +128,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
     const db = getDb(locals);
     const allowBootstrap = locals.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
     await ensurePostsSchema(db, { allowBootstrap });
+    const hasLegacyAuthor = await tableHasColumn(db, "posts", "author");
     const baseSlug = slugify(rawSlug || title);
     if (!baseSlug) {
       return json(
@@ -155,19 +157,22 @@ export const POST: APIRoute = async ({ locals, request }) => {
         ? payload.published_at ?? new Date().toISOString()
         : payload.published_at ?? null;
 
+    const legacyAuthorColumn = hasLegacyAuthor ? ", author" : "";
+    const legacyAuthorValue = hasLegacyAuthor ? ", ?" : "";
+    const legacyAuthorBind = hasLegacyAuthor ? [authorName] : [];
     await db
       .prepare(
         `INSERT INTO posts (
           id, slug, title, summary, body_markdown, tags_json, cover_key, cover_url, content_md,
           status, author_name, topic, location, event_time, written_at, photo_time, tags_csv,
           side_note, voice_memo, voice_memo_title, photo_dir, photo_count, pinned, pinned_priority,
-          pinned_until, pinned_style, layout, sort_order, published_at
+          pinned_until, pinned_style, layout, sort_order, published_at${legacyAuthorColumn}
         )
         VALUES (
           ?, ?, ?, ?, ?, ?, ?, ?, ?,
           ?, ?, ?, ?, ?, ?, ?, ?, ?,
           ?, ?, ?, ?, ?, ?, ?, ?, ?,
-          ?, ?
+          ?, ?${legacyAuthorValue}
         )`
       )
       .bind(
@@ -199,7 +204,8 @@ export const POST: APIRoute = async ({ locals, request }) => {
         payload.pinned_style ?? null,
         payload.layout ?? "normal",
         payload.sort_order ?? 0,
-        publishedAt
+        publishedAt,
+        ...legacyAuthorBind
       )
       .run();
 
