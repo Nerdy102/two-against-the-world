@@ -1,11 +1,11 @@
 ---
 title: "Tản mạn xàm xí về việc xây web và chữ 'Nhẫn' "
-description: "Fact: kéo dự án này từ 12k → 60k dòng, hơn 36 tiếng coding." 
+description: "Fact: kéo dự án này từ 12k → 60k dòng and so on, hơn 36 tiếng coding." 
 pubDate: 2026-02-05
 topic: grown-up-yap
-cover: "/photos/2026-03-08-code-journey/cover.heic "
+cover: "/photos/2026-03-08-code-journey/cover.jpg "
 photoDir: "2026-03-08-code-journey"
-photoCount: 2
+photoCount: 1
 
 author: "The Nocturnal Creature"
 location: "Hai múi giờ"
@@ -28,7 +28,7 @@ Tản mạn:
 
 Cách đây khoảng 6 tháng, tôi có cơ hội được gặp và quen với một bạn người TQ trong thời gian làm lưu học sinh tại Nhật Bản, văn vẻ, bookworm, tôi tán cô bằng vốn từ tiếng trung bậm bẹ của tôi. Cảm thấy tôi giống cô ta: đọc khá nhiều nhưng không dành thời gian để chia sẻ nó, ít nhất là cho chính mình hay xa hơn là thế hệ nối tiếp hay nhân loại... Một lần đi tàu cùng nhau, cô ta đã nói với tôi về chữ "Nhẫn" trong văn hoá của người TQ. Và câu chuyện về chữ "Nhẫn" được nhắc tới - thứ mà những thành công hay bàn luận, xem như điều kiện cần và đủ để thành công trong bất kỳ ngành nghề nghiệp nào. 
 
-Em hỏi tôi nghĩ sao về chữ Nhẫn? "Tôi hỏi ngược lại em: Thế em nghĩ sao về chữ Nhẫn, chứ thấy em ít nói quá (kể cả trong ngôn ngữ mẹ đẻ của cô), ai nói em cũng im lặng, em nhẫn thật giỏi. Làm thế nào để nhẫn được như em". Ngay khoảng khắc đó, giữa ánh sáng sáng sớm ẩn hiện qua từng cung đường sắt len qua cửa sổ, mảng bóng tôi đan nhau trên mặt em, em nói với tôi về hai chữ "Từ bi". "Im lặng đến mức nào là từ bi, và im lặng đến mức nào thì là nhẫn" - em nói, "Chúng đều giống nhau ở vẻ bề ngoài - đều là lặng, đều là nhường, nhưng khác nhau ở bên trong: mình có buông thật hay không, hay chỉ tạm cất vào để giữ nó lại?"
+Em hỏi tôi nghĩ sao về chữ Nhẫn? "Tôi hỏi ngược lại em: Thế em nghĩ sao về chữ Nhẫn, chứ thấy em ít nói quá (kể cả trong ngôn ngữ mẹ đẻ của cô), ai nói em cũng im lặng, em nhẫn thật giỏi. Làm thế nào để nhẫn được như em". Ngay khoảng khắc đó, giữa ánh sáng sáng sớm ẩn hiện qua từng cung đường sắt len qua cửa sổ, mảng bóng tối đan nhau trên mặt em, em nói với tôi về hai chữ "Từ bi". "Im lặng đến mức nào là từ bi, và im lặng đến mức nào thì là nhẫn" - em nói, "Chúng đều giống nhau ở vẻ bề ngoài - đều là lặng, đều là nhường, nhưng khác nhau ở bên trong: mình có buông thật hay không, hay chỉ tạm cất vào để giữ nó lại?"
 
 Người từ bi giống như dáng Phật trong trí tưởng tượng, trong tượng đúc đồng, trong bức tranh kia. Có thể chịu thiệt, có thể bỏ qua, thậm chỉ bỏ qua cả những điều mình đau, để không cảm thấy đau gì cả... mà lòng không nuôi một thứ gì để trả lại sau này. Nhẹ nhàng, không cay, không gắt, không để lại cái vị đắng dai. 
 
@@ -38,7 +38,7 @@ Còn nhẫn thì ngược lại, cũng im lặng, nhưng im lặng để giữ h
 
 Quay trở lại, chúng tôi thống nhất "mình sẽ viết cho nhau đi, để luyện nhẫn !"
 
-Không kỳ vọng nhiều, chỉ là viết như một cách nói thay những điều khó mở miệng. Và đúng thật, những dòng chữ dè dặt, những nghĩa từ chưa trau chuốt, cảm xúc chưa gọi tên trọng vọn. Nhưng tôi biết, cả hai cùng đang chú tâm, để luyện... KHông viết cho có, không viết để đáp lại, tôi bằng cách này hay cách khác, như thể đang ngồi yên với chính mình, lật từng lớp suy nghĩ, chạm vào những điều trước giờ vẫn tĩnh lặng, khoảng cách giữa tâm hồn tôi và thế giới ngoài kia. 
+Không kỳ vọng nhiều, chỉ là viết như một cách nói thay những điều khó mở miệng. Và đúng thật, những dòng chữ dè dặt, những nghĩa từ chưa trau chuốt, cảm xúc chưa gọi tên trọn vẹn. Nhưng tôi biết, cả hai cùng đang chú tâm, để luyện... KHông viết cho có, không viết để đáp lại, tôi bằng cách này hay cách khác, như thể đang ngồi yên với chính mình, lật từng lớp suy nghĩ, chạm vào những điều trước giờ vẫn tĩnh lặng, khoảng cách giữa tâm hồn tôi và thế giới ngoài kia. 
 
 là một thứ gì đó gần với buông...
 
