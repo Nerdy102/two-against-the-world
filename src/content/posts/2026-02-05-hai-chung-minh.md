@@ -1,9 +1,9 @@
 ---
-title: "Topic: Hay nhể - tím/cam"
+title: "Hay nhể - tím/cam"
 description: "tím là chú rể, cam là cô dâu — so cute!"
 pubDate: 2026-02-05
 topic: two-of-us
-cover: "/photos/2026-02-05-hai-chung-minh/cover.jpg"
+cover: "/photos/2026-02-05-hai-chung-minh/cover.png"
 photoDir: "2026-02-05-hai-chung-minh"
 photoCount: 1
 
