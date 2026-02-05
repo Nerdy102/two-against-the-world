@@ -54,19 +54,54 @@ const tagsText = joinTags(
 const voiceMemo = s(post.voice_memo);
 const voiceMemoTitle = s(post.voice_memo_title);
 
-// Build photo list: /public/photos/<photoDir>/01.jpg..N
+const SUPPORTED_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "heic", "heif"] as const;
+
+const getImageExtension = (coverUrl: string | null | undefined) => {
+  if (!coverUrl) return "jpg";
+  const cleanUrl = coverUrl.split(/[?#]/)[0] ?? "";
+  const ext = cleanUrl.split(".").pop()?.toLowerCase();
+  if (!ext) return "jpg";
+  return SUPPORTED_EXTENSIONS.includes(ext as (typeof SUPPORTED_EXTENSIONS)[number]) ? ext : "jpg";
+};
+
+const buildSrcCandidates = (src: string, ext: string) => {
+  const lowerExt = ext.toLowerCase();
+  const base = src.slice(0, -lowerExt.length);
+  const candidates = [src];
+
+  if (ext !== ext.toUpperCase()) {
+    candidates.push(`${base}${ext.toUpperCase()}`);
+  }
+
+  if (lowerExt === "heic" || lowerExt === "heif") {
+    candidates.push(`${base}jpg`, `${base}jpeg`, `${base}png`, `${base}webp`);
+  }
+
+  return Array.from(new Set(candidates));
+};
+
+// Build photo list: /public/photos/<photoDir>/01.<extension>..N
 const count = Number(post.photo_count ?? 0);
-const photos =
+const imageExt = getImageExtension(post.cover_url);
+const photosWithCandidates =
   post.photo_dir && count > 0
     ? Array.from({ length: Math.max(0, count) }, (_, i) => {
         const n = String(i + 1).padStart(2, "0");
-        return `/photos/${post.photo_dir}/${n}.jpg`;
+        const src = `/photos/${post.photo_dir}/${n}.${imageExt}`;
+        return {
+          src,
+          candidates: buildSrcCandidates(src, imageExt),
+        };
       })
     : [];
 
 const wallImages = [
   { src: post.cover_url ?? "/noise.svg", alt: `${post.title} — cover` },
-  ...photos.map((src, i) => ({ src, alt: `${post.title} — photo ${i + 1}` })),
+  ...photosWithCandidates.map((photo, i) => ({
+    src: photo.src,
+    alt: `${post.title} — photo ${i + 1}`,
+    candidates: photo.candidates,
+  })),
 ];
 const isSingleImage = wallImages.length === 1;
 const useBlendedStory = isSingleImage;
