@@ -7,13 +7,13 @@ cover: "/photos/2026-03-08-code-journey/cover.heic "
 photoDir: "2026-03-08-code-journey"
 photoCount: 0
 
-author: "Hai đứa mình"
+author: "The Nocturnal Creature"
 location: "Hai múi giờ"
 eventTime: "Ảnh chụp lúc đêm muộn, sau khi fix xong mớ bug"
 writtenAt: "Sau call dài hơn 2 tiếng, mới ngủ được 3 tiếng, đang làm việc với mắt thâm"
-photoTime: ""
+photoTime: "Tối ngày 03/02, bị dizzy, nói chuyện nhưng không thể nói sâu"
 
-tags: ["code", "love", "yêu xa", "two-of-us"]
+tags: ["khôgn tên"]
 draft: false
 sideNote: "fix bug mệt vcl"
 videoUrl: "/videos/2026-03-08-code-journey.mp4"
