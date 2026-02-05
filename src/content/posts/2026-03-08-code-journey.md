@@ -5,7 +5,7 @@ pubDate: 2026-02-05
 topic: grown-up-yap
 cover: "/photos/2026-03-08-code-journey/cover.heic "
 photoDir: "2026-03-08-code-journey"
-photoCount: 0
+photoCount: 2
 
 author: "Hai đứa mình"
 location: "Hai múi giờ"
@@ -45,5 +45,4 @@ là một thứ gì đó gần với buông...
 Tôi - một người mà từng ít nói, ít phản ứng, luôn điềm tĩnh, nhưng sâu trong lòng không phải là vì từ bi, mà vì chưa tìm được một cách an toàn để thả lỏng. Chính việc đó đã kéo tôi lại để nhìn vào cảm xúc mình nhiều hơn (ý là thực sự suy nghĩ về việc sẽ bộc lộ nó như thế nào), và có thể với lý do đó, tôi nghĩ mình tìm được đến Uyên và sẵn sàng với Uyên...
 
 Vậy, the bottom line is: im lặng là nhẫn hay từ bi? Có lẽ, trước khi nhìn sâu vào mình, tôi im lặng là nhẫn, còn sau khi enlightened, tôi im lặng vì đã buông bỏ được nhiều phần.
-
 
