@@ -1,10 +1,10 @@
 ---
 title: "Tản mạn xàm xí về việc xây web và chữ 'Nhẫn' "
 description: "Fact: kéo dự án này từ 12k → 60k dòng, hơn 36 tiếng coding." 
-pubDate: 2026-02-05
+pubDate: 2026-03-08
 topic: grown-up-yap
-cover: "/photos/2026-02-05-code-journey/01.jpg"
-photoDir: "2026-02-05-code-journey"
+cover: "/photos/2026-03-08-code-journey/01.jpg"
+photoDir: "2026-03-08-code-journey"
 photoCount: 2
 
 author: "Hai đứa mình"
