@@ -5,7 +5,7 @@ pubDate: 2026-02-05
 topic: two-of-us
 cover: "/photos/2026-02-05-hai-chung-minh/cover.png"
 photoDir: "2026-02-05-hai-chung-minh"
-photoCount: 2
+photoCount: 0
 
 author: "Việt Hoà - nhưng Mỹ Miu là người mua"
 location: "một nhà tù hình trái tim"
