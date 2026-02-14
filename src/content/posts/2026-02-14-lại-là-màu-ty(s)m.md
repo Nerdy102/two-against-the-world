@@ -3,7 +3,7 @@ title: "lại là màu ty(s)m"
 description: "lại lowkey sync vcllll"
 pubDate: 2026-02-14
 topic: screenshots
-cover: "/photos/2026-02-14-lai-la-mau-tysm/IMG_3146.heic"
+cover: "/photos/2026-02-14-lai-la-mau-tysm/cover.HEIC"
 photoDir: "2026-02-14-lai-la-mau-tysm"
 photoCount: 2
 

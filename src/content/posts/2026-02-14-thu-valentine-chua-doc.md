@@ -3,11 +3,11 @@ title: "Thư Valentine chưa đọc"
 description: "12h42 giờ nhật, vẫn nhận thư đúng ngày"
 pubDate: 2026-02-14
 topic: two-of-us
-cover: "/photos/2026-02-14-thu-valentine-chua-doc/IMG_3139.heic"
+cover: "/photos/2026-02-14-thu-valentine-chua-doc/cover.HEIC"
 photoDir: "2026-02-14-thu-valentine-chua-doc"
-photoCount: 2
+photoCount: 1
 
-author: "anh người nhận thư"
+author: "người nhận thư"
 location: "Nhật Bản"
 eventTime: "12:42 JST"
 writtenAt: "Valentine 2026"
