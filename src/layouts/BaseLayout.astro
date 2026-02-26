@@ -17,19 +17,19 @@ const {
   active?: "entries" | "topics" | "about";
 };
 
-const runtimeEnv = Astro.locals?.runtime?.env ?? {};
+const runtimeEnv = Astro.locals?.runtime?.env;
 const buildSha =
-  runtimeEnv.BUILD_SHA ??
-  runtimeEnv.PUBLIC_BUILD_SHA ??
-  runtimeEnv.CF_PAGES_COMMIT_SHA ??
-  runtimeEnv.GITHUB_SHA ??
+  runtimeEnv?.BUILD_SHA ??
+  runtimeEnv?.PUBLIC_BUILD_SHA ??
+  runtimeEnv?.CF_PAGES_COMMIT_SHA ??
+  runtimeEnv?.GITHUB_SHA ??
   import.meta.env.PUBLIC_BUILD_SHA ??
   import.meta.env.CF_PAGES_COMMIT_SHA ??
   "";
 const buildTime =
-  runtimeEnv.BUILD_TIME ??
-  runtimeEnv.PUBLIC_BUILD_TIME ??
-  runtimeEnv.CF_PAGES_BUILD_TIMESTAMP ??
+  runtimeEnv?.BUILD_TIME ??
+  runtimeEnv?.PUBLIC_BUILD_TIME ??
+  runtimeEnv?.CF_PAGES_BUILD_TIMESTAMP ??
   import.meta.env.PUBLIC_BUILD_TIME ??
   import.meta.env.CF_PAGES_BUILD_TIMESTAMP ??
   "";
