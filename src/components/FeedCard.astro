@@ -166,6 +166,16 @@ const buildImageCandidates = (src: string, defaultFallback: string) => {
     if (!candidates.includes(next)) candidates.push(next);
   };
 
+  const isHeicFamily = lower === "heic" || lower === "heif";
+
+  // On non-Safari browsers, static JPG/PNG/WebP sidecars are far more reliable than direct HEIC.
+  if (isHeicFamily) {
+    add(`${base}png`);
+    add(`${base}jpg`);
+    add(`${base}jpeg`);
+    add(`${base}webp`);
+  }
+
   add(pathPart);
 
   if (ext !== lower) add(`${base}${lower}`);
@@ -186,12 +196,7 @@ const buildImageCandidates = (src: string, defaultFallback: string) => {
     }
   }
 
-  if (lower === "heic" || lower === "heif") {
-    add(`${base}jpg`);
-    add(`${base}jpeg`);
-    add(`${base}png`);
-    add(`${base}webp`);
-
+  if (isHeicFamily) {
     const coverDir = pathPart.match(/^(.*\/)cover\.[^.]+$/i)?.[1];
     if (coverDir) {
       add(`${coverDir}01.jpg`);
@@ -324,7 +329,7 @@ const initialImage = imageCandidates[0] ?? image;
         candidateProbePromiseCache.delete(abs);
         resolve(ok);
       };
-      const timeout = window.setTimeout(() => done(false), 8000);
+      const timeout = window.setTimeout(() => done(false), 1800);
       probe.onload = () => {
         window.clearTimeout(timeout);
         done((probe.naturalWidth || 0) > 1 && (probe.naturalHeight || 0) > 1);
@@ -529,12 +534,14 @@ const initialImage = imageCandidates[0] ?? image;
 
   const primeBrokenFeedImages = async () => {
     const imgs = document.querySelectorAll(".feed-card__media img[data-candidates]");
+    const tasks: Promise<void>[] = [];
     for (const img of imgs) {
       if (!(img instanceof HTMLImageElement)) continue;
       if (!img.complete) continue;
       if ((img.naturalWidth || 0) > 1 && (img.naturalHeight || 0) > 1) continue;
-      await recoverImage(img, { fromError: false });
+      tasks.push(recoverImage(img, { fromError: false }));
     }
+    if (tasks.length) await Promise.allSettled(tasks);
   };
 
   if (!(window as any).__twawFeedImageFallbackBound) {

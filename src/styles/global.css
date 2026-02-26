@@ -1814,6 +1814,34 @@ a { color: inherit; text-decoration: none; }
   transition: background var(--dur-ui) var(--ease-base), border-color var(--dur-ui) var(--ease-base), color var(--dur-ui) var(--ease-base), transform var(--dur-ui) var(--ease-base);
 }
 
+.love-events-strip__admin-btn {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid rgba(255,255,255,0.24);
+  background: rgba(0,0,0,0.3);
+  color: rgba(255,255,255,0.88);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1;
+  border-radius: 999px;
+  padding: 0;
+  cursor: pointer;
+  flex: 0 0 auto;
+  transition: background var(--dur-ui) var(--ease-base), border-color var(--dur-ui) var(--ease-base), color var(--dur-ui) var(--ease-base), transform var(--dur-ui) var(--ease-base);
+}
+
+.love-events-strip__admin-btn:hover {
+  border-color: rgba(255,255,255,0.38);
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.97);
+  transform: translateY(-1px);
+}
+
 .love-events-strip__toggle:hover {
   border-color: rgba(255,255,255,0.38);
   background: rgba(255,255,255,0.08);
@@ -1946,52 +1974,81 @@ a { color: inherit; text-decoration: none; }
   border: 0;
   margin: 0;
   padding: 0;
-  background: rgba(0,0,0,0.64);
+  background:
+    radial-gradient(120% 130% at 50% 0%, rgba(255, 217, 133, 0.26), rgba(13, 22, 36, 0.32)),
+    rgba(14, 16, 24, 0.34);
   cursor: pointer;
 }
 
 .love-event-note-modal__card {
   position: relative;
-  width: min(460px, 92vw);
+  width: min(500px, 94vw);
   border-radius: 18px;
-  border: 1px solid rgba(255,255,255,0.2);
+  border: 1px solid rgba(96, 58, 12, 0.28);
   background:
-    radial-gradient(120% 100% at 0% 0%, rgba(255,255,255,0.12), rgba(0,0,0,0.12)),
-    rgba(0,0,0,0.74);
-  color: rgba(255,255,255,0.92);
-  padding: 16px;
-  box-shadow: 0 24px 60px rgba(0,0,0,0.45);
+    radial-gradient(120% 90% at 0% 0%, rgba(255, 244, 214, 0.86), rgba(243, 218, 166, 0.78)),
+    linear-gradient(150deg, rgba(254, 241, 208, 0.92), rgba(231, 198, 139, 0.9));
+  color: rgba(25, 18, 10, 0.9);
+  padding: 17px 16px 15px;
+  box-shadow: 0 26px 70px rgba(0,0,0,0.4);
   backdrop-filter: blur(10px);
+  overflow: hidden;
+}
+
+.love-event-note-modal__card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(89, 63, 23, 0.06) 0px,
+      rgba(89, 63, 23, 0.06) 1px,
+      rgba(255, 255, 255, 0.0) 1px,
+      rgba(255, 255, 255, 0.0) 7px
+    );
+  opacity: 0.36;
 }
 
 .love-event-note-modal__eyebrow {
+  position: relative;
+  z-index: 1;
   font-family: var(--font-mono);
   font-size: 10px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.68);
+  color: rgba(74, 42, 8, 0.75);
 }
 
 .love-event-note-modal__title {
+  position: relative;
+  z-index: 1;
   margin: 8px 0 10px;
-  font-family: var(--font-display);
-  font-size: clamp(22px, 5vw, 30px);
-  letter-spacing: 0.06em;
-  line-height: 1;
+  font-family: var(--font-body);
+  font-size: clamp(30px, 5.4vw, 38px);
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  line-height: 1.06;
+  color: rgba(29, 19, 10, 0.95);
 }
 
 .love-event-note-modal__body {
+  position: relative;
+  z-index: 1;
   margin: 0;
   font-size: 14px;
-  line-height: 1.6;
-  color: rgba(255,255,255,0.9);
+  line-height: 1.62;
+  color: rgba(33, 24, 14, 0.86);
 }
 
 .love-event-note-modal__close {
+  position: relative;
+  z-index: 1;
   margin-top: 14px;
-  border: 1px solid rgba(255,255,255,0.22);
-  background: rgba(255,255,255,0.08);
-  color: rgba(255,255,255,0.92);
+  border: 1px solid rgba(68, 43, 12, 0.35);
+  background: rgba(122, 76, 19, 0.08);
+  color: rgba(44, 27, 7, 0.9);
   border-radius: 999px;
   padding: 6px 12px;
   font-family: var(--font-mono);
@@ -2002,8 +2059,121 @@ a { color: inherit; text-decoration: none; }
 }
 
 .love-event-note-modal__close:hover {
-  border-color: rgba(255,255,255,0.4);
-  background: rgba(255,255,255,0.14);
+  border-color: rgba(78, 49, 14, 0.52);
+  background: rgba(120, 74, 20, 0.14);
+}
+
+.love-event-admin-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 82;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+
+.love-event-admin-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  background: rgba(0,0,0,0.7);
+  cursor: pointer;
+}
+
+.love-event-admin-modal__card {
+  position: relative;
+  width: min(520px, 94vw);
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background:
+    radial-gradient(120% 100% at 0% 0%, rgba(125, 234, 255, 0.14), rgba(0,0,0,0.14)),
+    rgba(0,0,0,0.82);
+  color: rgba(255,255,255,0.92);
+  padding: 16px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+  backdrop-filter: blur(10px);
+  display: grid;
+  gap: 10px;
+}
+
+.love-event-admin-modal__eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.68);
+}
+
+.love-event-admin-modal__title {
+  margin: 2px 0 4px;
+  font-family: var(--font-display);
+  font-size: clamp(24px, 5vw, 32px);
+  letter-spacing: 0.06em;
+  line-height: 1;
+}
+
+.love-event-admin-modal__auth,
+.love-event-admin-modal__form {
+  display: grid;
+  gap: 9px;
+}
+
+.love-event-admin-modal__field {
+  display: grid;
+  gap: 5px;
+}
+
+.love-event-admin-modal__field > span {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.76);
+}
+
+.love-event-admin-modal__field .input {
+  background: rgba(0,0,0,0.42);
+  border-color: rgba(255,255,255,0.16);
+  min-height: 38px;
+  font-size: 13px;
+}
+
+.love-event-admin-modal__field textarea.input {
+  min-height: 84px;
+  resize: vertical;
+}
+
+.love-event-admin-modal__btn {
+  border: 1px solid rgba(255,255,255,0.22);
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.92);
+  border-radius: 999px;
+  min-height: 36px;
+  padding: 0 14px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  justify-self: start;
+}
+
+.love-event-admin-modal__btn:hover {
+  border-color: rgba(255,255,255,0.42);
+  background: rgba(255,255,255,0.16);
+}
+
+.love-event-admin-modal__status {
+  margin: 2px 0 0;
+  min-height: 14px;
+  font-size: 12px;
+  color: rgba(210, 245, 255, 0.9);
+}
+
+.love-event-admin-modal__status[data-state="error"] {
+  color: rgba(255, 174, 174, 0.95);
 }
 
 .love-widgets {
@@ -2323,6 +2493,12 @@ a { color: inherit; text-decoration: none; }
     font-size: 11px;
   }
 
+  .love-events-strip__admin-btn {
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
+  }
+
   .love-event-chip {
     min-width: min(100%, 286px);
     gap: 8px;
@@ -2355,6 +2531,18 @@ a { color: inherit; text-decoration: none; }
   .love-event-note-modal__body {
     font-size: 13px;
     line-height: 1.55;
+  }
+
+  .love-event-admin-modal__card {
+    padding: 14px;
+  }
+
+  .love-event-admin-modal__title {
+    font-size: clamp(22px, 6vw, 28px);
+  }
+
+  .love-event-admin-modal__field .input {
+    font-size: 12px;
   }
 }
 

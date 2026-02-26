@@ -155,9 +155,9 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         >
           <div class="love-event-note-modal__eyebrow">EVENT NOTE</div>
           <h3 id="love-event-note-title" class="love-event-note-modal__title" data-love-event-note-title>Event</h3>
-          <p class="love-event-note-modal__body" data-love-event-note-body>No note yet.</p>
+          <p class="love-event-note-modal__body" data-love-event-note-body>Chưa có ghi chú.</p>
           <button class="love-event-note-modal__close" type="button" data-love-event-note-close>
-            Close
+            Đóng
           </button>
         </section>
       </div>
@@ -502,6 +502,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
 
       const setMorePanelState = (isOpen) => {
         if (!eventToggleBtn || !eventMorePanel) return;
+        refreshExtraEventsCount();
         eventMorePanel.hidden = !isOpen;
         eventToggleBtn.setAttribute("aria-expanded", isOpen ? "true" : "false");
         eventToggleBtn.setAttribute("aria-label", isOpen ? "Ẩn full timeline" : "Mở full timeline");
@@ -547,6 +548,56 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         noteModal.dataset.open = "1";
       };
 
+      const bindNoteTrigger = (eventItem) => {
+        if (!(eventItem.noteTrigger instanceof HTMLButtonElement)) return;
+        if (eventItem.noteTrigger.dataset.bound === "1") return;
+        eventItem.noteTrigger.dataset.bound = "1";
+        eventItem.noteTrigger.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          openNoteModal(eventItem);
+        });
+      };
+
+      const bindAllNoteTriggers = () => {
+        eventEls.forEach((eventItem) => bindNoteTrigger(eventItem));
+      };
+
+      const closeAdminModal = () => {
+        if (!(adminModal instanceof HTMLElement)) return;
+        adminModal.hidden = true;
+        adminModal.dataset.open = "0";
+      };
+
+      const openAdminModal = () => {
+        if (!(adminModal instanceof HTMLElement)) return;
+        adminModal.hidden = false;
+        adminModal.dataset.open = "1";
+      };
+
+      let adminUnlocked = false;
+      const setAdminStatus = (message, variant = "info") => {
+        if (!(adminStatus instanceof HTMLElement)) return;
+        adminStatus.textContent = message;
+        adminStatus.dataset.state = variant;
+      };
+
+      const setAdminUnlocked = (value) => {
+        adminUnlocked = value;
+        if (adminAuth instanceof HTMLElement) {
+          adminAuth.hidden = value;
+        }
+        if (adminForm instanceof HTMLElement) {
+          adminForm.hidden = !value;
+        }
+        if (value) {
+          setAdminStatus("Unlocked. Push event mới ngay trên điện thoại.");
+          if (adminPasswordInput instanceof HTMLInputElement) {
+            adminPasswordInput.value = "";
+          }
+        }
+      };
+
       if (noteModal instanceof HTMLElement && noteModal.dataset.bound !== "1") {
         noteModal.dataset.bound = "1";
         const closeEls = noteModal.querySelectorAll("[data-love-event-note-close]");
@@ -562,20 +613,217 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         document.removeEventListener("keydown", globalState.noteEscapeHandler);
       }
       globalState.noteEscapeHandler = (event) => {
-        if (event.key === "Escape") closeNoteModal();
+        if (event.key === "Escape") {
+          closeNoteModal();
+          closeAdminModal();
+        }
       };
       document.addEventListener("keydown", globalState.noteEscapeHandler);
 
-      eventEls.forEach((eventItem) => {
-        if (!(eventItem.noteTrigger instanceof HTMLButtonElement)) return;
-        if (eventItem.noteTrigger.dataset.bound === "1") return;
-        eventItem.noteTrigger.dataset.bound = "1";
-        eventItem.noteTrigger.addEventListener("click", (event) => {
+      bindAllNoteTriggers();
+
+      if (adminOpenBtn instanceof HTMLButtonElement && adminOpenBtn.dataset.bound !== "1") {
+        adminOpenBtn.dataset.bound = "1";
+        adminOpenBtn.addEventListener("click", (event) => {
           event.preventDefault();
-          event.stopPropagation();
-          openNoteModal(eventItem);
+          openAdminModal();
         });
-      });
+      }
+
+      if (adminModal instanceof HTMLElement && adminModal.dataset.bound !== "1") {
+        adminModal.dataset.bound = "1";
+        const closeEls = adminModal.querySelectorAll("[data-love-events-admin-close]");
+        closeEls.forEach((closeEl) => {
+          closeEl.addEventListener("click", (event) => {
+            event.preventDefault();
+            closeAdminModal();
+          });
+        });
+      }
+
+      const ensureAdminSession = async () => {
+        try {
+          const res = await fetch("/api/admin/session");
+          const payload = await res.json().catch(() => null);
+          setAdminUnlocked(Boolean(payload?.authenticated));
+        } catch (_error) {
+          setAdminUnlocked(false);
+        }
+      };
+
+      if (adminUnlockBtn instanceof HTMLButtonElement && adminUnlockBtn.dataset.bound !== "1") {
+        adminUnlockBtn.dataset.bound = "1";
+        adminUnlockBtn.addEventListener("click", async (event) => {
+          event.preventDefault();
+          if (!(adminPasswordInput instanceof HTMLInputElement)) return;
+          const password = adminPasswordInput.value.trim();
+          if (!password) {
+            setAdminStatus("Nhập password trước đã.", "error");
+            return;
+          }
+          setAdminStatus("Đang verify password...");
+          try {
+            const res = await fetch("/api/admin/login", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ password }),
+            });
+            const payload = await res.json().catch(() => null);
+            if (!res.ok || !payload?.ok) {
+              setAdminStatus(payload?.error || "Unlock failed.", "error");
+              return;
+            }
+            setAdminUnlocked(true);
+          } catch (_error) {
+            setAdminStatus("Không kết nối được tới admin endpoint.", "error");
+          }
+        });
+      }
+
+      if (adminForm instanceof HTMLFormElement && adminForm.dataset.bound !== "1") {
+        adminForm.dataset.bound = "1";
+        adminForm.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          if (!adminUnlocked) {
+            setAdminStatus("Cần unlock bằng password trước.", "error");
+            return;
+          }
+
+          const fd = new FormData(adminForm);
+          const name = String(fd.get("name") || "").trim();
+          const dateRaw = String(fd.get("event_date") || "").trim();
+          if (!name || !dateRaw) {
+            setAdminStatus("Thiếu tên hoặc ngày event.", "error");
+            return;
+          }
+
+          const dateParts = dateRaw.split("-").map((part) => Number(part));
+          if (dateParts.length !== 3 || dateParts.some((part) => !Number.isFinite(part))) {
+            setAdminStatus("Ngày không hợp lệ.", "error");
+            return;
+          }
+          const month = Math.max(1, Math.min(12, dateParts[1]));
+          const day = Math.max(1, Math.min(31, dateParts[2]));
+
+          const timeRaw = String(fd.get("event_time") || "").trim();
+          const [hhRaw = "0", mmRaw = "0"] = timeRaw ? timeRaw.split(":") : ["0", "0"];
+          const hour = Math.max(0, Math.min(23, Number.parseInt(hhRaw, 10) || 0));
+          const minute = Math.max(0, Math.min(59, Number.parseInt(mmRaw, 10) || 0));
+          const eventGroup = fd.get("event_group") === "featured" ? "featured" : "extra";
+          const icon = String(fd.get("icon") || "").trim();
+          const note = String(fd.get("note") || "").trim();
+          const accentRgb = String(fd.get("accent_rgb") || "").trim();
+          const csrf = getCsrfToken();
+          if (!csrf) {
+            setAdminStatus("Thiếu CSRF token, thử unlock lại.", "error");
+            return;
+          }
+
+          setAdminStatus("Đang push event lên timeline...");
+          try {
+            const res = await fetch("/api/admin/love-events", {
+              method: "POST",
+              headers: {
+                "content-type": "application/json",
+                "x-csrf-token": csrf,
+              },
+              body: JSON.stringify({
+                name,
+                month,
+                day,
+                hour,
+                minute,
+                event_group: eventGroup,
+                icon,
+                note,
+                accent_rgb: accentRgb,
+              }),
+            });
+            const payload = await res.json().catch(() => null);
+            if (!res.ok || !payload?.ok || !payload?.event) {
+              setAdminStatus(payload?.error || "Push event failed.", "error");
+              return;
+            }
+
+            const created = payload.event;
+            const targetRail =
+              created.event_group === "featured" ? featuredRail : extraRail;
+            if (!(targetRail instanceof HTMLElement)) {
+              setAdminStatus("Không tìm thấy event rail.", "error");
+              return;
+            }
+            const chip = createEventChip({
+              id: created.id,
+              name: created.name,
+              month: Number(created.month),
+              day: Number(created.day),
+              hour: Number(created.hour || 0),
+              minute: Number(created.minute || 0),
+              eventGroup: created.event_group === "featured" ? "featured" : "extra",
+              icon: created.icon || "",
+              note: created.note || "",
+              accentRgb: created.accent_rgb || "",
+            });
+            targetRail.appendChild(chip);
+            eventEls = collectEventEls();
+            refreshExtraEventsCount();
+            bindAllNoteTriggers();
+            updateEvents();
+            adminForm.reset();
+            setAdminStatus("Pushed. Event đã lên timeline.");
+          } catch (_error) {
+            setAdminStatus("Không thể push event lúc này.", "error");
+          }
+        });
+      }
+
+      ensureAdminSession();
+
+      const hydrateRemoteEvents = async () => {
+        if (!eventRoot) return;
+        try {
+          const res = await fetch("/api/love-events");
+          const payload = await res.json().catch(() => null);
+          if (!res.ok || !payload?.ok || !Array.isArray(payload.events)) return;
+
+          const existingIds = new Set(
+            Array.from(eventRoot.querySelectorAll("[data-love-event-id]"))
+              .map((el) => el.getAttribute("data-love-event-id"))
+              .filter(Boolean)
+          );
+
+          payload.events.forEach((item) => {
+            const id = String(item?.id || "").trim();
+            if (!id || existingIds.has(id)) return;
+            const eventGroup = item?.event_group === "featured" ? "featured" : "extra";
+            const targetRail = eventGroup === "featured" ? featuredRail : extraRail;
+            if (!(targetRail instanceof HTMLElement)) return;
+            const month = Number(item?.month || 1);
+            const day = Number(item?.day || 1);
+            const hour = Number(item?.hour || 0);
+            const minute = Number(item?.minute || 0);
+            const chip = createEventChip({
+              id,
+              name: String(item?.name || "Event"),
+              month,
+              day,
+              hour,
+              minute,
+              eventGroup,
+              icon: String(item?.icon || ""),
+              note: String(item?.note || ""),
+              accentRgb: String(item?.accent_rgb || ""),
+            });
+            targetRail.appendChild(chip);
+            existingIds.add(id);
+          });
+
+          eventEls = collectEventEls();
+          refreshExtraEventsCount();
+          bindAllNoteTriggers();
+          updateEvents();
+        } catch (_error) {}
+      };
 
       hydratePastBannerFromStorage();
 
@@ -660,6 +908,8 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
           }
         }
       };
+
+      hydrateRemoteEvents();
 
       const makeClock = (timeZone) =>
         new Intl.DateTimeFormat("en-GB", {

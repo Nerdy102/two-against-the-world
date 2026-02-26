@@ -660,7 +660,7 @@ const isCustomGrid = frames.length >= 3;
           candidateProbePromiseCache.delete(abs);
           resolve(ok);
         };
-        const timeout = window.setTimeout(() => done(false), 8000);
+        const timeout = window.setTimeout(() => done(false), 1800);
         probe.onload = () => {
           window.clearTimeout(timeout);
           done((probe.naturalWidth || 0) > 1 && (probe.naturalHeight || 0) > 1);
@@ -863,12 +863,14 @@ const isCustomGrid = frames.length >= 3;
 
     const primeBrokenWallImages = async () => {
       const images = document.querySelectorAll("img[data-candidates]");
+      const tasks: Promise<void>[] = [];
       for (const img of images) {
         if (!(img instanceof HTMLImageElement)) continue;
         if (!img.complete) continue;
         if ((img.naturalWidth || 0) > 1 && (img.naturalHeight || 0) > 1) continue;
-        await recoverImage(img, { fromError: false });
+        tasks.push(recoverImage(img, { fromError: false }));
       }
+      if (tasks.length) await Promise.allSettled(tasks);
     };
 
     if (!(window as any).__twawFrameWallFallbackBound) {
