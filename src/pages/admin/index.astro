@@ -122,6 +122,7 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
               data-upload-input
             />
             <p class="mt-2 text-xs text-black/50">Nếu là bài video thì có thể bỏ qua ảnh này.</p>
+            <p class="text-xs text-black/50">Ảnh HEIC/HEIF từ iPhone được giữ nguyên, không tự convert trước khi upload.</p>
             <div class="compose-preview" data-upload-preview></div>
             {enableUploadHelpers && <button class="btn hidden mt-3" type="button" data-upload-cancel>Hủy</button>}
             {enableUploadHelpers && <p class="text-xs text-black/50" data-upload-progress></p>}

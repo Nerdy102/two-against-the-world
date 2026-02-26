@@ -87,6 +87,16 @@ const assertOk = (condition, message) => {
   }
 };
 
+const assertMediaContentType = async (key, expectedPrefix, label) => {
+  const res = await fetch(`${baseUrl}/media/${key}`);
+  assertOk(res.ok, `${label} media route failed: ${res.status}`);
+  const contentType = (res.headers.get("content-type") ?? "").toLowerCase();
+  assertOk(
+    contentType.startsWith(expectedPrefix.toLowerCase()),
+    `${label} content type mismatch. Expected ${expectedPrefix}, got ${contentType || "<empty>"}`
+  );
+};
+
 console.log(`🔎 Doctor check: ${baseUrl}`);
 
 const health = await requestJson("/api/health");
@@ -129,9 +139,7 @@ assertOk(upload.payload?.url, "Upload did not return url.");
 console.log("✅ /api/admin/upload ok");
 
 assertOk(upload.payload?.key, "Upload did not return key.");
-const media = await fetch(`${baseUrl}/media/${upload.payload.key}`);
-assertOk(media.ok, `Media route failed: ${media.status}`);
-assertOk((media.headers.get("content-type") ?? "").startsWith("image/"), "Media route content type is not image/*.");
+await assertMediaContentType(upload.payload.key, "image/", "default image");
 console.log("✅ /media/:key serve ok");
 
 const heicUpload = await requestUpload({
@@ -144,7 +152,24 @@ const heicUpload = await requestUpload({
 });
 assertOk(heicUpload.res.ok, `HEIC upload failed: ${heicUpload.payload?.error ?? heicUpload.payload?.detail ?? heicUpload.res.status}`);
 assertOk(String(heicUpload.payload?.key ?? "").endsWith(".heic"), "HEIC upload key should end with .heic");
+await assertMediaContentType(heicUpload.payload.key, "image/heic", "heic-sequence image");
 console.log("✅ /api/admin/upload heic-type ok");
+
+const heicNameOnlyUpload = await requestUpload({
+  slug,
+  sortOrder: 2,
+  index: 3,
+  fileType: "",
+  fileName: `integration-${Date.now()}-from-name.HEIC`,
+  bytes: new Uint8Array([9, 8, 7, 6, 5, 4]),
+});
+assertOk(
+  heicNameOnlyUpload.res.ok,
+  `HEIC name-only upload failed: ${heicNameOnlyUpload.payload?.error ?? heicNameOnlyUpload.payload?.detail ?? heicNameOnlyUpload.res.status}`
+);
+assertOk(String(heicNameOnlyUpload.payload?.key ?? "").endsWith(".heic"), "HEIC name-only key should end with .heic");
+await assertMediaContentType(heicNameOnlyUpload.payload.key, "image/heic", "heic name-only image");
+console.log("✅ /api/admin/upload heic-name-only ok");
 
 const publish = await requestJson(`/api/admin/posts/${postId}/publish`, {
   method: "POST",

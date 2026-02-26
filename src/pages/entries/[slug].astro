@@ -253,14 +253,6 @@ const wallImages = [
                     allowfullscreen
                   ></iframe>
                 </div>
-                <div class="video-quality mt-3" data-video-quality>
-                  <span class="video-quality__label">Độ phân giải</span>
-                  <div class="video-quality__options" role="group" aria-label="Chọn độ phân giải video">
-                    <button class="video-quality__btn is-active" type="button" data-video-quality-mode="auto">Auto</button>
-                    <button class="video-quality__btn" type="button" data-video-quality-mode="sd">SD</button>
-                    <button class="video-quality__btn" type="button" data-video-quality-mode="hd">HD</button>
-                  </div>
-                </div>
               ) : (
                 <div class="video-punk-frame mt-2" style="aspect-ratio: 16 / 9;">
                   <video
@@ -269,10 +261,19 @@ const wallImages = [
                     preload="metadata"
                     playsinline
                     poster={videoPoster || undefined}
+                    data-video-native
                     src={videoUrl}
                   ></video>
                 </div>
               )}
+              <div class="video-quality mt-3" data-video-quality>
+                <span class="video-quality__label">Độ phân giải</span>
+                <div class="video-quality__options" role="group" aria-label="Chọn độ phân giải video">
+                  <button class="video-quality__btn is-active" type="button" data-video-quality-mode="auto">Auto</button>
+                  <button class="video-quality__btn" type="button" data-video-quality-mode="sd">SD</button>
+                  <button class="video-quality__btn" type="button" data-video-quality-mode="hd">HD</button>
+                </div>
+              </div>
             </div>
           )}
 
@@ -587,59 +588,93 @@ const wallImages = [
     const initVideoQuality = () => {
       const panel = document.querySelector("[data-video-quality]");
       const iframe = document.querySelector("[data-video-stream-iframe]");
-      if (!(panel instanceof HTMLElement) || !(iframe instanceof HTMLIFrameElement)) return;
+      const nativeVideo = document.querySelector("[data-video-native]");
+      if (!(panel instanceof HTMLElement)) return;
+      if (!(iframe instanceof HTMLIFrameElement) && !(nativeVideo instanceof HTMLVideoElement)) return;
       if (panel.dataset.bound === "1") return;
       panel.dataset.bound = "1";
 
       const buttons = Array.from(panel.querySelectorAll("[data-video-quality-mode]"));
       if (!buttons.length) return;
 
-      const baseSrc = iframe.getAttribute("data-video-base-src") || iframe.getAttribute("src") || "";
-      if (!baseSrc) return;
-
-      const bandwidthHintByMode = {
-        auto: "",
-        sd: "2.4",
-        hd: "8",
-      };
-
-      const buildIframeSrc = (mode) => {
-        let url;
-        try {
-          url = new URL(baseSrc);
-        } catch (_error) {
-          url = new URL(baseSrc, window.location.origin);
-        }
-        const hint = bandwidthHintByMode[mode] || "";
-        if (hint) {
-          url.searchParams.set("clientBandwidthHint", hint);
-        } else {
-          url.searchParams.delete("clientBandwidthHint");
-        }
-        return url.toString();
-      };
-
-      const setMode = (mode) => {
-        const nextSrc = buildIframeSrc(mode);
-        if (iframe.src !== nextSrc) iframe.src = nextSrc;
+      const setActive = (mode) => {
         buttons.forEach((button) => {
           button.classList.toggle("is-active", button.dataset.videoQualityMode === mode);
         });
       };
 
+      if (iframe instanceof HTMLIFrameElement) {
+        const baseSrc = iframe.getAttribute("data-video-base-src") || iframe.getAttribute("src") || "";
+        if (!baseSrc) return;
+        const bandwidthHintByMode = {
+          auto: "",
+          sd: "2.4",
+          hd: "8",
+        };
+        const buildIframeSrc = (mode) => {
+          let url;
+          try {
+            url = new URL(baseSrc);
+          } catch (_error) {
+            url = new URL(baseSrc, window.location.origin);
+          }
+          const hint = bandwidthHintByMode[mode] || "";
+          if (hint) {
+            url.searchParams.set("clientBandwidthHint", hint);
+          } else {
+            url.searchParams.delete("clientBandwidthHint");
+          }
+          return url.toString();
+        };
+
+        const setMode = (mode) => {
+          const nextSrc = buildIframeSrc(mode);
+          if (iframe.src !== nextSrc) iframe.src = nextSrc;
+          setActive(mode);
+        };
+
+        buttons.forEach((button) => {
+          button.addEventListener("click", (event) => {
+            event.preventDefault();
+            const mode = button.dataset.videoQualityMode;
+            if (mode !== "sd" && mode !== "hd") {
+              setMode("auto");
+              return;
+            }
+            setMode(mode);
+          });
+        });
+
+        setMode("auto");
+        return;
+      }
+
+      if (!(nativeVideo instanceof HTMLVideoElement)) return;
+      const baseVideoSrc = nativeVideo.getAttribute("src") || nativeVideo.currentSrc || "";
+      const sdButton = buttons.find((button) => button.dataset.videoQualityMode === "sd");
+      if (sdButton) {
+        sdButton.disabled = true;
+        sdButton.title = "Video này chưa có bản SD riêng";
+      }
+
       buttons.forEach((button) => {
         button.addEventListener("click", (event) => {
           event.preventDefault();
           const mode = button.dataset.videoQualityMode;
-          if (mode !== "sd" && mode !== "hd") {
-            setMode("auto");
+          if (mode === "hd" && baseVideoSrc) {
+            if (nativeVideo.getAttribute("src") !== baseVideoSrc) {
+              nativeVideo.setAttribute("src", baseVideoSrc);
+              nativeVideo.load();
+            }
+            setActive("hd");
             return;
           }
-          setMode(mode);
+          if (mode === "sd") return;
+          setActive("auto");
         });
       });
 
-      setMode("auto");
+      setActive("hd");
     };
 
     initVideoQuality();

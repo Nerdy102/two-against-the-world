@@ -20,7 +20,7 @@ const sanitizeSlug = (value: string) =>
     .replace(/-+/g, "-");
 
 const resolveExtension = (file: File) => {
-  const type = file.type || "";
+  const type = (file.type || "").toLowerCase();
   if (type === "image/heic") return "heic";
   if (type === "image/heic-sequence") return "heic";
   if (type === "image/heif") return "heif";
@@ -63,6 +63,15 @@ const contentTypeFromExtension = (extension: string) => {
     default:
       return "application/octet-stream";
   }
+};
+
+const resolveContentType = (file: File, extension: string) => {
+  const type = (file.type || "").toLowerCase();
+  if (type === "image/heic-sequence") return "image/heic";
+  if (type === "image/heif-sequence") return "image/heif";
+  if (type === "image/jpg") return "image/jpeg";
+  if (type.startsWith("image/")) return type;
+  return contentTypeFromExtension(extension);
 };
 
 const buildKey = (slug: string, batchId: number | string, index: number, extension: string) => {
@@ -126,9 +135,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
     }
     const extension = resolveExtension(file);
     const key = buildKey(slug, parsedMeta?.batch_id ?? Date.now(), parsedMeta?.index ?? 1, extension);
-    const contentType = (file.type || "").startsWith("image/")
-      ? file.type
-      : contentTypeFromExtension(extension);
+    const contentType = resolveContentType(file, extension);
     const bucket = locals.runtime?.env?.MEDIA;
     if (!bucket) {
       return json(
