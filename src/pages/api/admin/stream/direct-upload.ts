@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { requireAdminSession, verifyCsrf } from "../../../../lib/adminAuth";
+import { buildStreamUrls } from "../../../../lib/stream";
 
 export const prerender = false;
 
@@ -113,6 +114,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
       body: JSON.stringify({
         maxDurationSeconds,
         requireSignedURLs,
+        thumbnailTimestampPct: 0.5,
         meta: {
           fileName: sanitizeMeta(fileName),
           slug: sanitizeMeta(slug || "untitled"),
@@ -150,16 +152,18 @@ export const POST: APIRoute = async ({ locals, request }) => {
     );
   }
 
-  const iframeBase = String(env?.PUBLIC_CF_STREAM_IFRAME_BASE ?? "https://iframe.videodelivery.net").replace(/\/$/, "");
-  const deliveryBase = String(env?.PUBLIC_CF_STREAM_DELIVERY_BASE ?? "https://videodelivery.net").replace(/\/$/, "");
+  const urls = buildStreamUrls(uid, {
+    iframeBase: String(env?.PUBLIC_CF_STREAM_IFRAME_BASE ?? ""),
+    deliveryBase: String(env?.PUBLIC_CF_STREAM_DELIVERY_BASE ?? ""),
+  });
 
   return json({
     ok: true,
     uid,
     uploadURL,
-    iframe: `${iframeBase}/${uid}`,
-    watch: `https://watch.videodelivery.net/${uid}`,
-    hls: `${deliveryBase}/${uid}/manifest/video.m3u8`,
-    thumbnail: `${deliveryBase}/${uid}/thumbnails/thumbnail.jpg`,
+    iframe: urls.iframe,
+    watch: urls.watch,
+    hls: urls.hls,
+    thumbnail: urls.thumbnail,
   });
 };

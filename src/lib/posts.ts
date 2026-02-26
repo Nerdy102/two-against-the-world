@@ -1,6 +1,7 @@
 import { getCollection } from "astro:content";
 import type { CollectionEntry } from "astro:content";
 import type { PostRecord } from "./d1";
+import { deriveVideoPoster } from "./stream";
 
 export const DEFAULT_POST_CARD_IMAGE = "/collage/cake.jpg";
 
@@ -9,10 +10,18 @@ const formatDate = (value: Date | undefined | null) =>
 
 const IMAGE_MARKDOWN_RE = /!\[[^\]]*]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
 
+const MEDIA_ABSOLUTE_URL_RE = /^https?:\/\/[^/]+\/media\/(.+)$/i;
+
+const normalizeMediaUrl = (value: string): string => {
+  const match = value.match(MEDIA_ABSOLUTE_URL_RE);
+  if (!match?.[1]) return value;
+  return `/media/${match[1]}`;
+};
+
 const normalizeImageUrl = (value: string): string | null => {
   const trimmed = value.trim().replace(/^<|>$/g, "");
   if (!trimmed) return null;
-  return trimmed;
+  return normalizeMediaUrl(trimmed);
 };
 
 export const extractFirstImageUrl = (markdown: string | null | undefined): string | null => {
@@ -25,14 +34,17 @@ export const extractFirstImageUrl = (markdown: string | null | undefined): strin
 
 const nonEmpty = (value: string | null | undefined): string | null => {
   if (typeof value !== "string") return null;
-  const trimmed = value.trim();
+  const trimmed = normalizeMediaUrl(value.trim());
   if (trimmed === "/noise.svg") return null;
   return trimmed ? trimmed : null;
 };
 
 export const resolvePostCoverUrl = (
-  post: Pick<PostRecord, "cover_url" | "body_markdown" | "content_md">
+  post: Pick<PostRecord, "cover_url" | "body_markdown" | "content_md" | "video_url" | "video_poster">
 ): string => {
+  const videoPoster = nonEmpty(post.video_poster) || deriveVideoPoster(post.video_url);
+  if (videoPoster) return videoPoster;
+
   const directCover = nonEmpty(post.cover_url);
   if (directCover) return directCover;
 
@@ -57,7 +69,7 @@ export const mapContentEntryToPostRecord = (
     summary: entry.data.description || null,
     content_md: body,
     body_markdown: body,
-    cover_url: entry.data.cover || extractFirstImageUrl(body),
+    cover_url: entry.data.videoPoster || entry.data.cover || extractFirstImageUrl(body),
     status: entry.data.draft ? "draft" : "published",
     author_name: entry.data.author || null,
     topic: entry.data.topic || null,

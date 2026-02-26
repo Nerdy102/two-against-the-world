@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import type { D1Database } from "@cloudflare/workers-types";
 import { ensurePostsSchema, getDb, tableHasColumn, type PostRecord } from "../../../../lib/d1";
 import { requireAdminSession, verifyCsrf } from "../../../../lib/adminAuth";
+import { deriveVideoPoster } from "../../../../lib/stream";
 
 export const prerender = false;
 
@@ -170,10 +171,19 @@ export const POST: APIRoute = async ({ locals, request }) => {
       status === "published"
         ? payload.published_at ?? new Date().toISOString()
         : payload.published_at ?? null;
-    const resolvedCoverUrl =
-      normalizeCoverUrl(payload.cover_url) ??
-      firstMarkdownImage(bodyMarkdown) ??
-      firstMarkdownImage(typeof payload.content_md === "string" ? payload.content_md : null);
+    const videoUrl = typeof payload.video_url === "string" ? payload.video_url.trim() : "";
+    const manualVideoPoster = typeof payload.video_poster === "string"
+      ? payload.video_poster.trim()
+      : "";
+    const derivedVideoPoster = deriveVideoPoster(videoUrl, {
+      deliveryBase: String(locals.runtime?.env?.PUBLIC_CF_STREAM_DELIVERY_BASE ?? ""),
+    });
+    const resolvedVideoPoster = manualVideoPoster || derivedVideoPoster || null;
+    const resolvedCoverUrl = videoUrl
+      ? resolvedVideoPoster
+      : normalizeCoverUrl(payload.cover_url) ??
+        firstMarkdownImage(bodyMarkdown) ??
+        firstMarkdownImage(typeof payload.content_md === "string" ? payload.content_md : null);
 
     const legacyAuthorColumn = hasLegacyAuthor ? ", author" : "";
     const legacyAuthorValue = hasLegacyAuthor ? ", ?" : "";
@@ -214,8 +224,8 @@ export const POST: APIRoute = async ({ locals, request }) => {
         payload.side_note ?? null,
         payload.voice_memo ?? null,
         payload.voice_memo_title ?? null,
-        payload.video_url ?? null,
-        payload.video_poster ?? null,
+        videoUrl || null,
+        resolvedVideoPoster,
         payload.photo_dir ?? null,
         payload.photo_count ?? 0,
         Number(payload.pinned ?? 0) === 1 ? 1 : 0,

@@ -44,9 +44,10 @@ const pinLabelMap: Record<string, string> = {
 const pinLabel = pinnedStyle && pinLabelMap[pinnedStyle] ? pinLabelMap[pinnedStyle] : "Ghim";
 
 const buildImageCandidates = (src: string) => {
+  const defaultFallback = "/collage/cake.jpg";
   const [pathPart, suffix = ""] = src.split(/([?#].*)/, 2);
   const ext = pathPart.split(".").pop() ?? "";
-  if (!ext) return [src, "/noise.svg"];
+  if (!ext) return [src, defaultFallback];
 
   const lower = ext.toLowerCase();
   const base = pathPart.slice(0, -ext.length);
@@ -95,7 +96,7 @@ const buildImageCandidates = (src: string) => {
     }
   }
 
-  add("/noise.svg");
+  add(defaultFallback);
   return candidates;
 };
 
@@ -332,7 +333,7 @@ const imageCandidates = buildImageCandidates(image);
             target.src = next;
             return;
           }
-          target.src = "/noise.svg";
+          target.src = "/collage/cake.jpg";
         };
 
         void tryFallback();

@@ -162,7 +162,7 @@ npm run download:media -- --manifest=export/media.json
    - `CF_STREAM_TOKEN`
 2. Vào `/admin` -> phần `Video file (Cloudflare Stream)`.
 3. Chọn file video, bấm `Upload video`.
-4. Khi upload xong, hệ thống tự điền `video_url` + `video_poster`.
+4. Khi upload xong, hệ thống tự điền `video_url` + `video_poster`, và tự dùng thumbnail ở **giữa video** làm `cover_url`.
 5. Cloudflare cần thêm vài phút để encode trước khi playback ổn định.
 
 ## Auto deploy (Cloudflare Pages Git integration)

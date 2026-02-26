@@ -322,7 +322,12 @@ const isPair = frames.length === 2;
       width: 100%;
       border-radius: 14px;
       overflow: hidden;
-      background: rgba(0,0,0,0.12);
+      background:
+        radial-gradient(120% 90% at 20% 0%, rgba(255,255,255,0.14), rgba(0,0,0,0.08) 55%, rgba(0,0,0,0.3) 100%),
+        url("/collage/cake.jpg");
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
       border: 1px solid rgba(255,255,255,0.05);
       position: relative;
       z-index: 1;
@@ -674,7 +679,11 @@ const isPair = frames.length === 2;
               // fallback to candidate chain below
             }
             const next = nextCandidate(target);
-            if (next) target.src = next;
+            if (next) {
+              target.src = next;
+              return;
+            }
+            target.src = "/collage/cake.jpg";
           };
 
           void run();

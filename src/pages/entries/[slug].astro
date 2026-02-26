@@ -6,6 +6,7 @@ import { formatDate } from "../../lib/formatDate";
 import { topicLabel, topicMeta } from "../../config/topics";
 import { getDb, type PostRecord } from "../../lib/d1";
 import { getHybridPostBySlug, resolvePostCoverUrl } from "../../lib/posts";
+import { buildStreamUrls, extractStreamUid } from "../../lib/stream";
 import { REACTION_KINDS } from "../../lib/constants";
 import { marked } from "marked";
 
@@ -70,18 +71,8 @@ const voiceMemo = s(post.voice_memo);
 const voiceMemoTitle = s(post.voice_memo_title);
 const videoUrl = s(post.video_url);
 const videoPoster = s(post.video_poster);
-
-const extractStreamUid = (value: string) => {
-  if (!value) return "";
-  if (/^[a-f0-9]{32}$/i.test(value)) return value.toLowerCase();
-  const pathMatch = value.match(/\/([a-f0-9]{32})(?:[/?#]|$)/i);
-  if (pathMatch?.[1]) return pathMatch[1].toLowerCase();
-  const fallback = value.match(/\b([a-f0-9]{32})\b/i);
-  return fallback?.[1]?.toLowerCase() ?? "";
-};
-
-const streamUid = extractStreamUid(videoUrl);
-const streamEmbedUrl = streamUid ? `https://iframe.videodelivery.net/${streamUid}` : "";
+const streamUrls = buildStreamUrls(extractStreamUid(videoUrl));
+const streamEmbedUrl = streamUrls.iframe;
 
 const SUPPORTED_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "heic", "heif"] as const;
 
@@ -116,6 +107,8 @@ const buildSrcCandidates = (src: string, ext: string) => {
       candidates.push(`${localBase}jpg`, `${localBase}jpeg`, `${localBase}png`, `${localBase}webp`);
     }
   }
+
+  candidates.push("/collage/cake.jpg");
 
   return Array.from(new Set(candidates));
 };

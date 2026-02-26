@@ -208,7 +208,7 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
                 </div>
                 <p class="mt-2 text-xs text-black/50" data-video-upload-progress></p>
                 <p class="text-xs text-black/50" data-video-upload-note>
-                  Upload trực tiếp lên Cloudflare Stream để tránh giới hạn Worker.
+                  Upload trực tiếp lên Cloudflare Stream để tránh giới hạn Worker. Không cần ảnh bìa riêng.
                 </p>
               </div>
 
@@ -843,8 +843,9 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
         }
         const contentValue = String(data.content_md || "");
         const hasImage = Boolean(data.cover_url) || /!\[.*?\]\(.+?\)/.test(contentValue);
-        if (!hasImage) {
-          note.textContent = "Thiếu ảnh. Hãy upload ít nhất 1 ảnh.";
+        const hasVideo = Boolean(String(data.video_url || "").trim());
+        if (!hasImage && !hasVideo) {
+          note.textContent = "Thiếu media. Hãy upload ảnh hoặc video.";
           return false;
         }
       }
@@ -1183,6 +1184,28 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       return payload;
     };
 
+    const finalizeStreamVideo = async ({ uid, signal }) => {
+      const res = await fetch("/api/admin/stream/finalize", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-csrf-token": getCsrfToken(),
+        },
+        body: JSON.stringify({ uid }),
+        signal,
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (res.status === 401) {
+          unlocked = false;
+          setLocked(true);
+          throw new Error("UNAUTHORIZED");
+        }
+        throw new Error(formatApiError(payload, "Không thể set thumbnail giữa video."));
+      }
+      return payload;
+    };
+
     const uploadVideoToCloudflare = async ({ file, uploadURL, signal }) => {
       const formData = new FormData();
       formData.append("file", file, file.name || "video.mp4");
@@ -1251,24 +1274,41 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
           signal: videoUploadController.signal,
         });
 
+        if (videoUploadProgress) {
+          videoUploadProgress.textContent =
+            "Đang chốt video (set ảnh bìa từ đoạn giữa)...";
+        }
+        const finalized = await finalizeStreamVideo({
+          uid: payload.uid,
+          signal: videoUploadController.signal,
+        });
+
         const videoUrlInput = form?.querySelector("[name='video_url']");
         const posterInput = form?.querySelector("[name='video_poster']");
-        const iframeUrl = payload.iframe || `https://iframe.videodelivery.net/${payload.uid}`;
-        const thumbnailUrl = payload.thumbnail || `https://videodelivery.net/${payload.uid}/thumbnails/thumbnail.jpg`;
+        const coverInput = form?.querySelector("[name='cover_url']");
+        const iframeUrl = finalized?.iframe || payload.iframe || `https://iframe.videodelivery.net/${payload.uid}`;
+        const thumbnailUrl =
+          finalized?.thumbnail ||
+          payload.thumbnail ||
+          `https://videodelivery.net/${payload.uid}/thumbnails/thumbnail.jpg`;
 
         if (videoUrlInput) {
           videoUrlInput.value = iframeUrl;
           videoUrlInput.dispatchEvent(new Event("input", { bubbles: true }));
         }
-        if (posterInput && !posterInput.value.trim()) {
+        if (posterInput) {
           posterInput.value = thumbnailUrl;
           posterInput.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+        if (coverInput) {
+          coverInput.value = thumbnailUrl;
+          coverInput.dispatchEvent(new Event("input", { bubbles: true }));
         }
 
         markDirty();
         if (videoUploadNote) {
           videoUploadNote.textContent =
-            "Upload xong. Cloudflare cần thêm 1-3 phút để encode trước khi xem ổn định.";
+            "Upload xong. Ảnh bìa đã lấy tự động từ đoạn giữa video.";
         }
         showToast("Đã upload video lên Cloudflare Stream.", "success");
       } catch (error) {
