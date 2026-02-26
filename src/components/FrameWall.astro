@@ -480,12 +480,10 @@ const isPair = frames.length === 2;
       const walls = document.querySelectorAll(".framewall--pair");
       walls.forEach((wall) => {
         if (!(wall instanceof HTMLElement)) return;
-        const pairImages = Array.from(wall.querySelectorAll(".wall > .frame .mat img")).slice(0, 2);
+        const pairImages = Array.from(wall.querySelectorAll<HTMLImageElement>(".wall > .frame .mat img")).slice(0, 2);
         if (pairImages.length < 2) return;
 
-        const readyImages = pairImages.filter(
-          (img) => img instanceof HTMLImageElement && img.naturalWidth > 0 && img.naturalHeight > 0,
-        );
+        const readyImages = pairImages.filter((img) => img.naturalWidth > 0 && img.naturalHeight > 0);
         if (readyImages.length < 2) return;
 
         const ratios = readyImages.map((img) => img.naturalWidth / img.naturalHeight);
@@ -502,12 +500,14 @@ const isPair = frames.length === 2;
           img.dataset.candidateIndex = "0";
         }
       });
+      void primeHeicFallbacks();
     };
 
     const HEIC_RE = /\.(heic|heif)(?:[?#].*)?$/i;
     const convertedImageUrlCache = new Map();
+    const NON_SAFARI_RE = /(chrome|crios|edg|opr|android)/i;
 
-    const srcWithAbsUrl = (value) => {
+    const srcWithAbsUrl = (value: string): string => {
       try {
         return new URL(value, window.location.origin).toString();
       } catch (_error) {
@@ -515,7 +515,7 @@ const isPair = frames.length === 2;
       }
     };
 
-    const nextCandidate = (img) => {
+    const nextCandidate = (img: HTMLImageElement): string | null => {
       const raw = img.dataset.candidates;
       if (!raw) return null;
       const candidates = raw.split("|").filter(Boolean);
@@ -525,7 +525,7 @@ const isPair = frames.length === 2;
       return candidates[nextIndex];
     };
 
-    const blobIsRenderable = async (blob) => {
+    const blobIsRenderable = async (blob: Blob): Promise<boolean> => {
       if (!(blob instanceof Blob) || blob.size <= 0) return false;
       let bitmap = null;
       if ("createImageBitmap" in window) {
@@ -591,7 +591,7 @@ const isPair = frames.length === 2;
       }
     };
 
-    const convertHeicToJpeg = async (img) => {
+    const convertHeicToJpeg = async (img: HTMLImageElement): Promise<boolean> => {
       const currentSrc = srcWithAbsUrl(img.currentSrc || img.src || "");
       if (!HEIC_RE.test(currentSrc)) return false;
       if (img.dataset.heicConverted === "1") return false;
@@ -636,7 +636,29 @@ const isPair = frames.length === 2;
       return false;
     };
 
-    if (!window.__twawFrameWallFallbackBound) {
+    const isProbablySafari = () => /safari/i.test(navigator.userAgent) && !NON_SAFARI_RE.test(navigator.userAgent);
+
+    const primeHeicFallbacks = async () => {
+      if (isProbablySafari()) return;
+      const images = document.querySelectorAll("img[data-candidates]");
+      for (const img of images) {
+        if (!(img instanceof HTMLImageElement)) continue;
+        if (img.dataset.heicPrimed === "1") continue;
+        const currentSrc = srcWithAbsUrl(img.currentSrc || img.src || "");
+        if (!HEIC_RE.test(currentSrc)) continue;
+        img.dataset.heicPrimed = "1";
+        try {
+          const converted = await convertHeicToJpeg(img);
+          if (converted) continue;
+        } catch (_error) {
+          // fallback chain below
+        }
+        const next = nextCandidate(img);
+        if (next) img.src = next;
+      }
+    };
+
+    if (!(window as any).__twawFrameWallFallbackBound) {
       document.addEventListener(
         "error",
         (event) => {
@@ -659,7 +681,7 @@ const isPair = frames.length === 2;
         },
         true,
       );
-      window.__twawFrameWallFallbackBound = true;
+      (window as any).__twawFrameWallFallbackBound = true;
     }
 
     document.addEventListener(

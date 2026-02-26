@@ -164,14 +164,14 @@ export const POST: APIRoute = async ({ locals, request }) => {
         `INSERT INTO posts (
           id, slug, title, summary, body_markdown, tags_json, cover_key, cover_url, content_md,
           status, author_name, topic, location, event_time, written_at, photo_time, tags_csv,
-          side_note, voice_memo, voice_memo_title, photo_dir, photo_count, pinned, pinned_priority,
+          side_note, voice_memo, voice_memo_title, video_url, video_poster, photo_dir, photo_count, pinned, pinned_priority,
           pinned_until, pinned_style, layout, sort_order, published_at${legacyAuthorColumn}
         )
         VALUES (
-          ?, ?, ?, ?, ?, ?, ?, ?, ?,
-          ?, ?, ?, ?, ?, ?, ?, ?, ?,
-          ?, ?, ?, ?, ?, ?, ?, ?, ?,
-          ?, ?${legacyAuthorValue}
+          ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+          ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+          ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+          ?${legacyAuthorValue}
         )`
       )
       .bind(
@@ -195,6 +195,8 @@ export const POST: APIRoute = async ({ locals, request }) => {
         payload.side_note ?? null,
         payload.voice_memo ?? null,
         payload.voice_memo_title ?? null,
+        payload.video_url ?? null,
+        payload.video_poster ?? null,
         payload.photo_dir ?? null,
         payload.photo_count ?? 0,
         Number(payload.pinned ?? 0) === 1 ? 1 : 0,

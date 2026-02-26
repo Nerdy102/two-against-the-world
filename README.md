@@ -51,11 +51,19 @@ Thiết lập trong Cloudflare Dashboard (Workers → Settings → Variables/Sec
 - `PUBLIC_ENABLE_PINNED_FIELDS`: bật trường ghim bài trong Admin.
 - `PUBLIC_ENABLE_UPLOAD_HELPERS`: bật UI hỗ trợ upload (progress/cancel).
 - `PUBLIC_ENABLE_LOVE_WIDGETS`: bật day counter + clocks.
+- `CF_ACCOUNT_ID`: Cloudflare account id (dùng cho Stream upload API).
+- `CF_STREAM_TOKEN` (secret): API token có quyền Stream edit.
+- `CF_STREAM_REQUIRE_SIGNED_URLS`: `true` nếu muốn Stream dùng signed URL.
+- `CF_STREAM_MAX_DURATION_SECONDS`: giới hạn độ dài video khi tạo direct upload URL.
+- `CF_STREAM_MAX_UPLOAD_BYTES`: giới hạn kích thước file video (mặc định 50GB).
+- `PUBLIC_CF_STREAM_IFRAME_BASE`: base iframe player (default `https://iframe.videodelivery.net`).
+- `PUBLIC_CF_STREAM_DELIVERY_BASE`: base delivery URL (default `https://videodelivery.net`).
 
 Nếu muốn set nhanh bằng CLI:
 
 ```bash
 wrangler secret put ADMIN_PASSWORD
+wrangler secret put CF_STREAM_TOKEN
 ```
 
 ## Production bring-up checklist (tinyeu.blog / world1)
@@ -145,7 +153,17 @@ npm run download:media -- --manifest=export/media.json
 
 - Mở `/admin`.
 - Đăng nhập bằng `ADMIN_PASSWORD`.
-- CRUD bài viết, upload ảnh (R2), publish/unpublish, và duyệt comment.
+- CRUD bài viết, upload ảnh (R2), upload video lớn (Cloudflare Stream), publish/unpublish, và duyệt comment.
+
+### Upload video lớn qua Cloudflare Stream
+
+1. Set env/secrets:
+   - `CF_ACCOUNT_ID`
+   - `CF_STREAM_TOKEN`
+2. Vào `/admin` -> phần `Video file (Cloudflare Stream)`.
+3. Chọn file video, bấm `Upload video`.
+4. Khi upload xong, hệ thống tự điền `video_url` + `video_poster`.
+5. Cloudflare cần thêm vài phút để encode trước khi playback ổn định.
 
 ## Auto deploy (Cloudflare Pages Git integration)
 

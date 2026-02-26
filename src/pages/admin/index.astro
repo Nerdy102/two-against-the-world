@@ -199,6 +199,29 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
                 <input class="input" name="voice_memo_title" placeholder="Tên đoạn ghi âm" />
               </label>
 
+              <div class="compose-field">
+                <span>Video file (Cloudflare Stream)</span>
+                <input class="input" type="file" name="upload_video" accept="video/*" data-video-upload-input />
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <button class="btn" type="button" data-video-upload-start>Upload video</button>
+                  <button class="btn hidden" type="button" data-video-upload-cancel>Hủy upload video</button>
+                </div>
+                <p class="mt-2 text-xs text-black/50" data-video-upload-progress></p>
+                <p class="text-xs text-black/50" data-video-upload-note>
+                  Upload trực tiếp lên Cloudflare Stream để tránh giới hạn Worker.
+                </p>
+              </div>
+
+              <label class="compose-field">
+                <span>Video URL</span>
+                <input class="input" name="video_url" placeholder="Cloudflare Stream UID / watch URL / iframe URL" />
+              </label>
+
+              <label class="compose-field">
+                <span>Video poster (URL)</span>
+                <input class="input" name="video_poster" placeholder="https://..." />
+              </label>
+
               {enablePinnedFields && (
                 <>
                   <label class="compose-field">
@@ -318,6 +341,11 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
     const uploadNote = document.querySelector("[data-upload-note]");
     const uploadProgress = document.querySelector("[data-upload-progress]");
     const uploadCancel = document.querySelector("[data-upload-cancel]");
+    const videoUploadInput = document.querySelector("[data-video-upload-input]");
+    const videoUploadStart = document.querySelector("[data-video-upload-start]");
+    const videoUploadCancel = document.querySelector("[data-video-upload-cancel]");
+    const videoUploadNote = document.querySelector("[data-video-upload-note]");
+    const videoUploadProgress = document.querySelector("[data-video-upload-progress]");
     const authWrap = document.querySelector("[data-admin-auth]");
     const lockStatus = document.querySelector("[data-admin-status]");
     const passwordInput = document.querySelector("[data-admin-password]");
@@ -340,7 +368,9 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
     const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "false";
     const MAX_UPLOAD_FILES = 6;
     const MAX_FILE_BYTES = 2.5 * 1024 * 1024;
+    const MAX_VIDEO_FILE_BYTES = 50 * 1024 * 1024 * 1024;
     let uploadController = null;
+    let videoUploadController = null;
     let selectedFiles = [];
     let previewUrls = [];
     let coverIndex = 0;
@@ -545,6 +575,8 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       "side_note",
       "voice_memo",
       "voice_memo_title",
+      "video_url",
+      "video_poster",
       "pinned",
       "pinned_priority",
       "pinned_until",
@@ -1123,6 +1155,159 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       }
       return res.json();
     };
+
+    const requestStreamDirectUpload = async ({ file, slug, signal }) => {
+      const res = await fetch("/api/admin/stream/direct-upload", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-csrf-token": getCsrfToken(),
+        },
+        body: JSON.stringify({
+          slug,
+          fileName: file.name || "video.mp4",
+          fileSize: file.size,
+          fileType: file.type || "video/mp4",
+        }),
+        signal,
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (res.status === 401) {
+          unlocked = false;
+          setLocked(true);
+          throw new Error("UNAUTHORIZED");
+        }
+        throw new Error(formatApiError(payload, "Không tạo được link upload Cloudflare Stream."));
+      }
+      return payload;
+    };
+
+    const uploadVideoToCloudflare = async ({ file, uploadURL, signal }) => {
+      const formData = new FormData();
+      formData.append("file", file, file.name || "video.mp4");
+
+      const multipartRes = await fetch(uploadURL, {
+        method: "POST",
+        body: formData,
+        signal,
+      });
+      if (multipartRes.ok) return;
+
+      const rawRes = await fetch(uploadURL, {
+        method: "PUT",
+        body: file,
+        signal,
+      });
+      if (!rawRes.ok) {
+        throw new Error("STREAM_UPLOAD_FAILED");
+      }
+    };
+
+    videoUploadStart?.addEventListener("click", async () => {
+      if (!isUnlocked()) {
+        if (videoUploadNote) videoUploadNote.textContent = "Cần mở khóa để upload video.";
+        return;
+      }
+
+      const file = videoUploadInput?.files?.[0];
+      if (!(file instanceof File)) {
+        if (videoUploadNote) videoUploadNote.textContent = "Chọn 1 video trước khi upload.";
+        return;
+      }
+      if (file.size <= 0) {
+        if (videoUploadNote) videoUploadNote.textContent = "File video rỗng hoặc không hợp lệ.";
+        return;
+      }
+      if (file.size > MAX_VIDEO_FILE_BYTES) {
+        if (videoUploadNote) {
+          videoUploadNote.textContent =
+            "File video quá lớn (>50GB). Tách nhỏ hoặc upload từ dashboard Cloudflare Stream.";
+        }
+        return;
+      }
+
+      const safeSlug = getSlugValue() || "untitled";
+      videoUploadController?.abort();
+      videoUploadController = new AbortController();
+      videoUploadCancel?.classList.remove("hidden");
+      if (videoUploadProgress) videoUploadProgress.textContent = "Đang tạo link upload Cloudflare Stream...";
+      if (videoUploadNote) videoUploadNote.textContent = "";
+
+      try {
+        const payload = await requestStreamDirectUpload({
+          file,
+          slug: safeSlug,
+          signal: videoUploadController.signal,
+        });
+        if (!payload?.uploadURL || !payload?.uid) {
+          throw new Error("Cloudflare Stream không trả upload URL hợp lệ.");
+        }
+
+        if (videoUploadProgress) videoUploadProgress.textContent = "Đang upload video lên Cloudflare Stream...";
+        await uploadVideoToCloudflare({
+          file,
+          uploadURL: payload.uploadURL,
+          signal: videoUploadController.signal,
+        });
+
+        const videoUrlInput = form?.querySelector("[name='video_url']");
+        const posterInput = form?.querySelector("[name='video_poster']");
+        const iframeUrl = payload.iframe || `https://iframe.videodelivery.net/${payload.uid}`;
+        const thumbnailUrl = payload.thumbnail || `https://videodelivery.net/${payload.uid}/thumbnails/thumbnail.jpg`;
+
+        if (videoUrlInput) {
+          videoUrlInput.value = iframeUrl;
+          videoUrlInput.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+        if (posterInput && !posterInput.value.trim()) {
+          posterInput.value = thumbnailUrl;
+          posterInput.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+
+        markDirty();
+        if (videoUploadNote) {
+          videoUploadNote.textContent =
+            "Upload xong. Cloudflare cần thêm 1-3 phút để encode trước khi xem ổn định.";
+        }
+        showToast("Đã upload video lên Cloudflare Stream.", "success");
+      } catch (error) {
+        if (error?.name === "AbortError") {
+          if (videoUploadNote) videoUploadNote.textContent = "Đã hủy upload video.";
+        } else if (error?.message === "STREAM_UPLOAD_FAILED") {
+          if (videoUploadNote) {
+            videoUploadNote.textContent =
+              "Upload video thất bại. Thử lại hoặc upload bằng Cloudflare dashboard.";
+          }
+          showToast("Upload video Cloudflare Stream thất bại.");
+        } else {
+          const message = error instanceof Error ? error.message : "Upload video thất bại.";
+          if (videoUploadNote) videoUploadNote.textContent = message;
+          showToast(message);
+        }
+      } finally {
+        if (videoUploadProgress) videoUploadProgress.textContent = "";
+        videoUploadCancel?.classList.add("hidden");
+        videoUploadController = null;
+      }
+    });
+
+    videoUploadCancel?.addEventListener("click", () => {
+      videoUploadController?.abort();
+      videoUploadCancel?.classList.add("hidden");
+      if (videoUploadProgress) videoUploadProgress.textContent = "";
+    });
+
+    videoUploadInput?.addEventListener("change", () => {
+      const file = videoUploadInput.files?.[0];
+      if (!videoUploadNote) return;
+      if (!(file instanceof File)) {
+        videoUploadNote.textContent = "Chưa chọn video.";
+        return;
+      }
+      const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+      videoUploadNote.textContent = `Đã chọn: ${file.name} (${sizeMb} MB).`;
+    });
 
     clearPreviewUrls = () => {
       previewUrls.forEach((url) => URL.revokeObjectURL(url));

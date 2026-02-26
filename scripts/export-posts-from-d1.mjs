@@ -103,6 +103,8 @@ const main = async () => {
       sideNote: row.side_note ?? "",
       voiceMemo: row.voice_memo ?? "",
       voiceMemoTitle: row.voice_memo_title ?? "",
+      videoUrl: row.video_url ?? "",
+      videoPoster: row.video_poster ?? "",
       layout: row.layout ?? "normal",
       sortOrder: Number(row.sort_order ?? 0),
     };

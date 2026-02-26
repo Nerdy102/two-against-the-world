@@ -43,6 +43,8 @@ const POST_COLUMNS: PostColumnDefinition[] = [
   { name: "side_note", sql: "side_note TEXT" },
   { name: "voice_memo", sql: "voice_memo TEXT" },
   { name: "voice_memo_title", sql: "voice_memo_title TEXT" },
+  { name: "video_url", sql: "video_url TEXT" },
+  { name: "video_poster", sql: "video_poster TEXT" },
   { name: "photo_dir", sql: "photo_dir TEXT" },
   { name: "photo_count", sql: "photo_count INTEGER DEFAULT 0" },
   { name: "layout", sql: "layout TEXT DEFAULT 'normal'" },
@@ -126,6 +128,8 @@ export async function ensurePostsSchema(
             side_note TEXT,
             voice_memo TEXT,
             voice_memo_title TEXT,
+            video_url TEXT,
+            video_poster TEXT,
             photo_dir TEXT,
             photo_count INTEGER DEFAULT 0,
             layout TEXT DEFAULT 'normal',
@@ -448,6 +452,8 @@ export type PostRecord = {
   side_note: string | null;
   voice_memo: string | null;
   voice_memo_title: string | null;
+  video_url?: string | null;
+  video_poster?: string | null;
   photo_dir: string | null;
   photo_count: number | null;
   pinned: number | null;

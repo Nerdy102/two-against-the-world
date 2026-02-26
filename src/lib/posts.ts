@@ -28,6 +28,8 @@ export const mapContentEntryToPostRecord = (
     side_note: entry.data.sideNote || null,
     voice_memo: entry.data.voiceMemo || null,
     voice_memo_title: entry.data.voiceMemoTitle || null,
+    video_url: entry.data.videoUrl || null,
+    video_poster: entry.data.videoPoster || null,
     photo_dir: entry.data.photoDir || null,
     photo_count: entry.data.photoCount ?? 0,
     pinned: entry.data.pinned ? 1 : 0,

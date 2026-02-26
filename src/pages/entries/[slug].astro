@@ -68,6 +68,20 @@ const tagsText = joinTags(
 );
 const voiceMemo = s(post.voice_memo);
 const voiceMemoTitle = s(post.voice_memo_title);
+const videoUrl = s(post.video_url);
+const videoPoster = s(post.video_poster);
+
+const extractStreamUid = (value: string) => {
+  if (!value) return "";
+  if (/^[a-f0-9]{32}$/i.test(value)) return value.toLowerCase();
+  const pathMatch = value.match(/\/([a-f0-9]{32})(?:[/?#]|$)/i);
+  if (pathMatch?.[1]) return pathMatch[1].toLowerCase();
+  const fallback = value.match(/\b([a-f0-9]{32})\b/i);
+  return fallback?.[1]?.toLowerCase() ?? "";
+};
+
+const streamUid = extractStreamUid(videoUrl);
+const streamEmbedUrl = streamUid ? `https://iframe.videodelivery.net/${streamUid}` : "";
 
 const SUPPORTED_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "heic", "heif"] as const;
 
@@ -195,17 +209,49 @@ const wallImages = [
     </section>
 
     {/* MEDIA */}
-    {voiceMemo && (
+    {(voiceMemo || videoUrl) && (
       <section class="mt-10" aria-label="Đa phương tiện" data-reveal>
         <div class="paper edge-torn p-6 sm:p-10">
           <div class="kicker text-xs text-black/50">ĐA PHƯƠNG TIỆN</div>
           <h2 class="mt-3 text-[26px] sm:text-[32px] font-semibold text-black/80">Nghe & xem</h2>
 
-          <div class="mt-4">
-            <div class="meta-label">Ghi âm</div>
-            {voiceMemoTitle && <div class="mt-1 text-black/70">{voiceMemoTitle}</div>}
-            <audio class="mt-2 w-full" controls src={voiceMemo}></audio>
-          </div>
+          {videoUrl && (
+            <div class="mt-4">
+              <div class="meta-label">Video</div>
+              {streamEmbedUrl ? (
+                <div
+                  class="mt-2 overflow-hidden rounded-2xl border border-black/10 bg-black shadow-sm"
+                  style="aspect-ratio: 16 / 9;"
+                >
+                  <iframe
+                    class="h-full w-full"
+                    src={streamEmbedUrl}
+                    title={`${post.title} video`}
+                    loading="lazy"
+                    allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                    allowfullscreen
+                  ></iframe>
+                </div>
+              ) : (
+                <video
+                  class="mt-2 w-full rounded-2xl border border-black/10 bg-black shadow-sm"
+                  controls
+                  preload="metadata"
+                  playsinline
+                  poster={videoPoster || undefined}
+                  src={videoUrl}
+                ></video>
+              )}
+            </div>
+          )}
+
+          {voiceMemo && (
+            <div class="mt-4">
+              <div class="meta-label">Ghi âm</div>
+              {voiceMemoTitle && <div class="mt-1 text-black/70">{voiceMemoTitle}</div>}
+              <audio class="mt-2 w-full" controls src={voiceMemo}></audio>
+            </div>
+          )}
         </div>
       </section>
     )}

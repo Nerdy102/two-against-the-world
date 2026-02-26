@@ -134,6 +134,7 @@ const imageCandidates = buildImageCandidates(image);
 
   const HEIC_RE = /\.(heic|heif)(?:[?#].*)?$/i;
   const convertedImageUrlCache = new Map();
+  const NON_SAFARI_RE = /(chrome|crios|edg|opr|android)/i;
 
   const initFeedImageFallbacks = () => {
     const imgs = document.querySelectorAll(".feed-card__media img[data-candidates]");
@@ -141,9 +142,10 @@ const imageCandidates = buildImageCandidates(image);
       if (!(img instanceof HTMLImageElement)) return;
       if (!img.dataset.candidateIndex) img.dataset.candidateIndex = "0";
     });
+    void primeHeicFallbacks();
   };
 
-  const srcWithAbsUrl = (value) => {
+  const srcWithAbsUrl = (value: string): string => {
     try {
       return new URL(value, window.location.origin).toString();
     } catch (_error) {
@@ -151,7 +153,7 @@ const imageCandidates = buildImageCandidates(image);
     }
   };
 
-  const nextCandidate = (img) => {
+  const nextCandidate = (img: HTMLImageElement): string | null => {
     const raw = img.dataset.candidates;
     if (!raw) return null;
     const candidates = raw.split("|").filter(Boolean);
@@ -161,7 +163,7 @@ const imageCandidates = buildImageCandidates(image);
     return candidates[nextIndex];
   };
 
-  const blobIsRenderable = async (blob) => {
+  const blobIsRenderable = async (blob: Blob): Promise<boolean> => {
     if (!(blob instanceof Blob) || blob.size <= 0) return false;
     let bitmap = null;
     if ("createImageBitmap" in window) {
@@ -227,7 +229,7 @@ const imageCandidates = buildImageCandidates(image);
     }
   };
 
-  const convertHeicToJpeg = async (img) => {
+  const convertHeicToJpeg = async (img: HTMLImageElement): Promise<boolean> => {
     const currentSrc = srcWithAbsUrl(img.currentSrc || img.src || "");
     if (!HEIC_RE.test(currentSrc)) return false;
     if (img.dataset.heicConverted === "1") return false;
@@ -273,7 +275,29 @@ const imageCandidates = buildImageCandidates(image);
     return false;
   };
 
-  if (!window.__twawFeedImageFallbackBound) {
+  const isProbablySafari = () => /safari/i.test(navigator.userAgent) && !NON_SAFARI_RE.test(navigator.userAgent);
+
+  const primeHeicFallbacks = async () => {
+    if (isProbablySafari()) return;
+    const imgs = document.querySelectorAll(".feed-card__media img[data-candidates]");
+    for (const img of imgs) {
+      if (!(img instanceof HTMLImageElement)) continue;
+      if (img.dataset.heicPrimed === "1") continue;
+      const currentSrc = srcWithAbsUrl(img.currentSrc || img.src || "");
+      if (!HEIC_RE.test(currentSrc)) continue;
+      img.dataset.heicPrimed = "1";
+      try {
+        const converted = await convertHeicToJpeg(img);
+        if (converted) continue;
+      } catch (_error) {
+        // fallback chain below
+      }
+      const next = nextCandidate(img);
+      if (next) img.src = next;
+    }
+  };
+
+  if (!(window as any).__twawFeedImageFallbackBound) {
     document.addEventListener(
       "error",
       (event) => {
@@ -301,7 +325,7 @@ const imageCandidates = buildImageCandidates(image);
       },
       true,
     );
-    window.__twawFeedImageFallbackBound = true;
+    (window as any).__twawFeedImageFallbackBound = true;
   }
 
   initFeedImageFallbacks();

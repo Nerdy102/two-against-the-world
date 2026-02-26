@@ -14,8 +14,15 @@ type RuntimeEnv = {
   PUBLIC_TURNSTILE_SITE_KEY?: string;
   PUBLIC_BUILD_SHA?: string;
   PUBLIC_BUILD_TIME?: string;
+  PUBLIC_CF_STREAM_IFRAME_BASE?: string;
+  PUBLIC_CF_STREAM_DELIVERY_BASE?: string;
   CF_PAGES_COMMIT_SHA?: string;
   CF_PAGES_BUILD_TIMESTAMP?: string;
+  CF_ACCOUNT_ID?: string;
+  CF_STREAM_TOKEN?: string;
+  CF_STREAM_REQUIRE_SIGNED_URLS?: string;
+  CF_STREAM_MAX_DURATION_SECONDS?: string;
+  CF_STREAM_MAX_UPLOAD_BYTES?: string;
   GITHUB_SHA?: string;
   BUILD_SHA?: string;
   BUILD_TIME?: string;
@@ -38,6 +45,8 @@ declare global {
     readonly PUBLIC_SITE_URL?: string;
     readonly PUBLIC_BUILD_SHA?: string;
     readonly PUBLIC_BUILD_TIME?: string;
+    readonly PUBLIC_CF_STREAM_IFRAME_BASE?: string;
+    readonly PUBLIC_CF_STREAM_DELIVERY_BASE?: string;
     readonly CF_PAGES_COMMIT_SHA?: string;
     readonly CF_PAGES_BUILD_TIMESTAMP?: string;
     readonly PUBLIC_ENABLE_CONTENT_FALLBACK?: string;

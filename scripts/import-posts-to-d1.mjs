@@ -100,6 +100,8 @@ const main = async () => {
       side_note: data.sideNote ? String(data.sideNote) : null,
       voice_memo: data.voiceMemo ? String(data.voiceMemo) : null,
       voice_memo_title: data.voiceMemoTitle ? String(data.voiceMemoTitle) : null,
+      video_url: data.videoUrl ? String(data.videoUrl) : null,
+      video_poster: data.videoPoster ? String(data.videoPoster) : null,
       photo_dir: data.photoDir ? String(data.photoDir) : null,
       photo_count: Number(data.photoCount ?? 0),
       pinned: data.pinned ? 1 : 0,

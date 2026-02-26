@@ -35,6 +35,36 @@ const resolveExtension = (file: File) => {
   return match?.[1]?.toLowerCase() || "jpg";
 };
 
+const IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp", "avif", "heic", "heif", "gif"]);
+
+const isImageUpload = (file: File) => {
+  if ((file.type || "").startsWith("image/")) return true;
+  const extension = resolveExtension(file);
+  return IMAGE_EXTENSIONS.has(extension);
+};
+
+const contentTypeFromExtension = (extension: string) => {
+  switch (extension) {
+    case "jpg":
+    case "jpeg":
+      return "image/jpeg";
+    case "png":
+      return "image/png";
+    case "webp":
+      return "image/webp";
+    case "avif":
+      return "image/avif";
+    case "heic":
+      return "image/heic";
+    case "heif":
+      return "image/heif";
+    case "gif":
+      return "image/gif";
+    default:
+      return "application/octet-stream";
+  }
+};
+
 const buildKey = (slug: string, batchId: number | string, index: number, extension: string) => {
   const safeSlug = sanitizeSlug(slug || "untitled") || "untitled";
   const safeBatch = String(batchId || Date.now()).replace(/[^\w-]/g, "");
@@ -75,7 +105,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
         400
       );
     }
-    if (!file.type.startsWith("image/")) {
+    if (!isImageUpload(file)) {
       return json(
         {
           ok: false,
@@ -96,7 +126,9 @@ export const POST: APIRoute = async ({ locals, request }) => {
     }
     const extension = resolveExtension(file);
     const key = buildKey(slug, parsedMeta?.batch_id ?? Date.now(), parsedMeta?.index ?? 1, extension);
-    const contentType = file.type || "image/jpeg";
+    const contentType = (file.type || "").startsWith("image/")
+      ? file.type
+      : contentTypeFromExtension(extension);
     const bucket = locals.runtime?.env?.MEDIA;
     if (!bucket) {
       return json(
