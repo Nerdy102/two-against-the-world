@@ -474,6 +474,8 @@ const isPair = frames.length === 2;
   </style>
 
   <script>
+    import heic2any from "heic2any";
+
     const resolvePairLayouts = () => {
       const walls = document.querySelectorAll(".framewall--pair");
       walls.forEach((wall) => {
@@ -504,7 +506,6 @@ const isPair = frames.length === 2;
 
     const HEIC_RE = /\.(heic|heif)(?:[?#].*)?$/i;
     const convertedImageUrlCache = new Map();
-    let heic2anyPromise;
 
     const srcWithAbsUrl = (value) => {
       try {
@@ -512,15 +513,6 @@ const isPair = frames.length === 2;
       } catch (_error) {
         return value;
       }
-    };
-
-    const loadHeic2any = async () => {
-      if (!heic2anyPromise) {
-        heic2anyPromise = import("heic2any")
-          .then((mod) => mod.default ?? mod)
-          .catch(() => null);
-      }
-      return heic2anyPromise;
     };
 
     const nextCandidate = (img) => {
@@ -531,6 +523,72 @@ const isPair = frames.length === 2;
       if (nextIndex >= candidates.length) return null;
       img.dataset.candidateIndex = String(nextIndex);
       return candidates[nextIndex];
+    };
+
+    const blobIsRenderable = async (blob) => {
+      if (!(blob instanceof Blob) || blob.size <= 0) return false;
+      let bitmap = null;
+      if ("createImageBitmap" in window) {
+        try {
+          bitmap = await createImageBitmap(blob);
+        } catch (_error) {
+          bitmap = null;
+        }
+      }
+
+      if (bitmap && bitmap.width > 1 && bitmap.height > 1) {
+        try {
+          const sampleW = Math.max(1, Math.min(64, bitmap.width));
+          const sampleH = Math.max(1, Math.min(64, bitmap.height));
+          const canvas = document.createElement("canvas");
+          canvas.width = sampleW;
+          canvas.height = sampleH;
+          const ctx = canvas.getContext("2d", { willReadFrequently: true });
+          if (ctx) {
+            ctx.drawImage(bitmap, 0, 0, sampleW, sampleH);
+            const data = ctx.getImageData(0, 0, sampleW, sampleH).data;
+            const pxCount = sampleW * sampleH;
+            let alphaSum = 0;
+            let lumSum = 0;
+            let lumSqSum = 0;
+            for (let i = 0; i < data.length; i += 4) {
+              const r = data[i];
+              const g = data[i + 1];
+              const b = data[i + 2];
+              const a = data[i + 3];
+              alphaSum += a;
+              const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+              lumSum += lum;
+              lumSqSum += lum * lum;
+            }
+            const alphaAvg = alphaSum / pxCount;
+            const lumAvg = lumSum / pxCount;
+            const lumVar = lumSqSum / pxCount - lumAvg * lumAvg;
+            // Reject transparent/flat-black decodes that appear "successful" but render as empty cards.
+            if (alphaAvg > 5 && !(lumAvg < 2 && lumVar < 1)) {
+              bitmap.close();
+              return true;
+            }
+          }
+        } catch (_error) {
+          // fall through to Image decode check
+        } finally {
+          bitmap.close();
+        }
+      }
+
+      const objectUrl = URL.createObjectURL(blob);
+      try {
+        const ok = await new Promise((resolve) => {
+          const probe = new Image();
+          probe.onload = () => resolve((probe.naturalWidth || 0) > 1 && (probe.naturalHeight || 0) > 1);
+          probe.onerror = () => resolve(false);
+          probe.src = objectUrl;
+        });
+        return Boolean(ok);
+      } finally {
+        URL.revokeObjectURL(objectUrl);
+      }
     };
 
     const convertHeicToJpeg = async (img) => {
@@ -545,23 +603,37 @@ const isPair = frames.length === 2;
         return true;
       }
 
-      const converter = await loadHeic2any();
-      if (!converter) return false;
-
       const res = await fetch(currentSrc, { credentials: "same-origin" });
       if (!res.ok) return false;
-      const blob = await res.blob();
-      const converted = await converter({
-        blob,
-        toType: "image/jpeg",
-        quality: 0.9,
+      const raw = await res.arrayBuffer();
+      const sourceBytes = raw.byteLength;
+      const typedBlob = new Blob([raw], {
+        type: /\.heif(?:[?#].*)?$/i.test(currentSrc) ? "image/heif" : "image/heic",
       });
-      const outBlob = Array.isArray(converted) ? converted[0] : converted;
-      if (!(outBlob instanceof Blob)) return false;
-      const objectUrl = URL.createObjectURL(outBlob);
-      convertedImageUrlCache.set(currentSrc, objectUrl);
-      img.src = objectUrl;
-      return true;
+      const conversionTargets = [
+        { toType: "image/jpeg", quality: 0.9 },
+        { toType: "image/png", quality: 1 },
+      ];
+      for (const target of conversionTargets) {
+        const converted = await heic2any({
+          blob: typedBlob,
+          toType: target.toType,
+          quality: target.quality,
+        });
+        const outBlob = Array.isArray(converted) ? converted[0] : converted;
+        if (!(outBlob instanceof Blob)) continue;
+
+        // Broken HEIC decodes sometimes yield tiny unusable blobs.
+        if (sourceBytes > 256 * 1024 && outBlob.size < 8 * 1024) continue;
+        const renderable = await blobIsRenderable(outBlob);
+        if (!renderable) continue;
+
+        const objectUrl = URL.createObjectURL(outBlob);
+        convertedImageUrlCache.set(currentSrc, objectUrl);
+        img.src = objectUrl;
+        return true;
+      }
+      return false;
     };
 
     if (!window.__twawFrameWallFallbackBound) {

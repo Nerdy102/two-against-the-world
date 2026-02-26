@@ -44,8 +44,19 @@ const canonicalUrl = siteUrl ? new URL(`/entries/${post.slug}`, siteUrl).toStrin
 const s = (v: unknown) => (typeof v === "string" ? v.trim() : "");
 const joinTags = (tags: unknown) =>
   Array.isArray(tags) ? tags.filter(Boolean).join(", ") : "";
+const stripFollowUpUrl = (value: string, url: string) => {
+  if (!url) return value;
+  return value
+    .replace(`(${url})`, "")
+    .replace(url, "")
+    .replace(/\s+/g, " ")
+    .trim();
+};
 
 // Pull meta fields (your schema provides defaults, but this keeps it robust)
+const summaryRaw = s(post.summary);
+const followUpUrl = summaryRaw.match(/https?:\/\/[^\s)]+/)?.[0] ?? "";
+const summaryText = stripFollowUpUrl(summaryRaw, followUpUrl);
 const author = s(post.author_name);
 const location = s(post.location);
 const eventTime = s(post.event_time);
@@ -99,8 +110,11 @@ const photosWithCandidates =
       })
     : [];
 
+const coverSrc = post.cover_url ?? "/noise.svg";
+const coverExt = getImageExtension(post.cover_url);
+
 const wallImages = [
-  { src: post.cover_url ?? "/noise.svg", alt: `${post.title} — cover` },
+  { src: coverSrc, alt: `${post.title} — cover`, candidates: buildSrcCandidates(coverSrc, coverExt) },
   ...photosWithCandidates.map((photo, i) => ({
     src: photo.src,
     alt: `${post.title} — photo ${i + 1}`,
@@ -109,17 +123,29 @@ const wallImages = [
 ];
 ---
 
-<BaseLayout title={post.title} description={post.summary ?? ""}>
+<BaseLayout title={post.title} description={summaryText}>
   <main class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-10">
     {/* TOP PAPER (TITLE + META) */}
     <div class="paper edge-torn p-6 sm:p-10 entry-hero" data-reveal>
       <div class="kicker text-xs text-[rgba(0,0,0,0.58)]">Emotional Anchor</div>
+      {followUpUrl && (
+        <p class="mt-3 text-[11px] uppercase tracking-[0.14em] text-black/50">
+          <a
+            href={followUpUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="font-semibold underline decoration-dotted underline-offset-4 hover:text-black/80"
+          >
+            LINK
+          </a>
+        </p>
+      )}
 
       <RansomTitle text={post.title} as="h1" stampEvery={0} class="mt-3 entry-title" />
 
-      {(post.summary || author) && (
+      {(summaryText || author) && (
         <div class="mt-4 max-w-2xl entry-summary">
-          {post.summary && <p class="entry-summary__desc">{post.summary}</p>}
+          {summaryText && <p class="entry-summary__desc">{summaryText}</p>}
           {author && <span class="entry-summary__author">— {author}</span>}
         </div>
       )}
