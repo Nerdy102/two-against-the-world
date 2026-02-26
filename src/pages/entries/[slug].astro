@@ -7,6 +7,7 @@ import { topicLabel, topicMeta } from "../../config/topics";
 import { getDb, type PostRecord } from "../../lib/d1";
 import { getHybridPostBySlug, resolvePostCoverUrl } from "../../lib/posts";
 import { buildStreamUrls, extractStreamUid } from "../../lib/stream";
+import { splitSummaryFollowUp } from "../../lib/followUpLink";
 import { REACTION_KINDS } from "../../lib/constants";
 import { marked } from "marked";
 
@@ -45,19 +46,10 @@ const canonicalUrl = siteUrl ? new URL(`/entries/${post.slug}`, siteUrl).toStrin
 const s = (v: unknown) => (typeof v === "string" ? v.trim() : "");
 const joinTags = (tags: unknown) =>
   Array.isArray(tags) ? tags.filter(Boolean).join(", ") : "";
-const stripFollowUpUrl = (value: string, url: string) => {
-  if (!url) return value;
-  return value
-    .replace(`(${url})`, "")
-    .replace(url, "")
-    .replace(/\s+/g, " ")
-    .trim();
-};
 
 // Pull meta fields (your schema provides defaults, but this keeps it robust)
 const summaryRaw = s(post.summary);
-const followUpUrl = summaryRaw.match(/https?:\/\/[^\s)]+/)?.[0] ?? "";
-const summaryText = stripFollowUpUrl(summaryRaw, followUpUrl);
+const { summaryText, followUpUrl } = splitSummaryFollowUp(summaryRaw);
 const author = s(post.author_name);
 const location = s(post.location);
 const eventTime = s(post.event_time);
@@ -76,6 +68,20 @@ const streamEmbedUrl = streamUrls.iframe;
 const hasVideo = Boolean(videoUrl);
 
 const SUPPORTED_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "heic", "heif"] as const;
+const enableCfImageResize =
+  !import.meta.env.DEV && import.meta.env.PUBLIC_DISABLE_CF_IMAGE_OPTIMIZE !== "true";
+const CDN_IMAGE_EXTENSIONS = new Set(SUPPORTED_EXTENSIONS);
+
+const toCloudflareResizedCandidate = (value: string): string | null => {
+  if (!enableCfImageResize) return null;
+  if (!value.startsWith("/")) return null;
+  if (value.startsWith("/cdn-cgi/image/")) return null;
+  const cleanUrl = value.split(/[?#]/)[0] ?? "";
+  const ext = cleanUrl.split(".").pop()?.toLowerCase() ?? "";
+  if (!CDN_IMAGE_EXTENSIONS.has(ext as (typeof SUPPORTED_EXTENSIONS)[number])) return null;
+  const encodedPath = encodeURI(value.replace(/^\/+/, ""));
+  return `/cdn-cgi/image/format=auto,fit=cover,width=1280,quality=78/${encodedPath}`;
+};
 
 const getImageExtension = (coverUrl: string | null | undefined) => {
   if (!coverUrl) return "jpg";
@@ -88,28 +94,42 @@ const getImageExtension = (coverUrl: string | null | undefined) => {
 const buildSrcCandidates = (src: string, ext: string) => {
   const lowerExt = ext.toLowerCase();
   const base = src.slice(0, -lowerExt.length);
-  const candidates = [src];
+  const candidates: string[] = [];
+
+  const add = (value: string) => {
+    const resized = toCloudflareResizedCandidate(value);
+    if (resized) candidates.push(resized);
+    candidates.push(value);
+  };
+
+  add(src);
 
   if (ext !== ext.toUpperCase()) {
-    candidates.push(`${base}${ext.toUpperCase()}`);
+    add(`${base}${ext.toUpperCase()}`);
   }
 
   if (lowerExt === "heic" || lowerExt === "heif") {
-    candidates.push(`${base}jpg`, `${base}jpeg`, `${base}png`, `${base}webp`);
+    add(`${base}jpg`);
+    add(`${base}jpeg`);
+    add(`${base}png`);
+    add(`${base}webp`);
   }
 
   const mediaProxyMatch = src.match(/^https?:\/\/[^/]+\/media\/(.+)$/i);
   if (mediaProxyMatch?.[1]) {
     const localMediaPath = `/media/${mediaProxyMatch[1]}`;
-    candidates.push(localMediaPath);
+    add(localMediaPath);
     const localExt = localMediaPath.split(".").pop()?.toLowerCase();
     if (localExt && (localExt === "heic" || localExt === "heif")) {
       const localBase = localMediaPath.slice(0, -localExt.length);
-      candidates.push(`${localBase}jpg`, `${localBase}jpeg`, `${localBase}png`, `${localBase}webp`);
+      add(`${localBase}jpg`);
+      add(`${localBase}jpeg`);
+      add(`${localBase}png`);
+      add(`${localBase}webp`);
     }
   }
 
-  candidates.push("/collage/moodboard.jpg");
+  add("/collage/moodboard.jpg");
 
   return Array.from(new Set(candidates));
 };

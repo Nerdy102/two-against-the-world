@@ -62,6 +62,7 @@ const frames = images.map((img, i) => {
 
   return {
     ...img,
+    initialSrc: img.candidates?.[0] ?? img.src,
     idx: i,
     isCover,
     rot,
@@ -97,7 +98,7 @@ const isPair = frames.length === 2;
         <div class="frame-inner">
           <div class="mat">
             <img
-              src={f.src}
+              src={f.initialSrc}
               alt={f.alt ?? ""}
               loading="lazy"
               decoding="async"
@@ -127,8 +128,9 @@ const isPair = frames.length === 2;
           <div class="lb-frame">
             <img
               class="lb-img"
-              src={f.src}
+              src={f.initialSrc}
               alt={f.alt ?? ""}
+              loading="lazy"
               decoding="async"
               data-candidates={f.candidates?.join("|")}
               data-candidate-index="0"
@@ -147,7 +149,7 @@ const isPair = frames.length === 2;
             {frames.map((t) => (
               <a class={`lb-thumb ${t.idx === f.idx ? "is-active" : ""}`} href={`#lb-${t.idx}`} aria-label={`Go to ${t.idx + 1}`}>
                 <img
-                  src={t.src}
+                  src={t.initialSrc}
                   alt=""
                   loading="lazy"
                   decoding="async"
@@ -479,8 +481,6 @@ const isPair = frames.length === 2;
   </style>
 
   <script>
-    import heic2any from "heic2any";
-
     const resolvePairLayouts = () => {
       const walls = document.querySelectorAll(".framewall--pair");
       walls.forEach((wall) => {
@@ -505,12 +505,18 @@ const isPair = frames.length === 2;
           img.dataset.candidateIndex = "0";
         }
       });
-      void primeHeicFallbacks();
     };
 
     const HEIC_RE = /\.(heic|heif)(?:[?#].*)?$/i;
     const convertedImageUrlCache = new Map();
-    const NON_SAFARI_RE = /(chrome|crios|edg|opr|android)/i;
+    let heic2anyLoader: Promise<any> | null = null;
+
+    const loadHeic2any = async () => {
+      if (!heic2anyLoader) {
+        heic2anyLoader = import("heic2any").then((mod) => mod.default ?? mod);
+      }
+      return heic2anyLoader;
+    };
 
     const srcWithAbsUrl = (value: string): string => {
       try {
@@ -619,6 +625,7 @@ const isPair = frames.length === 2;
         { toType: "image/jpeg", quality: 0.9 },
         { toType: "image/png", quality: 1 },
       ];
+      const heic2any = await loadHeic2any();
       for (const target of conversionTargets) {
         const converted = await heic2any({
           blob: typedBlob,
@@ -639,28 +646,6 @@ const isPair = frames.length === 2;
         return true;
       }
       return false;
-    };
-
-    const isProbablySafari = () => /safari/i.test(navigator.userAgent) && !NON_SAFARI_RE.test(navigator.userAgent);
-
-    const primeHeicFallbacks = async () => {
-      if (isProbablySafari()) return;
-      const images = document.querySelectorAll("img[data-candidates]");
-      for (const img of images) {
-        if (!(img instanceof HTMLImageElement)) continue;
-        if (img.dataset.heicPrimed === "1") continue;
-        const currentSrc = srcWithAbsUrl(img.currentSrc || img.src || "");
-        if (!HEIC_RE.test(currentSrc)) continue;
-        img.dataset.heicPrimed = "1";
-        try {
-          const converted = await convertHeicToJpeg(img);
-          if (converted) continue;
-        } catch (_error) {
-          // fallback chain below
-        }
-        const next = nextCandidate(img);
-        if (next) img.src = next;
-      }
     };
 
     if (!(window as any).__twawFrameWallFallbackBound) {

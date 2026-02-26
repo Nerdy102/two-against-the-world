@@ -70,8 +70,27 @@ try {
   posts = await getPublishedPostsFromContent();
 }
 
+const POSTS_PER_PAGE = 4;
+const pageParam = Number.parseInt(Astro.url.searchParams.get("page") ?? "1", 10);
+const requestedPage = Number.isNaN(pageParam) ? 1 : pageParam;
+const totalPages = Math.max(1, Math.ceil(posts.length / POSTS_PER_PAGE));
+const currentPage = Math.min(Math.max(requestedPage, 1), totalPages);
+const pagedPosts = posts.slice((currentPage - 1) * POSTS_PER_PAGE, currentPage * POSTS_PER_PAGE);
+const pageNumbers = Array.from({ length: totalPages }, (_, index) => index + 1);
+
+const pageHref = (page: number) => {
+  const params = new URLSearchParams(Astro.url.searchParams);
+  if (page <= 1) {
+    params.delete("page");
+  } else {
+    params.set("page", String(page));
+  }
+  const query = params.toString();
+  return query ? `${Astro.url.pathname}?${query}` : Astro.url.pathname;
+};
+
 const dateCounts: Record<string, number> = {};
-for (const p of posts) {
+for (const p of pagedPosts) {
   const dateKey = new Date(p.published_at ?? p.created_at).toISOString().slice(0, 10);
   dateCounts[dateKey] = (dateCounts[dateKey] ?? 0) + 1;
 }
@@ -154,7 +173,7 @@ const buildSearchText = (post: PostRecord) =>
 
     <section class="mt-10">
       <div class="pinterest-grid" data-search-grid>
-        {posts.map((post) => {
+        {pagedPosts.map((post) => {
           const dateKey = new Date(post.published_at ?? post.created_at).toISOString().slice(0, 10);
           const anchorId = seenDates.has(dateKey) ? undefined : `date-${dateKey}`;
           seenDates.add(dateKey);
@@ -177,6 +196,35 @@ const buildSearchText = (post: PostRecord) =>
           );
         })}
       </div>
+
+      {totalPages > 1 && (
+        <nav class="feed-pagination" aria-label="Phân trang nhật ký">
+          <a
+            class={`feed-pagination__arrow ${currentPage <= 1 ? "is-disabled" : ""}`}
+            href={pageHref(Math.max(1, currentPage - 1))}
+            aria-disabled={currentPage <= 1 ? "true" : "false"}
+          >
+            ← Trang trước
+          </a>
+          <div class="feed-pagination__meta">Trang {currentPage} / {totalPages}</div>
+          <ol class="feed-pagination__list">
+            {pageNumbers.map((page) => (
+              <li>
+                <a class={`feed-pagination__page ${page === currentPage ? "is-active" : ""}`} href={pageHref(page)} aria-current={page === currentPage ? "page" : undefined}>
+                  {page}
+                </a>
+              </li>
+            ))}
+          </ol>
+          <a
+            class={`feed-pagination__arrow ${currentPage >= totalPages ? "is-disabled" : ""}`}
+            href={pageHref(Math.min(totalPages, currentPage + 1))}
+            aria-disabled={currentPage >= totalPages ? "true" : "false"}
+          >
+            Trang sau →
+          </a>
+        </nav>
+      )}
     </section>
   </main>
 

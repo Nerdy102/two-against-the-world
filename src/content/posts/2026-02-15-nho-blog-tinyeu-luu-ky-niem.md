@@ -1,6 +1,6 @@
 ---
 title: "Our first letter"
-description: "Post này follow up post này (https://tinyeu.blog/entries/2026-02-14-thu-valentine-chua-doc)"
+description: "Post này follow up post này [LINK](https://tinyeu.blog/entries/2026-02-14-thu-valentine-chua-doc)"
 pubDate: 2026-02-26
 topic: two-of-us
 cover: "/photos/2026-02-15-nho-blog-tinyeu-luu-ky-niem/cover.HEIC"
