@@ -134,7 +134,7 @@ const fallbackFollowUpUrl = (() => {
   return match?.[0]?.trim() || "";
 })();
 const effectiveFollowUpUrl =
-  followUpUrl || (SUMMARY_LINK_WORD_RE.test(summaryRaw) ? fallbackFollowUpUrl : "");
+  followUpUrl || (SUMMARY_LINK_WORD_RE.test(summaryRaw) ? fallbackFollowUpUrl || "/entries" : "");
 const effectiveFollowUpLabel = followUpLabel || (effectiveFollowUpUrl ? "Link" : "");
 const author = s(post.author_name);
 const location = s(post.location);
