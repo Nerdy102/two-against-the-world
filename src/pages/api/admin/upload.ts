@@ -22,10 +22,13 @@ const sanitizeSlug = (value: string) =>
 const resolveExtension = (file: File) => {
   const type = file.type || "";
   if (type === "image/heic") return "heic";
+  if (type === "image/heic-sequence") return "heic";
   if (type === "image/heif") return "heif";
+  if (type === "image/heif-sequence") return "heif";
   if (type === "image/png") return "png";
   if (type === "image/webp") return "webp";
   if (type === "image/avif") return "avif";
+  if (type === "image/jpg") return "jpg";
   if (type === "image/jpeg") return "jpg";
   const name = file.name || "";
   const match = name.match(/\.([a-z0-9]+)$/i);

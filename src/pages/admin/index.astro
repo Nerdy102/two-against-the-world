@@ -990,6 +990,8 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       return (
         file?.type === "image/heic" ||
         file?.type === "image/heif" ||
+        file?.type === "image/heic-sequence" ||
+        file?.type === "image/heif-sequence" ||
         name.endsWith(".heic") ||
         name.endsWith(".heif")
       );
@@ -1071,15 +1073,32 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       return { blob, width: targetWidth, height: targetHeight };
     };
 
-    const prepareUpload = async (file) => {
-      if (isHeic(file)) {
-        return { blob: file, width: null, height: null, original: true };
+    const extensionFromMime = (type = "") => {
+      if (type === "image/jpeg" || type === "image/jpg") return "jpg";
+      if (type === "image/png") return "png";
+      if (type === "image/webp") return "webp";
+      if (type === "image/avif") return "avif";
+      if (type === "image/heic" || type === "image/heic-sequence") return "heic";
+      if (type === "image/heif" || type === "image/heif-sequence") return "heif";
+      return "";
+    };
+
+    const renameForBlobType = (name, blobType) => {
+      const ext = extensionFromMime(blobType);
+      if (!ext) return name;
+      const base = typeof name === "string" && name.trim() ? name.trim() : "image";
+      if (/\.[a-z0-9]+$/i.test(base)) {
+        return base.replace(/\.[a-z0-9]+$/i, `.${ext}`);
       }
+      return `${base}.${ext}`;
+    };
+
+    const prepareUpload = async (file) => {
       try {
         const { blob, width, height } = await resizeImage(file);
-        return { blob, width, height };
+        return { blob, width, height, original: false };
       } catch (error) {
-        if (isHeic(file) && (error?.message === "HEIC_CONVERT_FAILED" || error?.message === "IMAGE_DECODE_FAILED")) {
+        if (isHeic(file)) {
           return { blob: file, width: null, height: null, original: true };
         }
         throw error;
@@ -1088,8 +1107,9 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
 
     const uploadImage = async ({ file, slug, filename, sortOrder, batchId, index, signal }) => {
       const { blob, width, height, original } = await prepareUpload(file);
+      const uploadName = renameForBlobType(filename || file?.name || "image", blob?.type || "");
       const formData = new FormData();
-      formData.append("file", blob, filename);
+      formData.append("file", blob, uploadName);
       formData.append("slug", slug);
       formData.append(
         "meta",
@@ -1098,7 +1118,7 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
           height,
           size: blob.size,
           originalName: file.name,
-          fileName: filename,
+          fileName: uploadName,
           original,
           sort_order: sortOrder ?? 0,
           batch_id: batchId,

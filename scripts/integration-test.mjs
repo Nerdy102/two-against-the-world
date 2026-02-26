@@ -43,10 +43,17 @@ const requestJson = async (path, options = {}) => {
   return { res, payload };
 };
 
-const requestUpload = async ({ slug, batchId = Date.now(), index = 1, sortOrder = 0 } = {}) => {
+const requestUpload = async ({
+  slug,
+  batchId = Date.now(),
+  index = 1,
+  sortOrder = 0,
+  fileType = "image/png",
+  fileName = `integration-${batchId}-${index}.png`,
+  bytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
+} = {}) => {
   const form = new FormData();
-  const bytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
-  const file = new File([bytes], `integration-${batchId}-${index}.png`, { type: "image/png" });
+  const file = new File([bytes], fileName, { type: fileType });
   form.append("file", file);
   form.append("slug", slug);
   form.append(
@@ -120,6 +127,24 @@ const upload = await requestUpload({ slug, sortOrder: 0 });
 assertOk(upload.res.ok, `Upload failed: ${upload.payload?.error ?? upload.payload?.detail ?? upload.res.status}`);
 assertOk(upload.payload?.url, "Upload did not return url.");
 console.log("✅ /api/admin/upload ok");
+
+assertOk(upload.payload?.key, "Upload did not return key.");
+const media = await fetch(`${baseUrl}/media/${upload.payload.key}`);
+assertOk(media.ok, `Media route failed: ${media.status}`);
+assertOk((media.headers.get("content-type") ?? "").startsWith("image/"), "Media route content type is not image/*.");
+console.log("✅ /media/:key serve ok");
+
+const heicUpload = await requestUpload({
+  slug,
+  sortOrder: 1,
+  index: 2,
+  fileType: "image/heic-sequence",
+  fileName: `integration-${Date.now()}-heic`,
+  bytes: new Uint8Array([0, 1, 2, 3, 4, 5]),
+});
+assertOk(heicUpload.res.ok, `HEIC upload failed: ${heicUpload.payload?.error ?? heicUpload.payload?.detail ?? heicUpload.res.status}`);
+assertOk(String(heicUpload.payload?.key ?? "").endsWith(".heic"), "HEIC upload key should end with .heic");
+console.log("✅ /api/admin/upload heic-type ok");
 
 const publish = await requestJson(`/api/admin/posts/${postId}/publish`, {
   method: "POST",
