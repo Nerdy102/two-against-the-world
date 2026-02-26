@@ -38,7 +38,7 @@ const {
 } = Astro.props as Props;
 
 const meta = topicMeta(topic);
-const { summaryText } = splitSummaryFollowUp(description);
+const { summaryText, followUpUrl, followUpLabel } = splitSummaryFollowUp(description);
 const showPinBadge = pinned && import.meta.env.PUBLIC_ENABLE_PINNED_BADGE !== "false";
 const pinLabelMap: Record<string, string> = {
   event: "Sự kiện",
@@ -239,9 +239,14 @@ const initialImage = imageCandidates[0] ?? image;
   )}
 
   <h3 class="feed-card__title">{title}</h3>
-  {!locked && (summaryText || author) && (
+  {!locked && (summaryText || followUpUrl || author) && (
     <div class="feed-card__meta-line">
       {summaryText && <p class="feed-card__desc">{summaryText}</p>}
+      {followUpUrl && (
+        <span class="feed-card__follow-link" title={followUpUrl}>
+          {followUpLabel || "Link"} ↗
+        </span>
+      )}
       {author && <span class="feed-card__author">— {author}</span>}
     </div>
   )}

@@ -292,11 +292,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
           computedEvents.push({ eventItem, diff });
           if (eventItem.countdownEl) eventItem.countdownEl.textContent = formatCountdown(diff);
           if (eventItem.dateEl) {
-            const eventTime =
-              eventItem.hour !== 0 || eventItem.minute !== 0
-                ? ` · ${pad(eventItem.hour)}:${pad(eventItem.minute)}`
-                : "";
-            eventItem.dateEl.textContent = `${pad(eventItem.day)}/${pad(eventItem.month)}${eventTime} · ${targetYear}`;
+            eventItem.dateEl.textContent = `${pad(eventItem.day)}/${pad(eventItem.month)} · ${targetYear}`;
           }
 
           if (!nearest || diff < nearest.diff) {

@@ -1200,6 +1200,18 @@ a { color: inherit; text-decoration: none; }
   margin: 0;
   font-size: 13px;
   color: rgba(255,255,255,0.72);
+  white-space: pre-line;
+}
+
+.feed-card__follow-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffd56c;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .feed-card__author {
@@ -2213,6 +2225,17 @@ a { color: inherit; text-decoration: none; }
   color: rgba(0,0,0,0.58);
   font-weight: 600;
   letter-spacing: 0.06em;
+}
+
+.entry-summary__follow-link {
+  color: #1452a6;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.entry-summary__follow-link:hover {
+  color: #0f3f82;
 }
 
 .media-section--video {

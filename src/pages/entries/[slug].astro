@@ -126,7 +126,7 @@ const joinTags = (tags: unknown) =>
 
 // Pull meta fields (your schema provides defaults, but this keeps it robust)
 const summaryRaw = s(post.summary);
-const { summaryText } = splitSummaryFollowUp(summaryRaw);
+const { summaryText, followUpUrl, followUpLabel } = splitSummaryFollowUp(summaryRaw);
 const author = s(post.author_name);
 const location = s(post.location);
 const eventTime = s(post.event_time);
@@ -330,9 +330,19 @@ const wallPhotoCount = Math.max(0, wallImages.length - 1);
 
       <RansomTitle text={post.title} as="h1" stampEvery={0} class="mt-3 entry-title" />
 
-      {(summaryText || author) && (
+      {(summaryText || followUpUrl || author) && (
         <div class="mt-4 max-w-2xl entry-summary">
           {summaryText && <p class="entry-summary__desc">{summaryText}</p>}
+          {followUpUrl && (
+            <a
+              class="entry-summary__follow-link"
+              href={followUpUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {followUpLabel || "Link"} ↗
+            </a>
+          )}
           {author && <span class="entry-summary__author">— {author}</span>}
         </div>
       )}
