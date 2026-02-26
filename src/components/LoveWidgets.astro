@@ -37,6 +37,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
             data-love-event-name="Sinh nhật Mỹ Uyên"
             data-love-event-month="3"
             data-love-event-day="17"
+            data-love-event-note="Sinh nhật em bé Mỹ Uyên. Ngày đặc biệt nhất tháng 3."
           >
             <span class="love-event-chip__icon" aria-hidden="true">🎂</span>
             <div class="love-event-chip__meta">
@@ -44,6 +45,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
               <span class="love-event-chip__date" data-love-event-date>17/03</span>
             </div>
             <strong class="love-event-chip__countdown" data-love-event-countdown>--D --:--:--</strong>
+            <button class="love-event-chip__note-btn" type="button" data-love-event-note-trigger aria-label="Xem note event">✦</button>
           </article>
 
           <article
@@ -57,6 +59,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
             data-love-event-day="23"
             data-love-event-hour="21"
             data-love-event-minute="30"
+            data-love-event-note="Hoà về VN sau hai năm du học sinh tại Nhật - Master chuyên ngành An ninh mạng."
           >
             <span class="love-event-chip__icon" aria-hidden="true">✈︎</span>
             <div class="love-event-chip__meta">
@@ -64,6 +67,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
               <span class="love-event-chip__date" data-love-event-date>23/03</span>
             </div>
             <strong class="love-event-chip__countdown" data-love-event-countdown>--D --:--:--</strong>
+            <button class="love-event-chip__note-btn" type="button" data-love-event-note-trigger aria-label="Xem note event">✦</button>
           </article>
         </div>
 
@@ -78,6 +82,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
               data-love-event-name="Sinh nhật Việt Hoà"
               data-love-event-month="6"
               data-love-event-day="4"
+              data-love-event-note="Sinh nhật của Hoà, ngày reset năng lượng để bắt đầu chapter mới."
             >
               <span class="love-event-chip__icon" aria-hidden="true">🎉</span>
               <div class="love-event-chip__meta">
@@ -85,6 +90,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
                 <span class="love-event-chip__date" data-love-event-date>04/06</span>
               </div>
               <strong class="love-event-chip__countdown" data-love-event-countdown>--D --:--:--</strong>
+              <button class="love-event-chip__note-btn" type="button" data-love-event-note-trigger aria-label="Xem note event">✦</button>
             </article>
 
             <article
@@ -96,6 +102,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
               data-love-event-name="Valentine Day"
               data-love-event-month="2"
               data-love-event-day="14"
+              data-love-event-note="Valentine, một điểm neo cảm xúc cho những thứ không nói thành lời."
             >
               <span class="love-event-chip__icon" aria-hidden="true">💌</span>
               <div class="love-event-chip__meta">
@@ -103,6 +110,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
                 <span class="love-event-chip__date" data-love-event-date>14/02</span>
               </div>
               <strong class="love-event-chip__countdown" data-love-event-countdown>--D --:--:--</strong>
+              <button class="love-event-chip__note-btn" type="button" data-love-event-note-trigger aria-label="Xem note event">✦</button>
             </article>
 
             <article
@@ -114,6 +122,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
               data-love-event-name="Anniversary 1 Year"
               data-love-event-month="12"
               data-love-event-day="31"
+              data-love-event-note="Anniversary 1 năm, checkpoint lớn của cả hai sau một năm đồng hành."
             >
               <span class="love-event-chip__icon" aria-hidden="true">🥂</span>
               <div class="love-event-chip__meta">
@@ -121,10 +130,28 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
                 <span class="love-event-chip__date" data-love-event-date>31/12</span>
               </div>
               <strong class="love-event-chip__countdown" data-love-event-countdown>--D --:--:--</strong>
+              <button class="love-event-chip__note-btn" type="button" data-love-event-note-trigger aria-label="Xem note event">✦</button>
             </article>
           </div>
         </div>
       </section>
+
+      <div class="love-event-note-modal" data-love-event-note-modal hidden>
+        <button class="love-event-note-modal__backdrop" type="button" data-love-event-note-close aria-label="Đóng note event"></button>
+        <section
+          class="love-event-note-modal__card"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="love-event-note-title"
+        >
+          <div class="love-event-note-modal__eyebrow">EVENT NOTE</div>
+          <h3 id="love-event-note-title" class="love-event-note-modal__title" data-love-event-note-title>Event</h3>
+          <p class="love-event-note-modal__body" data-love-event-note-body>No note yet.</p>
+          <button class="love-event-note-modal__close" type="button" data-love-event-note-close>
+            Close
+          </button>
+        </section>
+      </div>
     </div>
 
     <div class="love-widgets love-widgets--clocks" data-love-widgets>
@@ -165,6 +192,11 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
       const eventRoot = document.querySelector("[data-love-events]");
       const featuredRail = eventRoot ? eventRoot.querySelector(".love-events-strip__rail--featured") : null;
       const extraRail = eventRoot ? eventRoot.querySelector(".love-events-strip__rail--extra") : null;
+      const pastBanner = document.querySelector("[data-header-past-events]");
+      const pastList = pastBanner ? pastBanner.querySelector("[data-header-past-events-list]") : null;
+      const noteModal = document.querySelector("[data-love-event-note-modal]");
+      const noteTitle = noteModal ? noteModal.querySelector("[data-love-event-note-title]") : null;
+      const noteBody = noteModal ? noteModal.querySelector("[data-love-event-note-body]") : null;
       const clockEls = clockRoot
         ? {
             vn: clockRoot.querySelector("[data-love-clock='vn'] strong"),
@@ -180,22 +212,33 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         : 0;
       const eventEls = eventRoot
         ? Array.from(eventRoot.querySelectorAll("[data-love-event]")).map((eventEl) => ({
-            id: eventEl.getAttribute("data-love-event-name") || "event",
+            id: [
+              eventEl.getAttribute("data-love-event-name") || "event",
+              eventEl.getAttribute("data-love-event-month") || "1",
+              eventEl.getAttribute("data-love-event-day") || "1",
+            ].join("__"),
             group: eventEl.getAttribute("data-love-event-group") || "extra",
             name: eventEl.getAttribute("data-love-event-name") || "event",
             month: Number(eventEl.getAttribute("data-love-event-month") || "1"),
             day: Number(eventEl.getAttribute("data-love-event-day") || "1"),
             hour: Number(eventEl.getAttribute("data-love-event-hour") || "0"),
             minute: Number(eventEl.getAttribute("data-love-event-minute") || "0"),
+            note: eventEl.getAttribute("data-love-event-note") || "No note yet.",
+            icon:
+              eventEl.querySelector(".love-event-chip__icon")?.textContent?.trim() || "✦",
             eventEl,
             countdownEl: eventEl.querySelector("[data-love-event-countdown]"),
             dateEl: eventEl.querySelector("[data-love-event-date]"),
+            noteTrigger: eventEl.querySelector("[data-love-event-note-trigger]"),
           }))
         : [];
 
       const startParts = { year: 2025, month: 12, day: 31 };
       const eventTimezoneOffsetMinutes = 7 * 60;
+      const pastStorageKey = "twaw:past-events";
       const pad = (value) => String(value).padStart(2, "0");
+      const globalState = window.__loveWidgetsState || {};
+      let pastSnapshot = "";
 
       const getDateParts = (timeZone) => {
         const formatter = new Intl.DateTimeFormat("en-CA", {
@@ -234,6 +277,73 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         return `${days}D ${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
       };
 
+      const readPastEvents = () => {
+        try {
+          const raw = window.localStorage.getItem(pastStorageKey);
+          if (!raw) return [];
+          const parsed = JSON.parse(raw);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (_error) {
+          return [];
+        }
+      };
+
+      const writePastEvents = (items) => {
+        try {
+          if (!items.length) {
+            window.localStorage.removeItem(pastStorageKey);
+            return;
+          }
+          window.localStorage.setItem(pastStorageKey, JSON.stringify(items));
+        } catch (_error) {}
+      };
+
+      const renderPastEventsBanner = (items) => {
+        if (!(pastBanner instanceof HTMLElement) || !(pastList instanceof HTMLElement)) return;
+        pastList.textContent = "";
+        if (!items.length) {
+          pastBanner.hidden = true;
+          return;
+        }
+        const fragment = document.createDocumentFragment();
+        items.forEach((item) => {
+          const chip = document.createElement("span");
+          chip.className = "header-past-events__item";
+          chip.textContent = `${item.icon || "✦"} ${item.name}`;
+          chip.title = `${item.name} · ${pad(item.day)}/${pad(item.month)}/${item.year}`;
+          fragment.appendChild(chip);
+        });
+        pastList.appendChild(fragment);
+        pastBanner.hidden = false;
+      };
+
+      const hydratePastBannerFromStorage = () => {
+        const currentYear = getDateParts("Asia/Ho_Chi_Minh").year;
+        const items = readPastEvents()
+          .filter((item) => Number(item?.year) === currentYear)
+          .sort((a, b) => Number(b?.completedAt || 0) - Number(a?.completedAt || 0));
+        renderPastEventsBanner(items);
+      };
+
+      const syncPastEvents = (items, currentYear) => {
+        const normalized = items
+          .map((item) => ({
+            id: item.id,
+            name: item.name,
+            month: item.month,
+            day: item.day,
+            year: currentYear,
+            icon: item.icon,
+            completedAt: item.completedAt,
+          }))
+          .sort((a, b) => b.completedAt - a.completedAt);
+        const snapshot = `${currentYear}:${normalized.map((item) => item.id).join("|")}`;
+        if (snapshot === pastSnapshot) return;
+        pastSnapshot = snapshot;
+        writePastEvents(normalized);
+        renderPastEventsBanner(normalized);
+      };
+
       const setMorePanelState = (isOpen) => {
         if (!eventToggleBtn || !eventMorePanel) return;
         eventMorePanel.hidden = !isOpen;
@@ -261,38 +371,95 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         }
       }
 
+      const closeNoteModal = () => {
+        if (!(noteModal instanceof HTMLElement)) return;
+        noteModal.hidden = true;
+        noteModal.dataset.open = "0";
+      };
+
+      const openNoteModal = (eventItem) => {
+        if (
+          !(noteModal instanceof HTMLElement) ||
+          !(noteTitle instanceof HTMLElement) ||
+          !(noteBody instanceof HTMLElement)
+        ) {
+          return;
+        }
+        noteTitle.textContent = eventItem.name;
+        noteBody.textContent = eventItem.note || "No note yet.";
+        noteModal.hidden = false;
+        noteModal.dataset.open = "1";
+      };
+
+      if (noteModal instanceof HTMLElement && noteModal.dataset.bound !== "1") {
+        noteModal.dataset.bound = "1";
+        const closeEls = noteModal.querySelectorAll("[data-love-event-note-close]");
+        closeEls.forEach((closeEl) => {
+          closeEl.addEventListener("click", (event) => {
+            event.preventDefault();
+            closeNoteModal();
+          });
+        });
+      }
+
+      if (globalState.noteEscapeHandler) {
+        document.removeEventListener("keydown", globalState.noteEscapeHandler);
+      }
+      globalState.noteEscapeHandler = (event) => {
+        if (event.key === "Escape") closeNoteModal();
+      };
+      document.addEventListener("keydown", globalState.noteEscapeHandler);
+
+      eventEls.forEach((eventItem) => {
+        if (!(eventItem.noteTrigger instanceof HTMLButtonElement)) return;
+        if (eventItem.noteTrigger.dataset.bound === "1") return;
+        eventItem.noteTrigger.dataset.bound = "1";
+        eventItem.noteTrigger.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          openNoteModal(eventItem);
+        });
+      });
+
+      hydratePastBannerFromStorage();
+
       const updateEvents = () => {
         if (!eventEls.length) return;
         const nowTs = Date.now();
         const currentYear = getDateParts("Asia/Ho_Chi_Minh").year;
-        const computedEvents = [];
+        const upcomingEntries = [];
+        const pastEntries = [];
         let nearest = null;
 
         eventEls.forEach((eventItem) => {
-          let targetYear = currentYear;
-          let targetTs = eventTargetUtc(
-            targetYear,
+          const targetTs = eventTargetUtc(
+            currentYear,
             eventItem.month,
             eventItem.day,
             eventItem.hour,
             eventItem.minute
           );
           if (targetTs <= nowTs) {
-            targetYear += 1;
-            targetTs = eventTargetUtc(
-              targetYear,
-              eventItem.month,
-              eventItem.day,
-              eventItem.hour,
-              eventItem.minute
-            );
+            eventItem.eventEl.hidden = true;
+            pastEntries.push({
+              id: eventItem.id,
+              name: eventItem.name,
+              month: eventItem.month,
+              day: eventItem.day,
+              icon: eventItem.icon,
+              completedAt: targetTs,
+            });
+            return;
           }
 
+          eventItem.eventEl.hidden = false;
           const diff = Math.max(0, targetTs - nowTs);
-          computedEvents.push({ eventItem, diff });
-          if (eventItem.countdownEl) eventItem.countdownEl.textContent = formatCountdown(diff);
+          upcomingEntries.push({ eventItem, diff });
+          if (eventItem.countdownEl) {
+            eventItem.countdownEl.textContent = formatCountdown(diff);
+          }
           if (eventItem.dateEl) {
-            eventItem.dateEl.textContent = `${pad(eventItem.day)}/${pad(eventItem.month)} · ${targetYear}`;
+            eventItem.dateEl.textContent = `${pad(eventItem.day)}/${pad(eventItem.month)} · ${currentYear}`;
           }
 
           if (!nearest || diff < nearest.diff) {
@@ -300,14 +467,19 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
           }
         });
 
+        syncPastEvents(pastEntries, currentYear);
+
         if (nextEventEl && nearest) {
           nextEventEl.textContent = "⚡ THE UPCOMING EVENT";
           nextEventEl.setAttribute("title", nearest.name);
+        } else if (nextEventEl) {
+          nextEventEl.textContent = "⚡ THE UPCOMING EVENT";
+          nextEventEl.setAttribute("title", "No upcoming event");
         }
 
         const sortAndRender = (railEl, group) => {
           if (!(railEl instanceof HTMLElement)) return;
-          const sorted = computedEvents
+          const sorted = upcomingEntries
             .filter((entry) => entry.eventItem.group === group)
             .sort((a, b) => a.diff - b.diff);
           sorted.forEach(({ eventItem }) => {
@@ -319,6 +491,18 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
 
         sortAndRender(featuredRail, "featured");
         sortAndRender(extraRail, "extra");
+
+        if (eventToggleBtn && eventMorePanel) {
+          const hasUpcomingExtra = upcomingEntries.some((entry) => entry.eventItem.group === "extra");
+          if (!hasUpcomingExtra) {
+            eventToggleBtn.hidden = true;
+            eventMorePanel.hidden = true;
+          } else {
+            eventToggleBtn.hidden = false;
+            const isOpen = eventToggleBtn.getAttribute("aria-expanded") === "true";
+            eventMorePanel.hidden = !isOpen;
+          }
+        }
       };
 
       const makeClock = (timeZone) =>
@@ -346,7 +530,6 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
 
       tick();
 
-      const globalState = window.__loveWidgetsState || {};
       if (globalState.timerId) {
         window.clearInterval(globalState.timerId);
       }
