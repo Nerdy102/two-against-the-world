@@ -4,18 +4,18 @@ import RansomTitle from "../components/RansomTitle.astro";
 ---
 
 <BaseLayout
-  title="Kho sự kiện đã qua — Two Against The World"
+  title="Past Events Archive — Two Against The World"
   active="past-events"
-  description="Danh sách sự kiện đã kết thúc trong timeline của tụi mình."
+  description="Full list of events that have already passed in our timeline."
 >
   <section class="paper edge-torn px-6 py-7 sm:px-8 sm:py-8 past-events-page" data-reveal>
-    <p class="kicker text-[11px] text-black/50">Kho lưu sự kiện</p>
+    <p class="kicker text-[11px] text-black/50">Event Archive</p>
     <div class="mt-2">
       <RansomTitle text="Past Events" as="h1" stampEvery={0} class="text-[44px] sm:text-[56px]" />
     </div>
 
     <p class="mt-4 text-black/70">
-      Đây là toàn bộ sự kiện đã đi qua. Mỗi mốc thời gian đều được giữ lại như một cột mốc somehow quan trọng vcllllllll
+      This is the full list of events that have passed. Every timestamp is kept as a somehow important milestone.
     </p>
 
     <div class="past-events-list" data-past-events-list aria-live="polite"></div>
@@ -43,7 +43,7 @@ import RansomTitle from "../components/RansomTitle.astro";
         const ts = Number(value || 0);
         if (!Number.isFinite(ts) || ts <= 0) return "";
         try {
-          return new Intl.DateTimeFormat("vi-VN", {
+          return new Intl.DateTimeFormat("en-GB", {
             timeZone: "Asia/Ho_Chi_Minh",
             dateStyle: "medium",
             timeStyle: "short",
@@ -60,7 +60,7 @@ import RansomTitle from "../components/RansomTitle.astro";
         if (!items.length) {
           const empty = document.createElement("div");
           empty.className = "past-events-empty";
-          empty.textContent = "Chưa có sự kiện nào đã kết thúc.";
+          empty.textContent = "No past events yet.";
           listEl.appendChild(empty);
           return;
         }
@@ -75,7 +75,7 @@ import RansomTitle from "../components/RansomTitle.astro";
 
           const title = document.createElement("h2");
           title.className = "past-event-card__title";
-          title.textContent = `${item?.icon || "✦"} ${item?.name || "Sự kiện"}`;
+          title.textContent = `${item?.icon || "✦"} ${item?.name || "Event"}`;
 
           const number = document.createElement("span");
           number.className = "past-event-card__number";
@@ -91,7 +91,7 @@ import RansomTitle from "../components/RansomTitle.astro";
           const year = Number(item?.year || new Date().getFullYear());
           const completed = formatCompleted(item?.completedAt);
           meta.textContent = completed
-            ? `${day}/${month}/${year} · kết thúc lúc ${completed}`
+            ? `${day}/${month}/${year} · ended at ${completed}`
             : `${day}/${month}/${year}`;
 
           card.appendChild(head);

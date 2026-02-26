@@ -42,21 +42,21 @@ const searchHref = "/entries#journal-tools";
         href="/past-events"
         class={`btn text-[13px] sm:text-[14px] ${active === "past-events" ? "border-white/25" : ""}`}
         aria-current={active === "past-events" ? "page" : undefined}
-        title="Kho sự kiện đã qua"
+        title="Past events archive"
       >
         🗂️
       </a>
       <a
         href="/compose"
         class="btn text-[13px] sm:text-[14px]"
-        aria-label="Viết bài mới"
+        aria-label="Write a new post"
       >
         ✍️
       </a>
     </nav>
   </div>
 
-  <a class="header-past-events" href="/past-events" data-header-past-events hidden aria-label="Mở trang kho sự kiện đã qua">
+  <a class="header-past-events" href="/past-events" data-header-past-events hidden aria-label="Open past events archive">
     <span class="header-past-events__title">↺ THE PAST EVENT</span>
     <div class="header-past-events__list" data-header-past-events-list aria-live="polite"></div>
   </a>
