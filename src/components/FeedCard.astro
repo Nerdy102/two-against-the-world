@@ -17,6 +17,7 @@ type Props = {
   searchText?: string;
   dateKey?: string;
   anchorId?: string;
+  timeZone?: string;
 };
 
 const {
@@ -33,6 +34,7 @@ const {
   searchText,
   dateKey,
   anchorId,
+  timeZone,
 } = Astro.props as Props;
 
 const meta = topicMeta(topic);
@@ -160,7 +162,7 @@ const initialImage = imageCandidates[0] ?? image;
       <span class="feed-card__icon">{meta.icon}</span>
       <span>{meta.label}</span>
     </div>
-    {date && <div class="feed-card__date">{formatDate(date)}</div>}
+    {date && <div class="feed-card__date">{formatDate(date, { includeTime: true, timeZone })}</div>}
   </div>
   {showPinBadge && (
     <span class="feed-card__pin" data-pin-style={pinnedStyle ?? "default"} aria-label="Bài ghim">

@@ -1,9 +1,16 @@
 import type { APIRoute } from "astro";
 import type { D1Database } from "@cloudflare/workers-types";
-import { ensurePostsSchema, getDb, tableHasColumn, type PostRecord } from "../../../../lib/d1";
+import {
+  ensurePostMediaSchema,
+  ensurePostsSchema,
+  getDb,
+  tableHasColumn,
+  type PostRecord,
+} from "../../../../lib/d1";
 import { requireAdminSession, verifyCsrf } from "../../../../lib/adminAuth";
 import { deriveVideoPoster } from "../../../../lib/stream";
 import { sanitizeSummaryText } from "../../../../lib/followUpLink";
+import { buildOrderedPostMediaUrls, syncPostMediaOrder } from "../../../../lib/postMedia";
 
 export const prerender = false;
 
@@ -33,6 +40,21 @@ const firstMarkdownImage = (markdown: string | null | undefined) => {
 };
 
 const normalizeCoverUrl = (value: unknown) => {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed || null;
+};
+
+const normalizeDateTime = (value: unknown) => {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toISOString();
+};
+
+const normalizeTimeZone = (value: unknown) => {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   return trimmed || null;
@@ -144,6 +166,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
     const db = getDb(locals);
     const allowBootstrap = locals.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
     await ensurePostsSchema(db, { allowBootstrap });
+    await ensurePostMediaSchema(db, { allowBootstrap });
     const hasLegacyAuthor = await tableHasColumn(db, "posts", "author");
     const baseSlug = slugify(rawSlug || title);
     if (!baseSlug) {
@@ -169,10 +192,12 @@ export const POST: APIRoute = async ({ locals, request }) => {
       payload.status === "published" || payload.status === "archived"
         ? payload.status
         : "draft";
+    const normalizedPublishedAt = normalizeDateTime(payload.published_at);
     const publishedAt =
       status === "published"
-        ? payload.published_at ?? new Date().toISOString()
-        : payload.published_at ?? null;
+        ? normalizedPublishedAt ?? new Date().toISOString()
+        : normalizedPublishedAt ?? null;
+    const publishedTz = normalizeTimeZone(payload.published_tz);
     const videoUrl = typeof payload.video_url === "string" ? payload.video_url.trim() : "";
     const manualVideoPoster = typeof payload.video_poster === "string"
       ? payload.video_poster.trim()
@@ -197,13 +222,13 @@ export const POST: APIRoute = async ({ locals, request }) => {
           id, slug, title, summary, body_markdown, tags_json, cover_key, cover_url, content_md,
           status, author_name, topic, location, event_time, written_at, photo_time, tags_csv,
           side_note, voice_memo, voice_memo_title, video_url, video_poster, photo_dir, photo_count, pinned, pinned_priority,
-          pinned_until, pinned_style, layout, sort_order, published_at${legacyAuthorColumn}
+          pinned_until, pinned_style, layout, sort_order, published_at, published_tz${legacyAuthorColumn}
         )
         VALUES (
           ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
           ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
           ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-          ?${legacyAuthorValue}
+          ?, ?${legacyAuthorValue}
         )`
       )
       .bind(
@@ -238,9 +263,21 @@ export const POST: APIRoute = async ({ locals, request }) => {
         payload.layout ?? "normal",
         payload.sort_order ?? 0,
         publishedAt,
+        publishedTz,
         ...legacyAuthorBind
       )
       .run();
+
+    const orderedUrls = buildOrderedPostMediaUrls({
+      coverUrl: resolvedCoverUrl,
+      bodyMarkdown,
+      contentMarkdown: typeof payload.content_md === "string" ? payload.content_md : null,
+    });
+    await syncPostMediaOrder({
+      db,
+      postId: id,
+      orderedUrls,
+    });
 
     return json({ ok: true, id, slug });
   } catch (error) {

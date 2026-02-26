@@ -5,7 +5,11 @@ type FormatDateOptions = {
 };
 
 export function formatDate(input: Date | string, options: FormatDateOptions = {}) {
-  const date = typeof input === "string" ? new Date(input) : input;
+  const isDateOnlyString =
+    typeof input === "string" && /^\d{4}-\d{2}-\d{2}$/.test(input.trim());
+  const date = typeof input === "string"
+    ? new Date(isDateOnlyString ? `${input.trim()}T00:00:00Z` : input)
+    : input;
   if (Number.isNaN(date.getTime())) return typeof input === "string" ? input : "";
 
   const { includeTime = false, locale = "en-US", timeZone } = options;
@@ -22,6 +26,9 @@ export function formatDate(input: Date | string, options: FormatDateOptions = {}
   }
   if (timeZone) {
     baseOptions.timeZone = timeZone;
+  } else if (isDateOnlyString && !includeTime) {
+    // Keep date-only values stable across viewer timezones.
+    baseOptions.timeZone = "UTC";
   }
 
   try {

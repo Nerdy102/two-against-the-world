@@ -40,6 +40,7 @@ export const POST: APIRoute = async ({ locals, params, request }) => {
         `UPDATE posts
          SET status = 'draft',
              published_at = NULL,
+             published_tz = NULL,
              updated_at = datetime('now')
          WHERE id = ?`
       )

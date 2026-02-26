@@ -11,6 +11,7 @@ import {
 import { requireAdminSession, verifyCsrf } from "../../../../lib/adminAuth";
 import { deriveVideoPoster } from "../../../../lib/stream";
 import { sanitizeSummaryText } from "../../../../lib/followUpLink";
+import { buildOrderedPostMediaUrls, syncPostMediaOrder } from "../../../../lib/postMedia";
 
 export const prerender = false;
 
@@ -40,6 +41,21 @@ const firstMarkdownImage = (markdown: string | null | undefined) => {
 };
 
 const normalizeCoverUrl = (value: unknown) => {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed || null;
+};
+
+const normalizeDateTime = (value: unknown) => {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toISOString();
+};
+
+const normalizeTimeZone = (value: unknown) => {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   return trimmed || null;
@@ -101,9 +117,9 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
     await ensurePostMediaSchema(db, { allowBootstrap });
     const hasLegacyAuthor = await tableHasColumn(db, "posts", "author");
     const current = await db
-      .prepare(`SELECT slug FROM posts WHERE id = ? LIMIT 1`)
+      .prepare(`SELECT slug, published_at, published_tz FROM posts WHERE id = ? LIMIT 1`)
       .bind(id)
-      .first<{ slug: string }>();
+      .first<{ slug: string; published_at: string | null; published_tz: string | null }>();
     const incomingSlug = typeof payload.slug === "string" ? payload.slug.trim() : "";
     let nextSlug = current?.slug ?? "";
     if (incomingSlug) {
@@ -152,10 +168,12 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
       payload.status === "published" || payload.status === "archived"
         ? payload.status
         : "draft";
+    const normalizedPublishedAt = normalizeDateTime(payload.published_at);
     const publishedAt =
       status === "published"
-        ? payload.published_at ?? new Date().toISOString()
-        : payload.published_at ?? null;
+        ? normalizedPublishedAt ?? current?.published_at ?? new Date().toISOString()
+        : normalizedPublishedAt ?? current?.published_at ?? null;
+    const publishedTz = normalizeTimeZone(payload.published_tz) ?? current?.published_tz ?? null;
     const resolvedBodyMarkdown =
       bodyMarkdown ?? (typeof payload.body_markdown === "string" ? payload.body_markdown.trim() : null);
     const videoUrl = typeof payload.video_url === "string" ? payload.video_url.trim() : "";
@@ -208,6 +226,7 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
              sort_order = ?,
              status = ?,
              published_at = ?,
+             published_tz = ?,
              updated_at = datetime('now')${legacyAuthorSet}
          WHERE id = ?`
       )
@@ -242,10 +261,22 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
         payload.sort_order ?? 0,
         status,
         publishedAt,
+        publishedTz,
         ...legacyAuthorBind,
         id
       )
       .run();
+
+    const orderedUrls = buildOrderedPostMediaUrls({
+      coverUrl: resolvedCoverUrl,
+      bodyMarkdown: resolvedBodyMarkdown,
+      contentMarkdown: typeof payload.content_md === "string" ? payload.content_md : null,
+    });
+    await syncPostMediaOrder({
+      db,
+      postId: id,
+      orderedUrls,
+    });
 
     return json({ ok: true, slug: nextSlug });
   } catch (error) {

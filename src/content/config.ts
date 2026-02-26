@@ -12,6 +12,8 @@ const posts = defineCollection({
     title: z.string(),
     description: z.string().default(""),
     pubDate: z.coerce.date(),
+    postedAt: z.string().optional(),
+    postedTimezone: z.string().optional(),
 
     // Cover image (usually in /public/photos/<photoDir>/cover.jpg or cover.png)
     cover: z.string(),

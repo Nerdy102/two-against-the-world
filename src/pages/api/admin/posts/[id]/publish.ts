@@ -10,6 +10,21 @@ const json = (data: unknown, status = 200) =>
     headers: { "content-type": "application/json" },
   });
 
+const normalizeDateTime = (value: unknown) => {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toISOString();
+};
+
+const normalizeTimeZone = (value: unknown) => {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed || null;
+};
+
 export const POST: APIRoute = async ({ locals, params, request }) => {
   if (!(await requireAdminSession(request, locals))) {
     return json(
@@ -32,6 +47,10 @@ export const POST: APIRoute = async ({ locals, params, request }) => {
   }
 
   try {
+    const payload = await request.json().catch(() => ({}));
+    const publishedAt = normalizeDateTime(payload?.published_at);
+    const publishedTz = normalizeTimeZone(payload?.published_tz);
+    const fallbackPublishedAt = new Date().toISOString();
     const db = getDb(locals);
     const allowBootstrap = locals.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
     await ensurePostsSchema(db, { allowBootstrap });
@@ -39,11 +58,12 @@ export const POST: APIRoute = async ({ locals, params, request }) => {
       .prepare(
         `UPDATE posts
          SET status = 'published',
-             published_at = COALESCE(published_at, datetime('now')),
+             published_at = COALESCE(?, published_at, ?),
+             published_tz = COALESCE(?, published_tz),
              updated_at = datetime('now')
          WHERE id = ?`
       )
-      .bind(id)
+      .bind(publishedAt, fallbackPublishedAt, publishedTz, id)
       .run();
 
     return json({ ok: true });

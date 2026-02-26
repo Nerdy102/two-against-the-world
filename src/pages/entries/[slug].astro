@@ -19,9 +19,10 @@ if (!slugParam) {
 }
 const slug = slugParam;
 let post: PostRecord | null = null;
+let postMediaUrls: string[] = [];
 try {
   const db = getDb(Astro.locals);
-  post = await db
+  const dbPost = await db
     .prepare(
       `SELECT *
        FROM posts
@@ -30,7 +31,23 @@ try {
     )
     .bind(slug)
     .first<PostRecord>();
-  post = await getHybridPostBySlug(post, slug);
+  post = await getHybridPostBySlug(dbPost, slug);
+  if (dbPost?.id) {
+    try {
+      const { results = [] } = await db
+        .prepare(
+          `SELECT url
+           FROM post_media
+           WHERE post_id = ?
+           ORDER BY sort_order ASC, datetime(created_at) ASC`
+        )
+        .bind(dbPost.id)
+        .all<{ url: string }>();
+      postMediaUrls = (results ?? []).map((row) => row.url).filter(Boolean);
+    } catch (mediaError) {
+      console.warn("post_media unavailable, fallback to photo_dir:", mediaError);
+    }
+  }
 } catch (err) {
   console.warn("Using content post fallback:", err);
   post = await getHybridPostBySlug(null, slug);
@@ -152,14 +169,19 @@ const photosWithCandidates =
 const coverSrc = resolvePostCoverUrl(post);
 const coverExt = getImageExtension(post.cover_url);
 
-const wallImages = [
-  { src: coverSrc, alt: `${post.title} — cover`, candidates: buildSrcCandidates(coverSrc, coverExt) },
-  ...photosWithCandidates.map((photo, i) => ({
-    src: photo.src,
-    alt: `${post.title} — photo ${i + 1}`,
-    candidates: photo.candidates,
-  })),
-];
+const orderedGallerySources =
+  postMediaUrls.length > 0
+    ? Array.from(
+        new Set([coverSrc, ...postMediaUrls])
+      )
+    : [coverSrc, ...photosWithCandidates.map((photo) => photo.src)];
+
+const wallImages = orderedGallerySources.map((src, index) => ({
+  src,
+  alt: index === 0 ? `${post.title} — cover` : `${post.title} — photo ${index}`,
+  candidates: buildSrcCandidates(src, index === 0 ? coverExt : getImageExtension(src)),
+}));
+const wallPhotoCount = Math.max(0, wallImages.length - 1);
 ---
 
 <BaseLayout title={post.title} description={summaryText}>
@@ -180,7 +202,7 @@ const wallImages = [
       <div class="entry-meta mt-5 flex flex-wrap items-center gap-3 text-[12px] text-black/60">
         <span>Chủ đề: {topicLabel(post.topic ?? undefined)}</span>
         <span>•</span>
-        <span>{formatDate(post.published_at ?? post.created_at)}</span>
+        <span>{formatDate(post.published_at ?? post.created_at, { includeTime: true, timeZone: post.published_tz ?? undefined })}</span>
       </div>
 
       <div class="entry-share">
@@ -392,7 +414,7 @@ const wallImages = [
         <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div class="meta-card">
             <div class="meta-k">Ngày đăng</div>
-            <div class="meta-v">{formatDate(post.published_at ?? post.created_at)}</div>
+            <div class="meta-v">{formatDate(post.published_at ?? post.created_at, { includeTime: true, timeZone: post.published_tz ?? undefined })}</div>
           </div>
 
           <div class="meta-card">
@@ -406,7 +428,7 @@ const wallImages = [
 
           <div class="meta-card">
             <div class="meta-k">Số ảnh</div>
-            <div class="meta-v">{count}</div>
+            <div class="meta-v">{wallPhotoCount}</div>
           </div>
 
           <div class="meta-card">

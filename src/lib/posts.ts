@@ -2,11 +2,33 @@ import { getCollection } from "astro:content";
 import type { CollectionEntry } from "astro:content";
 import type { PostRecord } from "./d1";
 import { deriveVideoPoster } from "./stream";
+import { comparePostsByNewest } from "./postTime";
 
 export const DEFAULT_POST_CARD_IMAGE = "/collage/moodboard.jpg";
 
-const formatDate = (value: Date | undefined | null) =>
-  value ? value.toISOString() : new Date().toISOString();
+const toIsoString = (value: Date | string | undefined | null) => {
+  if (!value) return new Date().toISOString();
+  const parsed = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
+};
+
+const normalizeIsoDateTime = (value: string | undefined | null) => {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+};
+
+const toMediaTimeZone = (value: string | undefined | null) => {
+  if (!value || typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed || null;
+};
+
+const toContentPublishedAt = (entry: CollectionEntry<"posts">) => {
+  const postedAt = normalizeIsoDateTime(entry.data.postedAt ?? undefined);
+  if (postedAt) return postedAt;
+  return toIsoString(entry.data.pubDate);
+};
 
 const IMAGE_MARKDOWN_RE = /!\[[^\]]*]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
 
@@ -60,7 +82,8 @@ export const resolvePostCoverUrl = (
 export const mapContentEntryToPostRecord = (
   entry: CollectionEntry<"posts">
 ): PostRecord => {
-  const publishedAt = formatDate(entry.data.pubDate);
+  const publishedAt = toContentPublishedAt(entry);
+  const publishedTz = toMediaTimeZone(entry.data.postedTimezone ?? undefined);
   const body = entry.body || null;
   return {
     id: entry.id,
@@ -92,6 +115,7 @@ export const mapContentEntryToPostRecord = (
     layout: "normal",
     sort_order: 0,
     published_at: publishedAt,
+    published_tz: publishedTz,
     created_at: publishedAt,
     updated_at: publishedAt,
   };
@@ -114,9 +138,6 @@ export const getPostFromContentBySlug = async (
   return mapContentEntryToPostRecord(entry);
 };
 
-const getPostDate = (post: PostRecord) =>
-  post.published_at ?? post.created_at ?? "";
-
 const isPinnedActive = (post: PostRecord) => {
   if (Number(post.pinned ?? 0) !== 1) return false;
   if (!post.pinned_until) return true;
@@ -136,7 +157,7 @@ const comparePosts = (a: PostRecord, b: PostRecord) => {
   if (priorityB !== priorityA) {
     return priorityB - priorityA;
   }
-  return getPostDate(b).localeCompare(getPostDate(a));
+  return comparePostsByNewest(a, b);
 };
 
 export const shouldUseContentFallback = () =>

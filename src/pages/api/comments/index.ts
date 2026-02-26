@@ -42,6 +42,39 @@ const verifyTurnstile = async (secret: string, token: string | null, remoteIp?: 
 const normalizeText = (value: unknown) =>
   typeof value === "string" ? value.trim() : "";
 
+const normalizeClientTimeZone = (value: unknown): string | null => {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.length > 120) return null;
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: trimmed }).format();
+    return trimmed;
+  } catch {
+    return null;
+  }
+};
+
+const normalizeClientOffsetMinutes = (value: unknown): number | null => {
+  const numeric =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && value.trim()
+        ? Number(value)
+        : NaN;
+  if (!Number.isFinite(numeric)) return null;
+  const normalized = Math.trunc(numeric);
+  if (normalized < -14 * 60 || normalized > 14 * 60) return null;
+  return normalized;
+};
+
+const normalizeClientLocalAt = (value: unknown): string | null => {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.length > 64) return null;
+  if (Number.isNaN(Date.parse(trimmed))) return null;
+  return trimmed;
+};
+
 export const GET: APIRoute = async ({ locals, url }) => {
   const slug = url.searchParams.get("slug");
   if (!slug) {
@@ -58,7 +91,8 @@ export const GET: APIRoute = async ({ locals, url }) => {
     const publicStatus: CommentRecord["status"] = "visible";
     const { results } = await db
       .prepare(
-        `SELECT id, post_slug, parent_id, display_name, body, status, created_at
+        `SELECT id, post_slug, parent_id, display_name, body, status, created_at,
+                client_time_zone, client_offset_minutes, client_local_at
          FROM comments
          WHERE post_slug = ? AND status = ?
          ORDER BY datetime(created_at) ASC
@@ -106,6 +140,15 @@ export const POST: APIRoute = async ({ locals, request }) => {
     typeof payload.parentId === "string" ? payload.parentId.trim() : null;
   const turnstileToken =
     typeof payload.turnstileToken === "string" ? payload.turnstileToken : null;
+  const clientTimeZone = normalizeClientTimeZone(
+    payload.clientTimeZone ?? payload.client_time_zone ?? payload.timeZone
+  );
+  const clientOffsetMinutes = normalizeClientOffsetMinutes(
+    payload.clientOffsetMinutes ?? payload.client_offset_minutes ?? payload.offsetMinutes
+  );
+  const clientLocalAt = normalizeClientLocalAt(
+    payload.clientLocalAt ?? payload.client_local_at ?? payload.localTime
+  );
 
   if (!slug || !displayName || !body) {
     return json(
@@ -203,12 +246,29 @@ export const POST: APIRoute = async ({ locals, request }) => {
         400
       );
     }
+    const createdAt = new Date().toISOString();
     await db
       .prepare(
-        `INSERT INTO comments (id, post_slug, parent_id, display_name, body, status, ip_hash, user_agent_hash)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO comments (
+           id, post_slug, parent_id, display_name, body, status, ip_hash, user_agent_hash,
+           client_time_zone, client_offset_minutes, client_local_at, created_at
+         )
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
-      .bind(id, slug, parentId, displayName, body, status, ipHash, userAgentHash)
+      .bind(
+        id,
+        slug,
+        parentId,
+        displayName,
+        body,
+        status,
+        ipHash,
+        userAgentHash,
+        clientTimeZone,
+        clientOffsetMinutes,
+        clientLocalAt,
+        createdAt
+      )
       .run();
 
     return json({ ok: true, id, status });

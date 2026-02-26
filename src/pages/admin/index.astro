@@ -259,6 +259,14 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
               )}
 
               <label class="compose-field">
+                <span>Ngày & giờ đăng</span>
+                <input class="input" name="published_at_local" type="datetime-local" step="60" />
+                <p class="mt-2 text-xs text-black/50">
+                  Lấy theo giờ thiết bị: <span data-device-timezone>Đang đọc...</span>
+                </p>
+              </label>
+
+              <label class="compose-field">
                 <span>Layout</span>
                 <select class="input" name="layout">
                   <option value="normal">Normal</option>
@@ -367,6 +375,7 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
     const commentList = document.querySelector("[data-comment-list]");
     const commentFilter = document.querySelector("[data-comment-filter]");
     const commentNote = document.querySelector("[data-comment-note]");
+    const deviceTimezoneEls = Array.from(document.querySelectorAll("[data-device-timezone]"));
     let unlocked = false;
     const enableDraftSave = import.meta.env.PUBLIC_ENABLE_ADMIN_DRAFT_SAVE !== "false";
     const enableUploadHelpers = import.meta.env.PUBLIC_ENABLE_UPLOAD_HELPERS !== "false";
@@ -444,6 +453,39 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
     };
 
     const getSiteBase = () => import.meta.env.PUBLIC_SITE_URL || window.location.origin;
+
+    const getDeviceTimeZone = () =>
+      Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+
+    const getDeviceOffsetLabel = () => {
+      const offsetMinutes = -new Date().getTimezoneOffset();
+      const sign = offsetMinutes >= 0 ? "+" : "-";
+      const absMinutes = Math.abs(offsetMinutes);
+      const hours = String(Math.floor(absMinutes / 60)).padStart(2, "0");
+      const minutes = String(absMinutes % 60).padStart(2, "0");
+      return `UTC${sign}${hours}:${minutes}`;
+    };
+
+    const getDeviceTimeZoneLabel = () => `${getDeviceTimeZone()} (${getDeviceOffsetLabel()})`;
+
+    const toLocalDateTimeInput = (value) => {
+      const date = value instanceof Date ? value : new Date(value);
+      if (Number.isNaN(date.getTime())) return "";
+      const pad = (n) => String(n).padStart(2, "0");
+      const year = date.getFullYear();
+      const month = pad(date.getMonth() + 1);
+      const day = pad(date.getDate());
+      const hours = pad(date.getHours());
+      const minutes = pad(date.getMinutes());
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    };
+
+    const toIsoFromLocalDateTime = (value) => {
+      if (!value) return null;
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return null;
+      return date.toISOString();
+    };
 
     const setLoginLoading = (isLoading) => {
       if (loginBtn) loginBtn.disabled = isLoading;
@@ -585,6 +627,7 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       "pinned_priority",
       "pinned_until",
       "pinned_style",
+      "published_at_local",
       "layout",
       "sort_order",
       "status",
@@ -621,12 +664,23 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
         if (!input || payload.data[name] === undefined) return;
         input.value = payload.data[name];
       });
+      const publishInput = form.querySelector("[name='published_at_local']");
+      if (publishInput && !publishInput.value) {
+        publishInput.value = toLocalDateTimeInput(new Date());
+      }
       status.textContent = "Đang dùng bản nháp trên máy";
       updateLinkPreview();
     };
 
     const clearDraft = () => {
       localStorage.removeItem(DRAFT_KEY);
+    };
+
+    const renderDeviceTimeZone = () => {
+      const label = getDeviceTimeZoneLabel();
+      deviceTimezoneEls.forEach((el) => {
+        el.textContent = label;
+      });
     };
 
     const fillForm = (post = {}) => {
@@ -639,6 +693,11 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
         }
         if (name === "content_md") {
           input.value = post.content_md ?? post.body_markdown ?? "";
+          return;
+        }
+        if (name === "published_at_local") {
+          const publishedAt = post.published_at ?? post.created_at ?? null;
+          input.value = publishedAt ? toLocalDateTimeInput(publishedAt) : toLocalDateTimeInput(new Date());
           return;
         }
         input.value = post[name] ?? (input.type === "number" ? 0 : "");
@@ -808,6 +867,15 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
         }
         data[name] = input.type === "number" ? Number(input.value || 0) : input.value;
       });
+      const publishedAtLocal = typeof data.published_at_local === "string"
+        ? data.published_at_local.trim()
+        : "";
+      data.published_at = toIsoFromLocalDateTime(publishedAtLocal);
+      if (!data.published_at && data.status === "published") {
+        data.published_at = new Date().toISOString();
+      }
+      data.published_tz = getDeviceTimeZone();
+      delete data.published_at_local;
       if (data.tags_csv) {
         data.tags_json = JSON.stringify(
           String(data.tags_csv)
@@ -903,12 +971,25 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       if (saved) state.dirty = false;
     }, 3000);
 
+    const buildPublishPayload = () => {
+      const publishedInput = form?.querySelector("[name='published_at_local']");
+      if (publishedInput && !publishedInput.value) {
+        publishedInput.value = toLocalDateTimeInput(new Date());
+        publishedInput.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      return {
+        published_at: toIsoFromLocalDateTime(publishedInput?.value || "") ?? new Date().toISOString(),
+        published_tz: getDeviceTimeZone(),
+      };
+    };
+
     publishBtn?.addEventListener("click", async () => {
       const id = form?.querySelector("[name='id']")?.value;
       if (!id) return;
       const res = await fetch(`/api/admin/posts/${id}/publish`, {
         method: "POST",
-        headers: { "x-csrf-token": getCsrfToken() },
+        headers: { "content-type": "application/json", "x-csrf-token": getCsrfToken() },
+        body: JSON.stringify(buildPublishPayload()),
       });
       if (!res.ok) {
         if (res.status === 401) {
@@ -962,7 +1043,8 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       if (!id) return;
       const res = await fetch(`/api/admin/posts/${id}/publish`, {
         method: "POST",
-        headers: { "x-csrf-token": getCsrfToken() },
+        headers: { "content-type": "application/json", "x-csrf-token": getCsrfToken() },
+        body: JSON.stringify(buildPublishPayload()),
       });
       if (!res.ok) {
         if (res.status === 401) {
@@ -1019,7 +1101,12 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
 
     commentFilter?.addEventListener("change", loadComments);
 
+    renderDeviceTimeZone();
     loadDraft();
+    if (!form?.querySelector("[name='published_at_local']")?.value) {
+      const publishedInput = form?.querySelector("[name='published_at_local']");
+      if (publishedInput) publishedInput.value = toLocalDateTimeInput(new Date());
+    }
     checkSession();
 
     const isHeic = (file) => {

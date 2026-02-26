@@ -36,6 +36,7 @@ export const GET: APIRoute = async ({ locals, request }) => {
              author_name,
              topic,
              published_at,
+             published_tz,
              created_at,
              updated_at
            FROM posts
@@ -46,7 +47,7 @@ export const GET: APIRoute = async ({ locals, request }) => {
                OR LOWER(COALESCE(body_markdown, '')) LIKE ?
                OR LOWER(COALESCE(author_name, '')) LIKE ?
              )
-           ORDER BY datetime(published_at) DESC`
+           ORDER BY COALESCE(unixepoch(published_at), unixepoch(created_at), 0) DESC`
         )
       : db.prepare(
           `SELECT
@@ -71,11 +72,12 @@ export const GET: APIRoute = async ({ locals, request }) => {
              author_name,
              topic,
              published_at,
+             published_tz,
              created_at,
              updated_at
            FROM posts
            WHERE status = 'published'
-           ORDER BY datetime(published_at) DESC`
+           ORDER BY COALESCE(unixepoch(published_at), unixepoch(created_at), 0) DESC`
         );
     const bound = query
       ? statement.bind(likeQuery, likeQuery, likeQuery, likeQuery)

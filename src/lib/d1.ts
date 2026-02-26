@@ -25,6 +25,7 @@ const POST_COLUMNS: PostColumnDefinition[] = [
   { name: "body_markdown", sql: "body_markdown TEXT NOT NULL DEFAULT ''" },
   { name: "status", sql: "status TEXT NOT NULL DEFAULT 'draft'" },
   { name: "published_at", sql: "published_at TEXT" },
+  { name: "published_tz", sql: "published_tz TEXT" },
   { name: "created_at", sql: "created_at TEXT NOT NULL DEFAULT (datetime('now'))" },
   { name: "updated_at", sql: "updated_at TEXT NOT NULL DEFAULT (datetime('now'))" },
   { name: "pinned", sql: "pinned INTEGER NOT NULL DEFAULT 0" },
@@ -54,6 +55,9 @@ const POST_COLUMNS: PostColumnDefinition[] = [
 const COMMENT_COLUMNS: PostColumnDefinition[] = [
   { name: "user_agent_hash", sql: "user_agent_hash TEXT" },
   { name: "status", sql: "status TEXT NOT NULL DEFAULT 'visible'" },
+  { name: "client_time_zone", sql: "client_time_zone TEXT" },
+  { name: "client_offset_minutes", sql: "client_offset_minutes INTEGER" },
+  { name: "client_local_at", sql: "client_local_at TEXT" },
 ];
 
 let postsSchemaReady: Promise<void> | null = null;
@@ -110,6 +114,7 @@ export async function ensurePostsSchema(
             body_markdown TEXT NOT NULL DEFAULT '',
             status TEXT NOT NULL CHECK(status IN ('draft','published','archived')),
             published_at TEXT,
+            published_tz TEXT,
             created_at TEXT NOT NULL DEFAULT (datetime('now')),
             updated_at TEXT NOT NULL DEFAULT (datetime('now')),
             pinned INTEGER NOT NULL DEFAULT 0,
@@ -187,6 +192,9 @@ export async function ensureCommentsSchema(
             status TEXT NOT NULL DEFAULT 'visible' CHECK(status IN ('visible','pending','hidden')),
             ip_hash TEXT,
             user_agent_hash TEXT,
+            client_time_zone TEXT,
+            client_offset_minutes INTEGER,
+            client_local_at TEXT,
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
           )`
         )
@@ -463,6 +471,7 @@ export type PostRecord = {
   layout?: "normal" | "long" | null;
   sort_order?: number | null;
   published_at: string | null;
+  published_tz?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -477,6 +486,9 @@ export type CommentRecord = {
   created_at: string;
   ip_hash?: string | null;
   user_agent_hash?: string | null;
+  client_time_zone?: string | null;
+  client_offset_minutes?: number | null;
+  client_local_at?: string | null;
 };
 
 export type ReactionRecord = {

@@ -4,6 +4,7 @@ import FeedCard from "../../components/FeedCard.astro";
 import RansomTitle from "../../components/RansomTitle.astro";
 import { formatDate } from "../../lib/formatDate";
 import { ensurePostMediaSchema, ensurePostsSchema, getDb, type PostRecord } from "../../lib/d1";
+import { toDateKey } from "../../lib/postTime";
 import {
   getPublishedPostsFromContent,
   mergePostsBySlug,
@@ -47,6 +48,7 @@ try {
         photo_time,
         tags_csv,
         published_at,
+        published_tz,
         created_at,
         CASE
           WHEN pinned = 1 AND (pinned_until IS NULL OR datetime(pinned_until) > datetime('now')) THEN 1
@@ -55,7 +57,8 @@ try {
        pinned_priority, pinned_until, pinned_style, sort_order
        FROM posts
        WHERE status = 'published'
-       ORDER BY pinned DESC, pinned_priority DESC, datetime(published_at) DESC`
+       ORDER BY pinned DESC, pinned_priority DESC,
+         COALESCE(unixepoch(published_at), unixepoch(created_at), 0) DESC`
     )
     .all<PostRecord>();
   dbPosts = results ?? [];
@@ -91,7 +94,8 @@ const pageHref = (page: number) => {
 
 const dateCounts: Record<string, number> = {};
 for (const p of pagedPosts) {
-  const dateKey = new Date(p.published_at ?? p.created_at).toISOString().slice(0, 10);
+  const dateKey = toDateKey(p.published_at ?? p.created_at, p.published_tz ?? undefined);
+  if (!dateKey) continue;
   dateCounts[dateKey] = (dateCounts[dateKey] ?? 0) + 1;
 }
 
@@ -174,16 +178,17 @@ const buildSearchText = (post: PostRecord) =>
     <section class="mt-10">
       <div class="pinterest-grid" data-search-grid>
         {pagedPosts.map((post) => {
-          const dateKey = new Date(post.published_at ?? post.created_at).toISOString().slice(0, 10);
-          const anchorId = seenDates.has(dateKey) ? undefined : `date-${dateKey}`;
-          seenDates.add(dateKey);
+          const dateKey = toDateKey(post.published_at ?? post.created_at, post.published_tz ?? undefined) || "";
+          const anchorId = dateKey && !seenDates.has(dateKey) ? `date-${dateKey}` : undefined;
+          if (dateKey) seenDates.add(dateKey);
           return (
             <FeedCard
               href={`/entries/${post.slug}${post.video_url ? "#entry-video" : ""}`}
               title={post.title}
               description={post.summary ?? ""}
               author={post.author_name ?? ""}
-              date={post.published_at ?? ""}
+              date={post.published_at ?? post.created_at}
+              timeZone={post.published_tz ?? undefined}
               image={resolvePostCoverUrl(post)}
               topic={post.topic ?? undefined}
               locked={post.topic === "trash-bin"}

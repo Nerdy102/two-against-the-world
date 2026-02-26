@@ -43,7 +43,8 @@ export const GET: APIRoute = async ({ locals, request, url }) => {
     }
     const { results } = await db
       .prepare(
-        `SELECT id, post_slug, parent_id, display_name, body, status, created_at
+        `SELECT id, post_slug, parent_id, display_name, body, status, created_at,
+                client_time_zone, client_offset_minutes, client_local_at
          FROM comments
          WHERE ${where}
          ORDER BY datetime(created_at) DESC
