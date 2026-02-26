@@ -40,6 +40,27 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
           <article
             class="love-event-chip"
             role="listitem"
+            style="--event-accent: 255 141 177;"
+            data-love-event
+            data-love-event-id="sinh-nhat-my-uyen"
+            data-love-event-group="featured"
+            data-love-event-name="Sinh nhật Mỹ Uyên"
+            data-love-event-month="3"
+            data-love-event-day="17"
+            data-love-event-note="Sinh nhật em bé Mỹ Uyên. Ngày đặc biệt nhất tháng 3."
+          >
+            <span class="love-event-chip__icon" aria-hidden="true">🎂</span>
+            <div class="love-event-chip__meta">
+              <span class="love-event-chip__name">Sinh nhật Mỹ Uyên</span>
+              <span class="love-event-chip__date" data-love-event-date>17/03</span>
+            </div>
+            <strong class="love-event-chip__countdown" data-love-event-countdown>--D --:--:--</strong>
+            <button class="love-event-chip__note-btn" type="button" data-love-event-note-trigger aria-label="Xem note event">✦</button>
+          </article>
+
+          <article
+            class="love-event-chip"
+            role="listitem"
             style="--event-accent: 116 218 255;"
             data-love-event
             data-love-event-id="viet-hoa-ve-viet-nam"
@@ -62,7 +83,70 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         </div>
 
         <div class="love-events-strip__more" id="love-events-more" data-love-events-more hidden>
-          <div class="love-events-strip__rail love-events-strip__rail--extra" role="list" aria-label="Extra event timeline"></div>
+          <div class="love-events-strip__rail love-events-strip__rail--extra" role="list" aria-label="Extra event timeline">
+            <article
+              class="love-event-chip love-event-chip--extra"
+              role="listitem"
+              style="--event-accent: 255 205 118;"
+              data-love-event
+              data-love-event-id="sinh-nhat-viet-hoa"
+              data-love-event-group="extra"
+              data-love-event-name="Sinh nhật Việt Hoà"
+              data-love-event-month="6"
+              data-love-event-day="4"
+              data-love-event-note="Sinh nhật của Hoà, ngày reset năng lượng để bắt đầu chapter mới."
+            >
+              <span class="love-event-chip__icon" aria-hidden="true">🎉</span>
+              <div class="love-event-chip__meta">
+                <span class="love-event-chip__name">Sinh nhật Việt Hoà</span>
+                <span class="love-event-chip__date" data-love-event-date>04/06</span>
+              </div>
+              <strong class="love-event-chip__countdown" data-love-event-countdown>--D --:--:--</strong>
+              <button class="love-event-chip__note-btn" type="button" data-love-event-note-trigger aria-label="Xem note event">✦</button>
+            </article>
+
+            <article
+              class="love-event-chip love-event-chip--extra"
+              role="listitem"
+              style="--event-accent: 186 255 158;"
+              data-love-event
+              data-love-event-id="valentine-day"
+              data-love-event-group="extra"
+              data-love-event-name="Valentine Day"
+              data-love-event-month="2"
+              data-love-event-day="14"
+              data-love-event-note="Valentine, một điểm neo cảm xúc cho những thứ không nói thành lời."
+            >
+              <span class="love-event-chip__icon" aria-hidden="true">💌</span>
+              <div class="love-event-chip__meta">
+                <span class="love-event-chip__name">Valentine Day</span>
+                <span class="love-event-chip__date" data-love-event-date>14/02</span>
+              </div>
+              <strong class="love-event-chip__countdown" data-love-event-countdown>--D --:--:--</strong>
+              <button class="love-event-chip__note-btn" type="button" data-love-event-note-trigger aria-label="Xem note event">✦</button>
+            </article>
+
+            <article
+              class="love-event-chip love-event-chip--extra"
+              role="listitem"
+              style="--event-accent: 255 167 118;"
+              data-love-event
+              data-love-event-id="anniversary-1-year"
+              data-love-event-group="extra"
+              data-love-event-name="Anniversary 1 Year"
+              data-love-event-month="12"
+              data-love-event-day="31"
+              data-love-event-note="Anniversary 1 năm, checkpoint lớn của cả hai sau một năm đồng hành."
+            >
+              <span class="love-event-chip__icon" aria-hidden="true">🥂</span>
+              <div class="love-event-chip__meta">
+                <span class="love-event-chip__name">Anniversary 1 Year</span>
+                <span class="love-event-chip__date" data-love-event-date>31/12</span>
+              </div>
+              <strong class="love-event-chip__countdown" data-love-event-countdown>--D --:--:--</strong>
+              <button class="love-event-chip__note-btn" type="button" data-love-event-note-trigger aria-label="Xem note event">✦</button>
+            </article>
+          </div>
         </div>
       </section>
 
