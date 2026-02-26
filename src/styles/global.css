@@ -849,35 +849,50 @@ a { color: inherit; text-decoration: none; }
    ----------------- */
 
 .pinterest-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 16px;
-  width: min(1400px, 96vw);
+  column-count: 1;
+  -webkit-column-count: 1;
+  column-gap: 16px;
+  -webkit-column-gap: 16px;
+  column-fill: balance;
+  -webkit-column-fill: balance;
+  width: 100%;
+  max-width: 100%;
   margin: 0 auto;
-  align-items: start;
   position: relative;
   z-index: 2;
 }
 
 @media (min-width: 720px) {
-  .pinterest-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pinterest-grid {
+    column-count: 2;
+    -webkit-column-count: 2;
+  }
 }
 
 @media (min-width: 900px) {
-  .pinterest-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .pinterest-grid {
+    column-count: 3;
+    -webkit-column-count: 3;
+  }
 }
 
 @media (min-width: 1200px) {
-  .pinterest-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .pinterest-grid {
+    column-count: 4;
+    -webkit-column-count: 4;
+  }
 }
 
 .feed-card {
   position: relative;
   z-index: 0;
-  display: block;
-  align-self: start;
+  display: inline-block;
   width: 100%;
-  margin: 0;
+  margin: 0 0 16px;
+  break-inside: avoid;
+  break-inside: avoid-column;
+  -webkit-column-break-inside: avoid;
+  page-break-inside: avoid;
   padding: 16px;
   border-radius: 20px;
   border: 1px solid rgba(255,255,255,0.12);
