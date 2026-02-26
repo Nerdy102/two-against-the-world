@@ -15,17 +15,18 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         <div class="love-events-strip__head">
           <span class="love-events-strip__title">
             <span aria-hidden="true">✦</span>
-            Main Events
+            Featured 02
           </span>
           <span class="love-events-strip__next" data-love-event-next>⚡ THE UPCOMING EVENT · --D --:--:--</span>
         </div>
 
-        <div class="love-events-strip__rail" role="list" aria-label="Main event timeline">
+        <div class="love-events-strip__rail love-events-strip__rail--featured" role="list" aria-label="Featured event timeline">
           <article
             class="love-event-chip"
             role="listitem"
             style="--event-accent: 255 141 177;"
             data-love-event
+            data-love-event-group="featured"
             data-love-event-name="Sinh nhật Mỹ Uyên"
             data-love-event-month="3"
             data-love-event-day="17"
@@ -43,6 +44,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
             role="listitem"
             style="--event-accent: 116 218 255;"
             data-love-event
+            data-love-event-group="featured"
             data-love-event-name="Việt Hoà về Việt Nam"
             data-love-event-month="3"
             data-love-event-day="23"
@@ -54,6 +56,76 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
             </div>
             <strong class="love-event-chip__countdown" data-love-event-countdown>--D --:--:--</strong>
           </article>
+        </div>
+
+        <div class="love-events-strip__actions">
+          <button
+            class="love-events-strip__toggle"
+            type="button"
+            data-love-events-toggle
+            aria-expanded="false"
+            aria-controls="love-events-more"
+          >
+            🗂 OPEN FULL TIMELINE
+          </button>
+        </div>
+
+        <div class="love-events-strip__more" id="love-events-more" data-love-events-more hidden>
+          <div class="love-events-strip__rail love-events-strip__rail--extra" role="list" aria-label="Extra event timeline">
+            <article
+              class="love-event-chip love-event-chip--extra"
+              role="listitem"
+              style="--event-accent: 255 205 118;"
+              data-love-event
+              data-love-event-group="extra"
+              data-love-event-name="Sinh nhật Việt Hoà"
+              data-love-event-month="6"
+              data-love-event-day="4"
+            >
+              <span class="love-event-chip__icon" aria-hidden="true">🎉</span>
+              <div class="love-event-chip__meta">
+                <span class="love-event-chip__name">Sinh nhật Việt Hoà</span>
+                <span class="love-event-chip__date" data-love-event-date>04/06</span>
+              </div>
+              <strong class="love-event-chip__countdown" data-love-event-countdown>--D --:--:--</strong>
+            </article>
+
+            <article
+              class="love-event-chip love-event-chip--extra"
+              role="listitem"
+              style="--event-accent: 186 255 158;"
+              data-love-event
+              data-love-event-group="extra"
+              data-love-event-name="Valentine Day"
+              data-love-event-month="2"
+              data-love-event-day="14"
+            >
+              <span class="love-event-chip__icon" aria-hidden="true">💌</span>
+              <div class="love-event-chip__meta">
+                <span class="love-event-chip__name">Valentine Day</span>
+                <span class="love-event-chip__date" data-love-event-date>14/02</span>
+              </div>
+              <strong class="love-event-chip__countdown" data-love-event-countdown>--D --:--:--</strong>
+            </article>
+
+            <article
+              class="love-event-chip love-event-chip--extra"
+              role="listitem"
+              style="--event-accent: 255 167 118;"
+              data-love-event
+              data-love-event-group="extra"
+              data-love-event-name="Anniversary 1 Year"
+              data-love-event-month="12"
+              data-love-event-day="31"
+            >
+              <span class="love-event-chip__icon" aria-hidden="true">🥂</span>
+              <div class="love-event-chip__meta">
+                <span class="love-event-chip__name">Anniversary 1 Year</span>
+                <span class="love-event-chip__date" data-love-event-date>31/12</span>
+              </div>
+              <strong class="love-event-chip__countdown" data-love-event-countdown>--D --:--:--</strong>
+            </article>
+          </div>
         </div>
       </section>
     </div>
@@ -102,6 +174,11 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
           }
         : {};
       const nextEventEl = eventRoot ? eventRoot.querySelector("[data-love-event-next]") : null;
+      const eventToggleBtn = eventRoot ? eventRoot.querySelector("[data-love-events-toggle]") : null;
+      const eventMorePanel = eventRoot ? eventRoot.querySelector("[data-love-events-more]") : null;
+      const extraEventsCount = eventRoot
+        ? eventRoot.querySelectorAll("[data-love-event-group='extra']").length
+        : 0;
       const eventEls = eventRoot
         ? Array.from(eventRoot.querySelectorAll("[data-love-event]")).map((eventEl) => ({
             name: eventEl.getAttribute("data-love-event-name") || "event",
@@ -152,6 +229,31 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         const seconds = totalSeconds % 60;
         return `${days}D ${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
       };
+
+      const setMorePanelState = (isOpen) => {
+        if (!eventToggleBtn || !eventMorePanel) return;
+        eventMorePanel.hidden = !isOpen;
+        eventToggleBtn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+        eventToggleBtn.textContent = isOpen
+          ? "🗂 HIDE FULL TIMELINE"
+          : `🗂 OPEN FULL TIMELINE · ${extraEventsCount} MORE`;
+      };
+
+      if (eventToggleBtn && eventMorePanel) {
+        if (extraEventsCount <= 0) {
+          eventToggleBtn.hidden = true;
+          eventMorePanel.hidden = true;
+        } else {
+          setMorePanelState(false);
+          if (eventToggleBtn.dataset.bound !== "1") {
+            eventToggleBtn.dataset.bound = "1";
+            eventToggleBtn.addEventListener("click", () => {
+              const isOpen = eventToggleBtn.getAttribute("aria-expanded") === "true";
+              setMorePanelState(!isOpen);
+            });
+          }
+        }
+      }
 
       const updateEvents = () => {
         if (!eventEls.length) return;

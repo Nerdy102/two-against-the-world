@@ -130,7 +130,18 @@ const voiceMemoTitle = s(post.voice_memo_title);
 const videoUrl = s(post.video_url);
 const videoPoster = s(post.video_poster);
 const streamUrls = buildStreamUrls(extractStreamUid(videoUrl));
-const streamEmbedUrl = streamUrls.iframe;
+const streamEmbedUrl = streamUrls.iframe
+  ? (() => {
+      let url: URL;
+      try {
+        url = new URL(streamUrls.iframe);
+      } catch (_error) {
+        url = new URL(streamUrls.iframe, siteUrl || "https://iframe.videodelivery.net");
+      }
+      url.searchParams.set("defaultTextTrack", "vi");
+      return url.toString();
+    })()
+  : "";
 const hasVideo = Boolean(videoUrl);
 
 const SUPPORTED_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "heic", "heif"] as const;
@@ -383,7 +394,7 @@ const wallPhotoCount = Math.max(0, wallImages.length - 1);
                     class="h-full w-full"
                     src={streamEmbedUrl}
                     data-video-stream-iframe
-                    data-video-base-src={streamEmbedUrl}
+                    data-video-base-src={streamUrls.iframe}
                     title={`${post.title} video`}
                     loading="lazy"
                     allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen"
@@ -403,12 +414,52 @@ const wallPhotoCount = Math.max(0, wallImages.length - 1);
                   ></video>
                 </div>
               )}
-              <div class="video-quality mt-3" data-video-quality>
-                <span class="video-quality__label">Độ phân giải</span>
-                <div class="video-quality__options" role="group" aria-label="Chọn độ phân giải video">
-                  <button class="video-quality__btn is-active" type="button" data-video-quality-mode="auto">Auto</button>
-                  <button class="video-quality__btn" type="button" data-video-quality-mode="sd">SD</button>
-                  <button class="video-quality__btn" type="button" data-video-quality-mode="hd">HD</button>
+              <div class="video-controls mt-3" data-video-controls data-open="0">
+                <button
+                  class="video-controls__toggle"
+                  type="button"
+                  data-video-controls-toggle
+                  aria-label="Mở cài đặt video"
+                  aria-expanded="false"
+                  aria-controls="video-controls-panel"
+                  title="Cài đặt video"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path
+                      d="M19.4 13.5a7.9 7.9 0 0 0 .1-1.5 7.9 7.9 0 0 0-.1-1.5l2-1.6a.5.5 0 0 0 .1-.6l-1.9-3.2a.5.5 0 0 0-.6-.2l-2.4 1a8 8 0 0 0-2.6-1.5l-.4-2.6a.5.5 0 0 0-.5-.4h-3.8a.5.5 0 0 0-.5.4l-.4 2.6a8 8 0 0 0-2.6 1.5l-2.4-1a.5.5 0 0 0-.6.2L2.5 8.3a.5.5 0 0 0 .1.6l2 1.6a7.9 7.9 0 0 0-.1 1.5 7.9 7.9 0 0 0 .1 1.5l-2 1.6a.5.5 0 0 0-.1.6l1.9 3.2a.5.5 0 0 0 .6.2l2.4-1a8 8 0 0 0 2.6 1.5l.4 2.6a.5.5 0 0 0 .5.4h3.8a.5.5 0 0 0 .5-.4l.4-2.6a8 8 0 0 0 2.6-1.5l2.4 1a.5.5 0 0 0 .6-.2l1.9-3.2a.5.5 0 0 0-.1-.6z"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.3"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="2.9"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.3"
+                    />
+                  </svg>
+                </button>
+                <div class="video-controls__panel" data-video-controls-panel id="video-controls-panel">
+                  <div class="video-quality" data-video-quality>
+                    <span class="video-quality__label">Độ phân giải</span>
+                    <div class="video-quality__options" role="group" aria-label="Chọn độ phân giải video">
+                      <button class="video-quality__btn is-active" type="button" data-video-quality-mode="auto">Auto</button>
+                      <button class="video-quality__btn" type="button" data-video-quality-mode="sd">SD</button>
+                      <button class="video-quality__btn" type="button" data-video-quality-mode="hd">HD</button>
+                    </div>
+                  </div>
+                  <div class="video-captions" data-video-captions>
+                    <span class="video-captions__label">Phụ đề</span>
+                    <div class="video-captions__options" role="group" aria-label="Chọn phụ đề video">
+                      <button class="video-captions__btn is-active" type="button" data-video-caption-mode="vi">VI</button>
+                      <button class="video-captions__btn" type="button" data-video-caption-mode="en">EN</button>
+                      <button class="video-captions__btn" type="button" data-video-caption-mode="off">Off</button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -784,21 +835,56 @@ const wallPhotoCount = Math.max(0, wallImages.length - 1);
   )}
 
   <script is:inline>
-    const initVideoQuality = () => {
-      const panel = document.querySelector("[data-video-quality]");
+    const initVideoControls = () => {
+      const controls = document.querySelector("[data-video-controls]");
+      if (!(controls instanceof HTMLElement)) return;
+      if (controls.dataset.bound === "1") return;
+      controls.dataset.bound = "1";
+
+      const panel = controls.querySelector("[data-video-quality]");
+      const captions = controls.querySelector("[data-video-captions]");
       const iframe = document.querySelector("[data-video-stream-iframe]");
       const nativeVideo = document.querySelector("[data-video-native]");
       if (!(panel instanceof HTMLElement)) return;
       if (!(iframe instanceof HTMLIFrameElement) && !(nativeVideo instanceof HTMLVideoElement)) return;
-      if (panel.dataset.bound === "1") return;
-      panel.dataset.bound = "1";
+      const panelEl = controls.querySelector("[data-video-controls-panel]");
+      const toggle = controls.querySelector("[data-video-controls-toggle]");
 
-      const buttons = Array.from(panel.querySelectorAll("[data-video-quality-mode]"));
-      if (!buttons.length) return;
+      const qualityButtons = Array.from(panel.querySelectorAll("[data-video-quality-mode]"));
+      const captionButtons = captions instanceof HTMLElement
+        ? Array.from(captions.querySelectorAll("[data-video-caption-mode]"))
+        : [];
+      if (!qualityButtons.length) return;
 
-      const setActive = (mode) => {
-        buttons.forEach((button) => {
+      const setOpen = (open) => {
+        controls.dataset.open = open ? "1" : "0";
+        if (toggle instanceof HTMLButtonElement) {
+          toggle.setAttribute("aria-expanded", open ? "true" : "false");
+        }
+      };
+      const closeOnMobile = () => {
+        if (window.matchMedia("(max-width: 640px)").matches) {
+          setOpen(false);
+        }
+      };
+
+      if (toggle instanceof HTMLButtonElement && panelEl instanceof HTMLElement) {
+        toggle.addEventListener("click", (event) => {
+          event.preventDefault();
+          setOpen(controls.dataset.open !== "1");
+        });
+      }
+
+      setOpen(false);
+
+      const setActiveQuality = (mode) => {
+        qualityButtons.forEach((button) => {
           button.classList.toggle("is-active", button.dataset.videoQualityMode === mode);
+        });
+      };
+      const setActiveCaption = (mode) => {
+        captionButtons.forEach((button) => {
+          button.classList.toggle("is-active", button.dataset.videoCaptionMode === mode);
         });
       };
 
@@ -810,53 +896,115 @@ const wallPhotoCount = Math.max(0, wallImages.length - 1);
           sd: "2.4",
           hd: "8",
         };
-        const buildIframeSrc = (mode) => {
+        let selectedQualityMode = "auto";
+        let selectedCaptionMode = "vi";
+
+        const buildIframeSrc = (qualityMode, captionMode) => {
           let url;
           try {
             url = new URL(baseSrc);
           } catch (_error) {
             url = new URL(baseSrc, window.location.origin);
           }
-          const hint = bandwidthHintByMode[mode] || "";
+          const hint = bandwidthHintByMode[qualityMode] || "";
           if (hint) {
             url.searchParams.set("clientBandwidthHint", hint);
           } else {
             url.searchParams.delete("clientBandwidthHint");
           }
+          if (captionMode === "off") {
+            url.searchParams.delete("defaultTextTrack");
+          } else {
+            url.searchParams.set("defaultTextTrack", captionMode);
+          }
           return url.toString();
         };
 
-        const setMode = (mode) => {
-          const nextSrc = buildIframeSrc(mode);
+        const applyModes = () => {
+          const nextSrc = buildIframeSrc(selectedQualityMode, selectedCaptionMode);
           if (iframe.src !== nextSrc) iframe.src = nextSrc;
-          setActive(mode);
+          setActiveQuality(selectedQualityMode);
+          setActiveCaption(selectedCaptionMode);
         };
 
-        buttons.forEach((button) => {
+        qualityButtons.forEach((button) => {
           button.addEventListener("click", (event) => {
             event.preventDefault();
             const mode = button.dataset.videoQualityMode;
             if (mode !== "sd" && mode !== "hd") {
-              setMode("auto");
-              return;
+              selectedQualityMode = "auto";
+            } else {
+              selectedQualityMode = mode;
             }
-            setMode(mode);
+            applyModes();
+            closeOnMobile();
           });
         });
 
-        setMode("auto");
+        captionButtons.forEach((button) => {
+          button.addEventListener("click", (event) => {
+            event.preventDefault();
+            const mode = button.dataset.videoCaptionMode;
+            if (mode !== "en" && mode !== "off") {
+              selectedCaptionMode = "vi";
+            } else {
+              selectedCaptionMode = mode;
+            }
+            applyModes();
+            closeOnMobile();
+          });
+        });
+
+        applyModes();
         return;
       }
 
       if (!(nativeVideo instanceof HTMLVideoElement)) return;
       const baseVideoSrc = nativeVideo.getAttribute("src") || nativeVideo.currentSrc || "";
-      const sdButton = buttons.find((button) => button.dataset.videoQualityMode === "sd");
+      const sdButton = qualityButtons.find((button) => button.dataset.videoQualityMode === "sd");
       if (sdButton) {
         sdButton.disabled = true;
         sdButton.title = "Video này chưa có bản SD riêng";
       }
 
-      buttons.forEach((button) => {
+      let selectedQualityMode = "hd";
+      const getTrackList = () =>
+        Array.from(nativeVideo.textTracks || []);
+
+      const applyNativeCaption = (mode) => {
+        const tracks = getTrackList();
+        if (!tracks.length) {
+          captionButtons.forEach((button) => {
+            button.disabled = true;
+            button.title = "Video này chưa có phụ đề";
+          });
+          setActiveCaption("off");
+          return "off";
+        }
+        captionButtons.forEach((button) => {
+          button.disabled = false;
+          button.title = "";
+        });
+        tracks.forEach((track) => {
+          track.mode = "disabled";
+        });
+        if (mode === "off") {
+          setActiveCaption("off");
+          return "off";
+        }
+        const target = tracks.find((track) =>
+          String(track.language || "").toLowerCase().startsWith(mode)
+        );
+        if (!target) {
+          setActiveCaption("off");
+          return "off";
+        }
+        target.mode = "showing";
+        setActiveCaption(mode);
+        return mode;
+      };
+
+      qualityButtons.forEach((button) => {
         button.addEventListener("click", (event) => {
           event.preventDefault();
           const mode = button.dataset.videoQualityMode;
@@ -865,19 +1013,39 @@ const wallPhotoCount = Math.max(0, wallImages.length - 1);
               nativeVideo.setAttribute("src", baseVideoSrc);
               nativeVideo.load();
             }
-            setActive("hd");
-            return;
+            selectedQualityMode = "hd";
+          } else if (mode !== "sd") {
+            selectedQualityMode = "auto";
           }
-          if (mode === "sd") return;
-          setActive("auto");
+          setActiveQuality(selectedQualityMode);
+          closeOnMobile();
         });
       });
 
-      setActive("hd");
+      let selectedCaptionMode = "vi";
+      captionButtons.forEach((button) => {
+        button.addEventListener("click", (event) => {
+          event.preventDefault();
+          const mode = button.dataset.videoCaptionMode;
+          if (mode === "en" || mode === "off" || mode === "vi") {
+            selectedCaptionMode = applyNativeCaption(mode);
+          } else {
+            selectedCaptionMode = applyNativeCaption("vi");
+          }
+          closeOnMobile();
+        });
+      });
+
+      nativeVideo.addEventListener("loadedmetadata", () => {
+        applyNativeCaption(selectedCaptionMode);
+      });
+
+      setActiveQuality(selectedQualityMode);
+      selectedCaptionMode = applyNativeCaption("vi");
     };
 
-    initVideoQuality();
-    document.addEventListener("astro:page-load", initVideoQuality);
+    initVideoControls();
+    document.addEventListener("astro:page-load", initVideoControls);
   </script>
 
   <script is:inline>

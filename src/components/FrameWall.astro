@@ -226,8 +226,8 @@ const isCustomGrid = frames.length >= 3;
       <a
         href={`#lb-${f.idx}`}
         class={`frame ${f.isCover ? "is-cover" : ""} ${f.shape ? "shape-" + f.shape : ""}`}
-        style={isSingle || isPair
-          ? `--rot:${isPair ? 0 : f.rot}deg; --delay:${f.delay}ms;`
+        style={isSingle || isPair || isCustomGrid
+          ? `--rot:${(isPair || isCustomGrid) ? 0 : f.rot}deg; --delay:${f.delay}ms;`
           : `grid-column:${f.cStart} / span ${f.cSpan}; grid-row:${f.rStart} / span ${f.rSpan}; --rot:${f.rot}deg; --delay:${f.delay}ms;`
         }
         data-reveal
@@ -367,6 +367,37 @@ const isCustomGrid = frames.length >= 3;
       background: rgba(0,0,0,0.2);
     }
 
+    .framewall--custom .wall{
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-auto-rows: auto;
+      gap: 14px;
+      padding: 12px;
+    }
+
+    .framewall--custom .frame{
+      transform: none;
+      height: auto;
+    }
+
+    .framewall--custom .frame:hover{
+      transform: none;
+      filter: none;
+    }
+
+    .framewall--custom .frame-inner,
+    .framewall--custom .mat{
+      height: auto;
+    }
+
+    .framewall--custom .mat{
+      aspect-ratio: 4 / 3;
+    }
+
+    .framewall--custom .mat img{
+      object-fit: contain;
+      background: rgba(0,0,0,0.2);
+    }
+
     .framewall--single .frame{
       transform: none;
       height: auto;
@@ -404,6 +435,11 @@ const isCustomGrid = frames.length >= 3;
       }
       .framewall--pair[data-pair-layout="side"] .wall{
         grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .framewall--custom .wall{
+        grid-template-columns: 1fr;
+        gap: 10px;
+        padding: 10px;
       }
     }
 
