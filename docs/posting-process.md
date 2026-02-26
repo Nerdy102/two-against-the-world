@@ -6,6 +6,9 @@
   - `title`, `description`, `pubDate`, `topic`
   - `author`, `location`, `eventTime`, `writtenAt`, `photoTime`
   - (tuỳ chọn) `voiceMemo`, `voiceMemoTitle`, `videoUrl`, `videoPoster`, `tags`, `sideNote`
+- Ghi chú bắt buộc cho `summary`/mô tả ngắn:
+  - Chỉ viết mô tả thuần văn bản, không dán link (video link hay bất kỳ URL nào).
+  - Nếu cần video thì chỉ điền vào trường `videoUrl`, không nhét vào `summary`.
 
 ## 2) Chuẩn bị ảnh
 Chọn **1 trong 2 cách**:

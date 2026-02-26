@@ -197,7 +197,7 @@ const buildSearchText = (post: PostRecord) =>
         })}
       </div>
 
-      {totalPages > 1 && (
+      {posts.length > 0 && (
         <nav class="feed-pagination" aria-label="Phân trang nhật ký">
           <div class="feed-pagination__meta">Trang {currentPage} / {totalPages}</div>
           <div class="feed-pagination__row">

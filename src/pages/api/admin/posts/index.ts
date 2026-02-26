@@ -3,6 +3,7 @@ import type { D1Database } from "@cloudflare/workers-types";
 import { ensurePostsSchema, getDb, tableHasColumn, type PostRecord } from "../../../../lib/d1";
 import { requireAdminSession, verifyCsrf } from "../../../../lib/adminAuth";
 import { deriveVideoPoster } from "../../../../lib/stream";
+import { sanitizeSummaryText } from "../../../../lib/followUpLink";
 
 export const prerender = false;
 
@@ -153,6 +154,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
     }
     const slug = await ensureUniqueSlug(db, baseSlug);
 
+    const summary = sanitizeSummaryText(typeof payload.summary === "string" ? payload.summary : "");
     const tagsJson =
       payload.tags_json ??
       (payload.tags_csv
@@ -208,7 +210,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
         id,
         slug,
         title,
-        payload.summary ?? null,
+        summary || null,
         bodyMarkdown,
         tagsJson,
         resolvedCoverKey,

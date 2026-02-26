@@ -10,6 +10,7 @@ import {
 } from "../../../../lib/d1";
 import { requireAdminSession, verifyCsrf } from "../../../../lib/adminAuth";
 import { deriveVideoPoster } from "../../../../lib/stream";
+import { sanitizeSummaryText } from "../../../../lib/followUpLink";
 
 export const prerender = false;
 
@@ -136,6 +137,7 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
       : typeof payload.content_md === "string"
         ? payload.content_md.trim()
         : null;
+    const summary = sanitizeSummaryText(typeof payload.summary === "string" ? payload.summary : "");
     const tagsJson =
       payload.tags_json ??
       (payload.tags_csv
@@ -212,7 +214,7 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
       .bind(
         payload.title ?? "",
         nextSlug,
-        payload.summary ?? null,
+        summary || null,
         resolvedBodyMarkdown ?? payload.content_md ?? null,
         tagsJson,
         resolvedCoverKey,

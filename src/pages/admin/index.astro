@@ -155,8 +155,11 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
               </label>
 
               <label class="compose-field">
-                <span>Tóm tắt</span>
-                <input class="input" name="summary" placeholder="Một câu giới thiệu ngắn" />
+                <span>Tóm tắt (không chèn link)</span>
+                <input class="input" name="summary" placeholder="Một câu giới thiệu ngắn, không dán URL" />
+                <p class="mt-2 text-xs text-black/50">
+                  Ghi chú: Phần tóm tắt chỉ để mô tả ngắn. Không nhập link video hay link ngoài.
+                </p>
               </label>
 
               <label class="compose-field">
