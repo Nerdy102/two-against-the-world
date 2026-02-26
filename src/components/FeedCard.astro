@@ -47,6 +47,19 @@ const pinLabelMap: Record<string, string> = {
 };
 const pinLabel = pinnedStyle && pinLabelMap[pinnedStyle] ? pinLabelMap[pinnedStyle] : "Ghim";
 
+const getPostedZoneLabel = (value?: string) => {
+  const tz = typeof value === "string" ? value.trim() : "";
+  if (tz === "Asia/Ho_Chi_Minh" || tz === "Asia/Saigon") return "🇻🇳 Giờ Việt";
+  if (tz === "Asia/Tokyo") return "🇯🇵 Giờ Nhật";
+  if (tz.startsWith("America/") || tz === "Pacific/Honolulu") return "🇺🇸 Giờ Mỹ";
+  return "";
+};
+
+const dateText = date
+  ? formatDate(date, { includeTime: true, timeZone, showTimeZoneName: false })
+  : "";
+const zoneLabel = getPostedZoneLabel(timeZone);
+
 const FALLBACK_POOL = [
   "/collage/moodboard.jpg",
   "/collage/dinner.jpg",
@@ -162,7 +175,7 @@ const initialImage = imageCandidates[0] ?? image;
       <span class="feed-card__icon">{meta.icon}</span>
       <span>{meta.label}</span>
     </div>
-    {date && <div class="feed-card__date">{formatDate(date, { includeTime: true, timeZone })}</div>}
+    {date && <div class="feed-card__date">{dateText}{zoneLabel ? ` ${zoneLabel}` : ""}</div>}
   </div>
   {showPinBadge && (
     <span class="feed-card__pin" data-pin-style={pinnedStyle ?? "default"} aria-label="Bài ghim">

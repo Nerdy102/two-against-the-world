@@ -2,6 +2,7 @@ type FormatDateOptions = {
   includeTime?: boolean;
   locale?: string;
   timeZone?: string;
+  showTimeZoneName?: boolean;
 };
 
 export function formatDate(input: Date | string, options: FormatDateOptions = {}) {
@@ -12,7 +13,7 @@ export function formatDate(input: Date | string, options: FormatDateOptions = {}
     : input;
   if (Number.isNaN(date.getTime())) return typeof input === "string" ? input : "";
 
-  const { includeTime = false, locale = "en-US", timeZone } = options;
+  const { includeTime = false, locale = "en-US", timeZone, showTimeZoneName = true } = options;
   const baseOptions: Intl.DateTimeFormatOptions = {
     month: "short",
     day: "2-digit",
@@ -22,7 +23,9 @@ export function formatDate(input: Date | string, options: FormatDateOptions = {}
     baseOptions.hour = "2-digit";
     baseOptions.minute = "2-digit";
     baseOptions.hour12 = false;
-    baseOptions.timeZoneName = "short";
+    if (showTimeZoneName) {
+      baseOptions.timeZoneName = "short";
+    }
   }
   if (timeZone) {
     baseOptions.timeZone = timeZone;

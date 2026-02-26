@@ -88,6 +88,8 @@ const SUPPORTED_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "heic", "heif"] as c
 const enableCfImageResize =
   !import.meta.env.DEV && import.meta.env.PUBLIC_ENABLE_CF_IMAGE_OPTIMIZE === "true";
 const CDN_IMAGE_EXTENSIONS = new Set(SUPPORTED_EXTENSIONS);
+const IMAGE_MARKDOWN_RE = /!\[[^\]]*]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
+const IMAGE_HTML_RE = /<img\s+[^>]*src=["']([^"']+)["'][^>]*>/gi;
 
 const toCloudflareResizedCandidate = (value: string): string | null => {
   if (!enableCfImageResize) return null;
@@ -189,10 +191,38 @@ const dedupeOrderedSources = (sources: string[]) => {
   return ordered;
 };
 
+const extractImageUrlsFromMarkdown = (markdown: string | null | undefined) => {
+  if (!markdown) return [];
+  IMAGE_MARKDOWN_RE.lastIndex = 0;
+  IMAGE_HTML_RE.lastIndex = 0;
+  const urls: string[] = [];
+  const add = (value: string) => {
+    const raw = (value ?? "").trim().replace(/^<|>$/g, "");
+    if (!raw || urls.includes(raw)) return;
+    urls.push(raw);
+  };
+  for (;;) {
+    const match = IMAGE_MARKDOWN_RE.exec(markdown);
+    if (!match) break;
+    add(match[1] ?? "");
+  }
+  for (;;) {
+    const match = IMAGE_HTML_RE.exec(markdown);
+    if (!match) break;
+    add(match[1] ?? "");
+  }
+  return urls;
+};
+
+const markdownGallerySources = [
+  ...extractImageUrlsFromMarkdown(post.body_markdown),
+  ...extractImageUrlsFromMarkdown(post.content_md),
+];
+
+const fallbackPhotoSources = photosWithCandidates.map((photo) => photo.src);
+
 const orderedGallerySources = dedupeOrderedSources(
-  postMediaUrls.length > 0
-    ? [coverSrc, ...postMediaUrls]
-    : [coverSrc, ...photosWithCandidates.map((photo) => photo.src)]
+  [coverSrc, ...postMediaUrls, ...markdownGallerySources, ...fallbackPhotoSources]
 );
 
 const wallImages = orderedGallerySources.map((src, index) => ({
