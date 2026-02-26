@@ -1574,7 +1574,9 @@ a { color: inherit; text-decoration: none; }
 .love-counter-wrap {
   margin-top: 10px;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
 
 .love-counter-strip {
@@ -1631,6 +1633,137 @@ a { color: inherit; text-decoration: none; }
   letter-spacing: 0.14em;
   text-transform: uppercase;
   opacity: 0.7;
+  white-space: nowrap;
+}
+
+.love-events-strip {
+  position: relative;
+  width: min(640px, 85%);
+  padding: 8px 10px 10px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(0,0,0,0.34);
+  color: rgba(255,255,255,0.88);
+  box-shadow: 0 16px 34px rgba(0,0,0,0.3);
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+}
+
+.love-events-strip::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(255,255,255,0.06), rgba(255,255,255,0));
+  opacity: 0.32;
+  pointer-events: none;
+}
+
+.love-events-strip__head {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.love-events-strip__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.72);
+}
+
+.love-events-strip__next {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.9);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 60%;
+}
+
+.love-events-strip__rail {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 1px 1px 2px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.love-events-strip__rail::-webkit-scrollbar {
+  display: none;
+}
+
+.love-event-chip {
+  --event-accent: 255 255 255;
+  flex: 0 0 auto;
+  min-width: clamp(250px, 74vw, 310px);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(var(--event-accent),0.42);
+  background: linear-gradient(120deg, rgba(var(--event-accent),0.24), rgba(255,255,255,0.06));
+  scroll-snap-align: start;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+}
+
+.love-event-chip__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.28);
+  font-size: 13px;
+  line-height: 1;
+}
+
+.love-event-chip__meta {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.love-event-chip__name {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.95);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.love-event-chip__date {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.75);
+}
+
+.love-event-chip__countdown {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.92);
   white-space: nowrap;
 }
 
@@ -1926,6 +2059,35 @@ a { color: inherit; text-decoration: none; }
   .love-counter__since {
     font-size: 10px;
   }
+
+  .love-events-strip {
+    width: min(520px, 92%);
+    padding: 7px 8px 8px;
+  }
+
+  .love-events-strip__head {
+    margin-bottom: 6px;
+  }
+
+  .love-events-strip__next {
+    max-width: 52%;
+    font-size: 9px;
+  }
+
+  .love-event-chip {
+    min-width: min(100%, 286px);
+    gap: 8px;
+    padding: 7px 9px;
+  }
+
+  .love-event-chip__name {
+    font-size: 11px;
+  }
+
+  .love-event-chip__countdown {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+  }
 }
 
 @media (orientation: landscape) and (max-height: 500px) {
@@ -1937,6 +2099,15 @@ a { color: inherit; text-decoration: none; }
 
   .love-counter__day {
     font-size: 16px;
+  }
+
+  .love-events-strip {
+    width: min(520px, 92%);
+    padding: 6px 8px 8px;
+  }
+
+  .love-event-chip {
+    min-width: 242px;
   }
 
   .entry-title {

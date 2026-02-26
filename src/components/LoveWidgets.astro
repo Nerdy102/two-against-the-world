@@ -10,6 +10,52 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         <div class="love-counter__day" data-love-day>DAY 0</div>
         <div class="love-counter__since">since 31 Dec 2025</div>
       </div>
+
+      <section class="love-events-strip" data-love-events aria-label="Main events của Mỹ Uyên và Việt Hoà">
+        <div class="love-events-strip__head">
+          <span class="love-events-strip__title">
+            <span aria-hidden="true">✦</span>
+            Main Events
+          </span>
+          <span class="love-events-strip__next" data-love-event-next>up next · --D --:--:--</span>
+        </div>
+
+        <div class="love-events-strip__rail" role="list" aria-label="Main event timeline">
+          <article
+            class="love-event-chip"
+            role="listitem"
+            style="--event-accent: 255 141 177;"
+            data-love-event
+            data-love-event-name="Sinh nhật Mỹ Uyên"
+            data-love-event-month="3"
+            data-love-event-day="17"
+          >
+            <span class="love-event-chip__icon" aria-hidden="true">🎂</span>
+            <div class="love-event-chip__meta">
+              <span class="love-event-chip__name">Sinh nhật Mỹ Uyên</span>
+              <span class="love-event-chip__date" data-love-event-date>17/03</span>
+            </div>
+            <strong class="love-event-chip__countdown" data-love-event-countdown>--D --:--:--</strong>
+          </article>
+
+          <article
+            class="love-event-chip"
+            role="listitem"
+            style="--event-accent: 116 218 255;"
+            data-love-event
+            data-love-event-name="Việt Hoà về Việt Nam"
+            data-love-event-month="3"
+            data-love-event-day="23"
+          >
+            <span class="love-event-chip__icon" aria-hidden="true">✈︎</span>
+            <div class="love-event-chip__meta">
+              <span class="love-event-chip__name">Việt Hoà về Việt Nam</span>
+              <span class="love-event-chip__date" data-love-event-date>23/03</span>
+            </div>
+            <strong class="love-event-chip__countdown" data-love-event-countdown>--D --:--:--</strong>
+          </article>
+        </div>
+      </section>
     </div>
 
     <div class="love-widgets love-widgets--clocks" data-love-widgets>
@@ -45,11 +91,9 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
 {enabled && (
   <script is:inline>
     const initLoveWidgets = () => {
-      if (document.documentElement.dataset.loveWidgetsBound === "1") return;
-      document.documentElement.dataset.loveWidgetsBound = "1";
-
       const dayEl = document.querySelector("[data-love-day]");
       const clockRoot = document.querySelector("[data-love-widgets]");
+      const eventRoot = document.querySelector("[data-love-events]");
       const clockEls = clockRoot
         ? {
             vn: clockRoot.querySelector("[data-love-clock='vn'] strong"),
@@ -57,8 +101,20 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
             us: clockRoot.querySelector("[data-love-clock='us'] strong"),
           }
         : {};
+      const nextEventEl = eventRoot ? eventRoot.querySelector("[data-love-event-next]") : null;
+      const eventEls = eventRoot
+        ? Array.from(eventRoot.querySelectorAll("[data-love-event]")).map((eventEl) => ({
+            name: eventEl.getAttribute("data-love-event-name") || "event",
+            month: Number(eventEl.getAttribute("data-love-event-month") || "1"),
+            day: Number(eventEl.getAttribute("data-love-event-day") || "1"),
+            countdownEl: eventEl.querySelector("[data-love-event-countdown]"),
+            dateEl: eventEl.querySelector("[data-love-event-date]"),
+          }))
+        : [];
 
       const startParts = { year: 2025, month: 12, day: 31 };
+      const eventTimezoneOffsetMinutes = 7 * 60;
+      const pad = (value) => String(value).padStart(2, "0");
 
       const getDateParts = (timeZone) => {
         const formatter = new Intl.DateTimeFormat("en-CA", {
@@ -85,6 +141,48 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         dayEl.textContent = `DAY ${diff}`;
       };
 
+      const eventTargetUtc = (year, month, day) =>
+        Date.UTC(year, month - 1, day, 0, 0, 0) - eventTimezoneOffsetMinutes * 60 * 1000;
+
+      const formatCountdown = (diffMs) => {
+        const totalSeconds = Math.max(0, Math.floor(diffMs / 1000));
+        const days = Math.floor(totalSeconds / 86400);
+        const hours = Math.floor((totalSeconds % 86400) / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        return `${days}D ${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+      };
+
+      const updateEvents = () => {
+        if (!eventEls.length) return;
+        const nowTs = Date.now();
+        const currentYear = getDateParts("Asia/Ho_Chi_Minh").year;
+        let nearest = null;
+
+        eventEls.forEach((eventItem) => {
+          let targetYear = currentYear;
+          let targetTs = eventTargetUtc(targetYear, eventItem.month, eventItem.day);
+          if (targetTs <= nowTs) {
+            targetYear += 1;
+            targetTs = eventTargetUtc(targetYear, eventItem.month, eventItem.day);
+          }
+
+          const diff = Math.max(0, targetTs - nowTs);
+          if (eventItem.countdownEl) eventItem.countdownEl.textContent = formatCountdown(diff);
+          if (eventItem.dateEl) {
+            eventItem.dateEl.textContent = `${pad(eventItem.day)}/${pad(eventItem.month)} · ${targetYear}`;
+          }
+
+          if (!nearest || diff < nearest.diff) {
+            nearest = { name: eventItem.name, diff };
+          }
+        });
+
+        if (nextEventEl && nearest) {
+          nextEventEl.textContent = `${nearest.name} · ${formatCountdown(nearest.diff)}`;
+        }
+      };
+
       const makeClock = (timeZone) =>
         new Intl.DateTimeFormat("en-GB", {
           timeZone,
@@ -105,10 +203,17 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         if (clockEls.jp) clockEls.jp.textContent = clocks.jp.format(now);
         if (clockEls.us) clockEls.us.textContent = clocks.us.format(now);
         updateDay();
+        updateEvents();
       };
 
       tick();
-      setInterval(tick, 1000);
+
+      const globalState = window.__loveWidgetsState || {};
+      if (globalState.timerId) {
+        window.clearInterval(globalState.timerId);
+      }
+      globalState.timerId = window.setInterval(tick, 1000);
+      window.__loveWidgetsState = globalState;
     };
 
     initLoveWidgets();

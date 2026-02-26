@@ -33,32 +33,165 @@ const seedFn = xmur3(seed);
 const rand = mulberry32(seedFn());
 const r = (min: number, max: number) => min + rand() * (max - min);
 
-// Cover fixed center
-const COVER = { cStart: 4, cSpan: 6, rStart: 1, rSpan: 46 };
+type LayoutSlot = {
+  cStart: number;
+  cSpan: number;
+  rStart: number;
+  rSpan: number;
+  shape?: "rect" | "soft" | "round";
+};
 
-// Packed slots around it (tight wall)
-const SLOTS = [
-  { cStart: 1,  cSpan: 3, rStart: 1,  rSpan: 16, shape: "rect" },
-  { cStart: 1,  cSpan: 3, rStart: 17, rSpan: 16, shape: "rect" },
-  { cStart: 1,  cSpan: 3, rStart: 33, rSpan: 14, shape: "soft" },
+const slot = (
+  cStart: number,
+  cSpan: number,
+  rStart: number,
+  rSpan: number,
+  shape?: "rect" | "soft" | "round"
+): LayoutSlot => ({ cStart, cSpan, rStart, rSpan, shape });
 
-  { cStart: 10, cSpan: 3, rStart: 1,  rSpan: 16, shape: "rect" },
-  { cStart: 10, cSpan: 3, rStart: 17, rSpan: 16, shape: "round" },
-  { cStart: 10, cSpan: 3, rStart: 33, rSpan: 14, shape: "soft" },
+const AFTER_HERO_GRID = [
+  slot(1, 3, 9, 6),
+  slot(4, 3, 9, 6),
+  slot(7, 3, 9, 6),
+  slot(10, 3, 9, 6),
+  slot(1, 3, 15, 6),
+  slot(4, 3, 15, 6),
+  slot(7, 3, 15, 6),
+  slot(10, 3, 15, 6),
+  slot(1, 3, 21, 6),
+  slot(4, 3, 21, 6),
+  slot(7, 3, 21, 6),
+  slot(10, 3, 21, 6),
+  slot(4, 3, 27, 6),
+  slot(7, 3, 27, 6),
+  slot(1, 3, 27, 6),
+] as const;
 
-  { cStart: 1,  cSpan: 4, rStart: 47, rSpan: 20, shape: "rect" },
-  { cStart: 5,  cSpan: 4, rStart: 47, rSpan: 20, shape: "soft" },
-  { cStart: 9,  cSpan: 4, rStart: 47, rSpan: 20, shape: "rect" },
+const layoutForCount = (count: number): LayoutSlot[] => {
+  switch (count) {
+    case 1:
+      return [slot(1, 12, 1, 34)];
+    case 2:
+      return [slot(1, 6, 1, 24), slot(7, 6, 1, 24)];
+    case 3:
+      return [slot(1, 8, 1, 24), slot(9, 4, 1, 12), slot(9, 4, 13, 12)];
+    case 4:
+      return [slot(1, 6, 1, 12), slot(7, 6, 1, 12), slot(1, 6, 13, 12), slot(7, 6, 13, 12)];
+    case 5:
+      return [
+        slot(1, 8, 1, 16),
+        slot(9, 4, 1, 8),
+        slot(9, 4, 9, 8),
+        slot(1, 4, 17, 8),
+        slot(5, 8, 17, 8),
+      ];
+    case 6:
+      return [
+        slot(1, 4, 1, 12),
+        slot(5, 4, 1, 12),
+        slot(9, 4, 1, 12),
+        slot(1, 4, 13, 12),
+        slot(5, 4, 13, 12),
+        slot(9, 4, 13, 12),
+      ];
+    case 7:
+      return [
+        slot(1, 8, 1, 16),
+        slot(9, 4, 1, 8),
+        slot(9, 4, 9, 8),
+        slot(1, 4, 17, 8),
+        slot(5, 4, 17, 8),
+        slot(9, 4, 17, 8),
+        slot(1, 12, 25, 8),
+      ];
+    case 8:
+      return [
+        slot(1, 3, 1, 12),
+        slot(4, 3, 1, 12),
+        slot(7, 3, 1, 12),
+        slot(10, 3, 1, 12),
+        slot(1, 3, 13, 12),
+        slot(4, 3, 13, 12),
+        slot(7, 3, 13, 12),
+        slot(10, 3, 13, 12),
+      ];
+    case 9:
+      return [
+        slot(1, 4, 1, 8),
+        slot(5, 4, 1, 8),
+        slot(9, 4, 1, 8),
+        slot(1, 4, 9, 8),
+        slot(5, 4, 9, 8),
+        slot(9, 4, 9, 8),
+        slot(1, 4, 17, 8),
+        slot(5, 4, 17, 8),
+        slot(9, 4, 17, 8),
+      ];
+    case 10:
+      return [
+        slot(1, 12, 1, 9),
+        slot(1, 4, 10, 8),
+        slot(5, 4, 10, 8),
+        slot(9, 4, 10, 8),
+        slot(1, 4, 18, 8),
+        slot(5, 4, 18, 8),
+        slot(9, 4, 18, 8),
+        slot(1, 4, 26, 8),
+        slot(5, 4, 26, 8),
+        slot(9, 4, 26, 8),
+      ];
+    case 11:
+      return [
+        slot(1, 12, 1, 8),
+        slot(1, 2, 9, 9),
+        slot(3, 2, 9, 9),
+        slot(5, 2, 9, 9),
+        slot(7, 3, 9, 9),
+        slot(10, 3, 9, 9),
+        slot(1, 2, 18, 9),
+        slot(3, 2, 18, 9),
+        slot(5, 2, 18, 9),
+        slot(7, 3, 18, 9),
+        slot(10, 3, 18, 9),
+      ];
+    case 12:
+      return [
+        slot(1, 3, 1, 8),
+        slot(4, 3, 1, 8),
+        slot(7, 3, 1, 8),
+        slot(10, 3, 1, 8),
+        slot(1, 3, 9, 8),
+        slot(4, 3, 9, 8),
+        slot(7, 3, 9, 8),
+        slot(10, 3, 9, 8),
+        slot(1, 3, 17, 8),
+        slot(4, 3, 17, 8),
+        slot(7, 3, 17, 8),
+        slot(10, 3, 17, 8),
+      ];
+    case 13:
+      return [slot(1, 12, 1, 8), ...AFTER_HERO_GRID.slice(0, 12)];
+    case 14:
+      return [slot(1, 12, 1, 8), ...AFTER_HERO_GRID.slice(0, 13)];
+    case 15:
+      return [slot(1, 12, 1, 8), ...AFTER_HERO_GRID.slice(0, 14)];
+    case 16:
+      return [slot(1, 12, 1, 8), ...AFTER_HERO_GRID.slice(0, 15)];
+    default:
+      return [slot(1, 12, 1, 34)];
+  }
+};
 
-  { cStart: 3,  cSpan: 4, rStart: 67, rSpan: 18, shape: "round" },
-  { cStart: 7,  cSpan: 6, rStart: 67, rSpan: 18, shape: "rect" },
-];
+const SHAPE_RING: Array<"rect" | "soft" | "round"> = ["rect", "soft", "round"];
+const resolvedCount = Math.max(1, Math.min(images.length, 16));
+const layoutSlots = layoutForCount(resolvedCount);
 
 const frames = images.map((img, i) => {
-  const isCover = i === 0;
-  const slot = !isCover ? SLOTS[(i - 1) % SLOTS.length] : null;
+  const picked = layoutSlots[i] ?? layoutSlots[layoutSlots.length - 1] ?? slot(1, 12, 1, 20);
+  const isCover = i === 0 && resolvedCount > 2;
 
-  const rot = isCover ? r(-0.6, 0.6) : r(-1.1, 1.1);
+  const rot = resolvedCount <= 2 ? 0 : (isCover ? r(-0.5, 0.5) : r(-0.9, 0.9));
+  const shape = picked.shape ?? SHAPE_RING[i % SHAPE_RING.length] ?? "rect";
 
   return {
     ...img,
@@ -66,20 +199,25 @@ const frames = images.map((img, i) => {
     idx: i,
     isCover,
     rot,
-    cStart: isCover ? COVER.cStart : (slot?.cStart ?? 1),
-    cSpan:  isCover ? COVER.cSpan  : (slot?.cSpan ?? 3),
-    rStart: isCover ? COVER.rStart : (slot?.rStart ?? 1),
-    rSpan:  isCover ? COVER.rSpan  : (slot?.rSpan ?? 18),
-    shape:  isCover ? "" : (slot?.shape ?? "rect"),
+    cStart: picked.cStart,
+    cSpan: picked.cSpan,
+    rStart: picked.rStart,
+    rSpan: picked.rSpan,
+    shape: isCover ? "" : shape,
     delay: i * 60,
   };
 });
 
 const isSingle = frames.length === 1;
 const isPair = frames.length === 2;
+const isCustomGrid = frames.length >= 3;
 ---
 
-<div class={`framewall ${isSingle ? "framewall--single" : ""} ${isPair ? "framewall--pair" : ""}`} data-pair-layout="stack">
+<div
+  class={`framewall ${isSingle ? "framewall--single" : ""} ${isPair ? "framewall--pair" : ""} ${isCustomGrid ? "framewall--custom" : ""}`}
+  data-pair-layout="stack"
+  data-count={String(frames.length)}
+>
   <!-- dummy target for closing -->
   <span id="lb-close" class="lb-close-target" aria-hidden="true"></span>
 
@@ -251,16 +389,22 @@ const isPair = frames.length === 2;
 
     @media (max-width: 640px){
       .wall{
-        grid-template-columns: repeat(6, minmax(0, 1fr));
-        grid-auto-rows: 9px;
-        gap: 7px;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        grid-auto-rows: 6px;
+        gap: 6px;
         padding: 8px;
       }
-      .frame{ grid-column: span 3 !important; grid-row: span 18 !important; }
-      .frame.is-cover{ grid-column: 1 / -1 !important; grid-row: span 30 !important; }
-      .framewall--single .frame{ grid-column: auto !important; grid-row: auto !important; }
-      .framewall--pair .wall{ grid-template-columns: 1fr; grid-auto-rows: minmax(220px, auto); }
-      .framewall--pair .frame{ grid-column: auto !important; grid-row: auto !important; }
+      .framewall--single .wall{
+        display: block;
+        padding: 10px;
+      }
+      .framewall--pair .wall{
+        grid-template-columns: 1fr;
+        grid-auto-rows: minmax(220px, auto);
+      }
+      .framewall--pair[data-pair-layout="side"] .wall{
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
     }
 
     .frame{
