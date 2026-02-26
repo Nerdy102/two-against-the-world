@@ -47,7 +47,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
             data-love-event-name="Sinh nhật Mỹ Uyên"
             data-love-event-month="3"
             data-love-event-day="17"
-            data-love-event-note="Sinh nhật em bé Mỹ Uyên. Ngày đặc biệt nhất tháng 3."
+            data-love-event-note="Sinh nhật con vịu ơ"
           >
             <span class="love-event-chip__icon" aria-hidden="true">🎂</span>
             <div class="love-event-chip__meta">
@@ -94,7 +94,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
               data-love-event-name="Sinh nhật Việt Hoà"
               data-love-event-month="6"
               data-love-event-day="4"
-              data-love-event-note="Sinh nhật của Hoà, ngày reset năng lượng để bắt đầu chapter mới."
+              data-love-event-note="t lại kiếm góc nào và trốn mất cho xem"
             >
               <span class="love-event-chip__icon" aria-hidden="true">🎉</span>
               <div class="love-event-chip__meta">
@@ -136,7 +136,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
               data-love-event-name="Anniversary 1 Year"
               data-love-event-month="12"
               data-love-event-day="31"
-              data-love-event-note="Anniversary 1 năm, checkpoint lớn của cả hai sau một năm đồng hành."
+              data-love-event-note="có nhắm là đến được ngày này không ?"
             >
               <span class="love-event-chip__icon" aria-hidden="true">🥂</span>
               <div class="love-event-chip__meta">
@@ -374,25 +374,62 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
       const globalState = window.__loveWidgetsState || {};
       let pastSnapshot = "";
 
-      const getDateParts = (timeZone) => {
-        const formatter = new Intl.DateTimeFormat("en-CA", {
-          timeZone,
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-        });
-        const parts = formatter.formatToParts(new Date());
-        const lookup = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+      const defaultDateParts = () => {
+        const now = new Date();
         return {
-          year: Number(lookup.year),
-          month: Number(lookup.month),
-          day: Number(lookup.day),
+          year: now.getFullYear(),
+          month: now.getMonth() + 1,
+          day: now.getDate(),
         };
+      };
+
+      const resolveTimeZone = (candidates) => {
+        if (!Array.isArray(candidates) || typeof Intl === "undefined") return "UTC";
+        for (const candidate of candidates) {
+          try {
+            new Intl.DateTimeFormat("en-US", { timeZone: candidate }).format(new Date());
+            return candidate;
+          } catch (_error) {}
+        }
+        return "UTC";
+      };
+
+      const timeZones = {
+        vn: resolveTimeZone(["Asia/Ho_Chi_Minh", "Asia/Saigon", "Asia/Bangkok"]),
+        jp: resolveTimeZone(["Asia/Tokyo"]),
+        us: resolveTimeZone(["America/New_York", "US/Eastern"]),
+      };
+
+      const getDateParts = (timeZone) => {
+        try {
+          const formatter = new Intl.DateTimeFormat("en-CA", {
+            timeZone,
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          });
+          if (typeof formatter.formatToParts !== "function") {
+            return defaultDateParts();
+          }
+          const parts = formatter.formatToParts(new Date());
+          let year = 0;
+          let month = 0;
+          let day = 0;
+          parts.forEach((part) => {
+            if (part.type === "year") year = Number(part.value);
+            if (part.type === "month") month = Number(part.value);
+            if (part.type === "day") day = Number(part.value);
+          });
+          if (!year || !month || !day) return defaultDateParts();
+          return { year, month, day };
+        } catch (_error) {
+          return defaultDateParts();
+        }
       };
 
       const updateDay = () => {
         if (!dayEl) return;
-        const parts = getDateParts("Asia/Ho_Chi_Minh");
+        const parts = getDateParts(timeZones.vn);
         const todayUtc = Date.UTC(parts.year, parts.month - 1, parts.day);
         const startUtc = Date.UTC(startParts.year, startParts.month - 1, startParts.day);
         const diff = Math.max(0, Math.floor((todayUtc - startUtc) / (1000 * 60 * 60 * 24)) + 1);
@@ -404,7 +441,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
 
       const sortEventsForAdmin = () => {
         const nowTs = Date.now();
-        const currentYear = getDateParts("Asia/Ho_Chi_Minh").year;
+        const currentYear = getDateParts(timeZones.vn).year;
         return [...eventEls]
           .map((eventItem) => {
             const targetTs = eventTargetUtc(
@@ -552,7 +589,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
       };
 
       const hydratePastBannerFromStorage = () => {
-        const currentYear = getDateParts("Asia/Ho_Chi_Minh").year;
+        const currentYear = getDateParts(timeZones.vn).year;
         const items = readPastEvents()
           .filter((item) => Number(item?.year) === currentYear)
           .sort((a, b) => Number(b?.completedAt || 0) - Number(a?.completedAt || 0));
@@ -1069,7 +1106,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
       const updateEvents = () => {
         if (!eventEls.length) return;
         const nowTs = Date.now();
-        const currentYear = getDateParts("Asia/Ho_Chi_Minh").year;
+        const currentYear = getDateParts(timeZones.vn).year;
         const upcomingEntries = [];
         const pastEntries = [];
         let nearest = null;
@@ -1150,18 +1187,27 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
 
       hydrateRemoteEvents();
 
-      const makeClock = (timeZone) =>
-        new Intl.DateTimeFormat("en-GB", {
-          timeZone,
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-        });
+      const makeClock = (timeZone) => {
+        try {
+          return new Intl.DateTimeFormat("en-GB", {
+            timeZone,
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          });
+        } catch (_error) {
+          return new Intl.DateTimeFormat("en-GB", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          });
+        }
+      };
 
       const clocks = {
-        vn: makeClock("Asia/Ho_Chi_Minh"),
-        jp: makeClock("Asia/Tokyo"),
-        us: makeClock("America/New_York"),
+        vn: makeClock(timeZones.vn),
+        jp: makeClock(timeZones.jp),
+        us: makeClock(timeZones.us),
       };
 
       const tick = () => {
