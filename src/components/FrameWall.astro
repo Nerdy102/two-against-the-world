@@ -130,7 +130,7 @@ const isCustomGrid = frames.length >= 3;
             <img
               src={f.initialSrc}
               alt={f.alt ?? ""}
-              loading="lazy"
+              loading={f.isCover ? "eager" : "lazy"}
               decoding="async"
               data-candidates={f.candidates?.join("|")}
               data-candidate-index="0"

@@ -66,6 +66,7 @@ let reactionsSchemaReady: Promise<void> | null = null;
 let postMediaSchemaReady: Promise<void> | null = null;
 let adminSchemaReady: Promise<void> | null = null;
 let mediaSchemaReady: Promise<void> | null = null;
+let loveEventsSchemaReady: Promise<void> | null = null;
 
 type SchemaOptions = {
   allowBootstrap?: boolean;
@@ -439,6 +440,48 @@ export async function ensureAdminSchema(
   return adminSchemaReady;
 }
 
+export async function ensureLoveEventsSchema(
+  db: D1Database,
+  { allowBootstrap = false }: SchemaOptions = {}
+): Promise<void> {
+  if (loveEventsSchemaReady) {
+    return loveEventsSchemaReady;
+  }
+  loveEventsSchemaReady = (async () => {
+    if (!allowBootstrap) {
+      if (!(await tableExists(db, "love_events"))) {
+        assertSchemaReady("love_events");
+      }
+    }
+    await db
+      .prepare(
+        `CREATE TABLE IF NOT EXISTS love_events (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          month INTEGER NOT NULL,
+          day INTEGER NOT NULL,
+          hour INTEGER NOT NULL DEFAULT 0,
+          minute INTEGER NOT NULL DEFAULT 0,
+          event_group TEXT NOT NULL DEFAULT 'extra',
+          icon TEXT,
+          note TEXT,
+          accent_rgb TEXT,
+          is_active INTEGER NOT NULL DEFAULT 1,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )`
+      )
+      .run();
+    await db
+      .prepare(
+        `CREATE INDEX IF NOT EXISTS idx_love_events_active
+         ON love_events(is_active, event_group, month, day, created_at)`
+      )
+      .run();
+  })();
+  return loveEventsSchemaReady;
+}
+
 export type PostRecord = {
   id: string;
   slug: string;
@@ -496,4 +539,20 @@ export type ReactionRecord = {
   kind: string;
   count: number;
   updated_at?: string;
+};
+
+export type LoveEventRecord = {
+  id: string;
+  name: string;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+  event_group: "featured" | "extra";
+  icon: string | null;
+  note: string | null;
+  accent_rgb: string | null;
+  is_active: number;
+  created_at: string;
+  updated_at: string;
 };

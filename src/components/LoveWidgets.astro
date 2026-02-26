@@ -15,6 +15,15 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         <div class="love-events-strip__head">
           <span class="love-events-strip__next" data-love-event-next>⚡ THE UPCOMING EVENT</span>
           <button
+            class="love-events-strip__admin-btn"
+            type="button"
+            data-love-events-admin-open
+            aria-label="Thêm event (admin)"
+            title="Thêm event (admin)"
+          >
+            ✚
+          </button>
+          <button
             class="love-events-strip__toggle"
             type="button"
             data-love-events-toggle
@@ -152,6 +161,59 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
           </button>
         </section>
       </div>
+
+      <div class="love-event-admin-modal" data-love-event-admin-modal hidden>
+        <button class="love-event-admin-modal__backdrop" type="button" data-love-events-admin-close aria-label="Đóng event admin"></button>
+        <section class="love-event-admin-modal__card" role="dialog" aria-modal="true" aria-labelledby="love-event-admin-title">
+          <div class="love-event-admin-modal__eyebrow">EVENT ADMIN</div>
+          <h3 id="love-event-admin-title" class="love-event-admin-modal__title">Add New Event</h3>
+
+          <div class="love-event-admin-modal__auth" data-love-event-admin-auth>
+            <label class="love-event-admin-modal__field">
+              <span>Password</span>
+              <input class="input" type="password" data-love-event-admin-password placeholder="Admin password" />
+            </label>
+            <button class="love-event-admin-modal__btn" type="button" data-love-event-admin-unlock>Unlock</button>
+          </div>
+
+          <form class="love-event-admin-modal__form" data-love-event-admin-form hidden>
+            <label class="love-event-admin-modal__field">
+              <span>Event title</span>
+              <input class="input" name="name" required placeholder="Tên sự kiện" />
+            </label>
+            <label class="love-event-admin-modal__field">
+              <span>Date</span>
+              <input class="input" type="date" name="event_date" required />
+            </label>
+            <label class="love-event-admin-modal__field">
+              <span>Time (optional)</span>
+              <input class="input" type="time" name="event_time" step="60" />
+            </label>
+            <label class="love-event-admin-modal__field">
+              <span>Icon</span>
+              <input class="input" name="icon" maxlength="4" placeholder="✈︎" />
+            </label>
+            <label class="love-event-admin-modal__field">
+              <span>Group</span>
+              <select class="input" name="event_group">
+                <option value="extra">Timeline</option>
+                <option value="featured">Featured</option>
+              </select>
+            </label>
+            <label class="love-event-admin-modal__field">
+              <span>Accent rgb (optional)</span>
+              <input class="input" name="accent_rgb" placeholder="116 218 255" />
+            </label>
+            <label class="love-event-admin-modal__field">
+              <span>Note</span>
+              <textarea class="input" name="note" rows="3" placeholder="Mô tả ngắn cho event"></textarea>
+            </label>
+            <button class="love-event-admin-modal__btn" type="submit">Push To Timeline</button>
+          </form>
+
+          <p class="love-event-admin-modal__status" data-love-event-admin-status></p>
+        </section>
+      </div>
     </div>
 
     <div class="love-widgets love-widgets--clocks" data-love-widgets>
@@ -197,6 +259,13 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
       const noteModal = document.querySelector("[data-love-event-note-modal]");
       const noteTitle = noteModal ? noteModal.querySelector("[data-love-event-note-title]") : null;
       const noteBody = noteModal ? noteModal.querySelector("[data-love-event-note-body]") : null;
+      const adminOpenBtn = eventRoot ? eventRoot.querySelector("[data-love-events-admin-open]") : null;
+      const adminModal = document.querySelector("[data-love-event-admin-modal]");
+      const adminForm = adminModal ? adminModal.querySelector("[data-love-event-admin-form]") : null;
+      const adminAuth = adminModal ? adminModal.querySelector("[data-love-event-admin-auth]") : null;
+      const adminPasswordInput = adminModal ? adminModal.querySelector("[data-love-event-admin-password]") : null;
+      const adminUnlockBtn = adminModal ? adminModal.querySelector("[data-love-event-admin-unlock]") : null;
+      const adminStatus = adminModal ? adminModal.querySelector("[data-love-event-admin-status]") : null;
       const clockEls = clockRoot
         ? {
             vn: clockRoot.querySelector("[data-love-clock='vn'] strong"),
@@ -207,31 +276,44 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
       const nextEventEl = eventRoot ? eventRoot.querySelector("[data-love-event-next]") : null;
       const eventToggleBtn = eventRoot ? eventRoot.querySelector("[data-love-events-toggle]") : null;
       const eventMorePanel = eventRoot ? eventRoot.querySelector("[data-love-events-more]") : null;
-      const extraEventsCount = eventRoot
-        ? eventRoot.querySelectorAll("[data-love-event-group='extra']").length
-        : 0;
-      const eventEls = eventRoot
-        ? Array.from(eventRoot.querySelectorAll("[data-love-event]")).map((eventEl) => ({
-            id: [
-              eventEl.getAttribute("data-love-event-name") || "event",
-              eventEl.getAttribute("data-love-event-month") || "1",
-              eventEl.getAttribute("data-love-event-day") || "1",
-            ].join("__"),
-            group: eventEl.getAttribute("data-love-event-group") || "extra",
-            name: eventEl.getAttribute("data-love-event-name") || "event",
-            month: Number(eventEl.getAttribute("data-love-event-month") || "1"),
-            day: Number(eventEl.getAttribute("data-love-event-day") || "1"),
-            hour: Number(eventEl.getAttribute("data-love-event-hour") || "0"),
-            minute: Number(eventEl.getAttribute("data-love-event-minute") || "0"),
-            note: eventEl.getAttribute("data-love-event-note") || "No note yet.",
-            icon:
-              eventEl.querySelector(".love-event-chip__icon")?.textContent?.trim() || "✦",
-            eventEl,
-            countdownEl: eventEl.querySelector("[data-love-event-countdown]"),
-            dateEl: eventEl.querySelector("[data-love-event-date]"),
-            noteTrigger: eventEl.querySelector("[data-love-event-note-trigger]"),
-          }))
-        : [];
+      let extraEventsCount = 0;
+
+      const parseEventEl = (eventEl) => ({
+        id:
+          eventEl.getAttribute("data-love-event-id") ||
+          [
+            eventEl.getAttribute("data-love-event-name") || "event",
+            eventEl.getAttribute("data-love-event-month") || "1",
+            eventEl.getAttribute("data-love-event-day") || "1",
+          ].join("__"),
+        group: eventEl.getAttribute("data-love-event-group") || "extra",
+        name: eventEl.getAttribute("data-love-event-name") || "event",
+        month: Number(eventEl.getAttribute("data-love-event-month") || "1"),
+        day: Number(eventEl.getAttribute("data-love-event-day") || "1"),
+        hour: Number(eventEl.getAttribute("data-love-event-hour") || "0"),
+        minute: Number(eventEl.getAttribute("data-love-event-minute") || "0"),
+        note: eventEl.getAttribute("data-love-event-note") || "No note yet.",
+        icon:
+          eventEl.querySelector(".love-event-chip__icon")?.textContent?.trim() || "✦",
+        eventEl,
+        countdownEl: eventEl.querySelector("[data-love-event-countdown]"),
+        dateEl: eventEl.querySelector("[data-love-event-date]"),
+        noteTrigger: eventEl.querySelector("[data-love-event-note-trigger]"),
+      });
+
+      const collectEventEls = () =>
+        eventRoot
+          ? Array.from(eventRoot.querySelectorAll("[data-love-event]")).map((eventEl) => parseEventEl(eventEl))
+          : [];
+      const refreshExtraEventsCount = () => {
+        extraEventsCount = eventRoot
+          ? eventRoot.querySelectorAll("[data-love-event-group='extra']").length
+          : 0;
+        return extraEventsCount;
+      };
+
+      let eventEls = collectEventEls();
+      refreshExtraEventsCount();
 
       const startParts = { year: 2025, month: 12, day: 31 };
       const eventTimezoneOffsetMinutes = 7 * 60;
@@ -275,6 +357,80 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         const minutes = Math.floor((totalSeconds % 3600) / 60);
         const seconds = totalSeconds % 60;
         return `${days}D ${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+      };
+
+      const getCsrfToken = () => {
+        const match = document.cookie.match(/(?:^|; )twaw_admin_csrf=([^;]+)/);
+        return match ? decodeURIComponent(match[1]) : "";
+      };
+
+      const createEventChip = ({
+        id,
+        name,
+        month,
+        day,
+        hour = 0,
+        minute = 0,
+        eventGroup = "extra",
+        icon = "✦",
+        note = "",
+        accentRgb = "",
+      }) => {
+        const article = document.createElement("article");
+        article.className =
+          eventGroup === "extra" ? "love-event-chip love-event-chip--extra" : "love-event-chip";
+        article.setAttribute("role", "listitem");
+        article.setAttribute("data-love-event", "");
+        article.setAttribute("data-love-event-id", id);
+        article.setAttribute("data-love-event-group", eventGroup);
+        article.setAttribute("data-love-event-name", name);
+        article.setAttribute("data-love-event-month", String(month));
+        article.setAttribute("data-love-event-day", String(day));
+        article.setAttribute("data-love-event-note", note || "");
+        if (hour > 0 || minute > 0) {
+          article.setAttribute("data-love-event-hour", String(hour));
+          article.setAttribute("data-love-event-minute", String(minute));
+        }
+        const defaultAccent = eventGroup === "featured" ? "116 218 255" : "255 167 118";
+        article.style.setProperty("--event-accent", accentRgb || defaultAccent);
+
+        const iconEl = document.createElement("span");
+        iconEl.className = "love-event-chip__icon";
+        iconEl.setAttribute("aria-hidden", "true");
+        iconEl.textContent = icon || "✦";
+
+        const metaEl = document.createElement("div");
+        metaEl.className = "love-event-chip__meta";
+
+        const nameEl = document.createElement("span");
+        nameEl.className = "love-event-chip__name";
+        nameEl.textContent = name;
+
+        const dateEl = document.createElement("span");
+        dateEl.className = "love-event-chip__date";
+        dateEl.setAttribute("data-love-event-date", "");
+        dateEl.textContent = `${pad(day)}/${pad(month)}`;
+
+        metaEl.appendChild(nameEl);
+        metaEl.appendChild(dateEl);
+
+        const countdownEl = document.createElement("strong");
+        countdownEl.className = "love-event-chip__countdown";
+        countdownEl.setAttribute("data-love-event-countdown", "");
+        countdownEl.textContent = "--D --:--:--";
+
+        const noteBtn = document.createElement("button");
+        noteBtn.className = "love-event-chip__note-btn";
+        noteBtn.type = "button";
+        noteBtn.setAttribute("data-love-event-note-trigger", "");
+        noteBtn.setAttribute("aria-label", "Xem note event");
+        noteBtn.textContent = "✦";
+
+        article.appendChild(iconEl);
+        article.appendChild(metaEl);
+        article.appendChild(countdownEl);
+        article.appendChild(noteBtn);
+        return article;
       };
 
       const readPastEvents = () => {
