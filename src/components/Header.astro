@@ -1,7 +1,9 @@
 ---
 import RansomTitle from "./RansomTitle.astro";
 
-const { active = "entries" } = Astro.props as { active?: "entries" | "topics" | "about" };
+const { active = "entries" } = Astro.props as {
+  active?: "entries" | "topics" | "about" | "past-events";
+};
 const searchHref = "/entries#journal-tools";
 ---
 
@@ -36,6 +38,14 @@ const searchHref = "/entries#journal-tools";
         Who r we? 💜🧡
       </a>
       <a
+        href="/past-events"
+        class={`btn text-[13px] sm:text-[14px] ${active === "past-events" ? "border-white/25" : ""}`}
+        aria-current={active === "past-events" ? "page" : undefined}
+        title="Kho sự kiện đã qua"
+      >
+        🗂️
+      </a>
+      <a
         href="/compose"
         class="btn text-[13px] sm:text-[14px]"
         aria-label="Viết bài mới"
@@ -45,8 +55,8 @@ const searchHref = "/entries#journal-tools";
     </nav>
   </div>
 
-  <div class="header-past-events" data-header-past-events hidden>
+  <a class="header-past-events" href="/past-events" data-header-past-events hidden aria-label="Mở trang kho sự kiện đã qua">
     <span class="header-past-events__title">↺ THE PAST EVENT</span>
     <div class="header-past-events__list" data-header-past-events-list aria-live="polite"></div>
-  </div>
+  </a>
 </header>

@@ -1,0 +1,111 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import RansomTitle from "../components/RansomTitle.astro";
+---
+
+<BaseLayout
+  title="Kho sự kiện đã qua — Two Against The World"
+  active="past-events"
+  description="Danh sách sự kiện đã kết thúc trong timeline của tụi mình."
+>
+  <section class="paper edge-torn px-6 py-7 sm:px-8 sm:py-8 past-events-page" data-reveal>
+    <p class="kicker text-[11px] text-black/50">Kho lưu sự kiện</p>
+    <div class="mt-2">
+      <RansomTitle text="Past Events" as="h1" stampEvery={0} class="text-[44px] sm:text-[56px]" />
+    </div>
+
+    <p class="mt-4 text-black/70">
+      Đây là toàn bộ sự kiện đã đi qua. Mỗi mốc thời gian đều được giữ lại như một dấu mốc của hai đứa.
+    </p>
+
+    <div class="past-events-list" data-past-events-list aria-live="polite"></div>
+  </section>
+
+  <script is:inline>
+    const initPastEventsPage = () => {
+      const listEl = document.querySelector("[data-past-events-list]");
+      if (!(listEl instanceof HTMLElement)) return;
+
+      const storageKey = "twaw:past-events";
+      const pad = (value) => String(value).padStart(2, "0");
+      const read = () => {
+        try {
+          const raw = window.localStorage.getItem(storageKey);
+          if (!raw) return [];
+          const parsed = JSON.parse(raw);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (_error) {
+          return [];
+        }
+      };
+
+      const formatCompleted = (value) => {
+        const ts = Number(value || 0);
+        if (!Number.isFinite(ts) || ts <= 0) return "";
+        try {
+          return new Intl.DateTimeFormat("vi-VN", {
+            timeZone: "Asia/Ho_Chi_Minh",
+            dateStyle: "medium",
+            timeStyle: "short",
+          }).format(new Date(ts));
+        } catch (_error) {
+          return "";
+        }
+      };
+
+      const render = () => {
+        const items = read().sort((a, b) => Number(b?.completedAt || 0) - Number(a?.completedAt || 0));
+        listEl.textContent = "";
+
+        if (!items.length) {
+          const empty = document.createElement("div");
+          empty.className = "past-events-empty";
+          empty.textContent = "Chưa có sự kiện nào đã kết thúc.";
+          listEl.appendChild(empty);
+          return;
+        }
+
+        const fragment = document.createDocumentFragment();
+        items.forEach((item, index) => {
+          const card = document.createElement("article");
+          card.className = "past-event-card";
+
+          const head = document.createElement("div");
+          head.className = "past-event-card__head";
+
+          const title = document.createElement("h2");
+          title.className = "past-event-card__title";
+          title.textContent = `${item?.icon || "✦"} ${item?.name || "Sự kiện"}`;
+
+          const number = document.createElement("span");
+          number.className = "past-event-card__number";
+          number.textContent = `#${index + 1}`;
+
+          head.appendChild(title);
+          head.appendChild(number);
+
+          const meta = document.createElement("div");
+          meta.className = "past-event-card__meta";
+          const day = pad(item?.day || "0");
+          const month = pad(item?.month || "0");
+          const year = Number(item?.year || new Date().getFullYear());
+          const completed = formatCompleted(item?.completedAt);
+          meta.textContent = completed
+            ? `${day}/${month}/${year} · kết thúc lúc ${completed}`
+            : `${day}/${month}/${year}`;
+
+          card.appendChild(head);
+          card.appendChild(meta);
+          fragment.appendChild(card);
+        });
+
+        listEl.appendChild(fragment);
+      };
+
+      render();
+    };
+
+    initPastEventsPage();
+    document.addEventListener("astro:page-load", initPastEventsPage);
+  </script>
+</BaseLayout>
