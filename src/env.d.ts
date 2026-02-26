@@ -60,6 +60,7 @@ declare global {
     readonly PUBLIC_ENABLE_PINNED_FIELDS?: string;
     readonly PUBLIC_ENABLE_UPLOAD_HELPERS?: string;
     readonly PUBLIC_ENABLE_LOVE_WIDGETS?: string;
+    readonly PUBLIC_ENABLE_CF_IMAGE_OPTIMIZE?: string;
   }
 }
 

@@ -80,7 +80,7 @@ const entriesCard = {
   href: "/entries",
 };
 
-const POSTS_PER_PAGE = 4;
+const POSTS_PER_PAGE = 16;
 const pageParam = Number.parseInt(Astro.url.searchParams.get("page") ?? "1", 10);
 const requestedPage = Number.isNaN(pageParam) ? 1 : pageParam;
 const totalPages = Math.max(1, Math.ceil(posts.length / POSTS_PER_PAGE));
@@ -160,30 +160,32 @@ const pageHref = (page: number) => {
 
     {totalPages > 1 && (
       <nav class="feed-pagination" aria-label="Phân trang bài viết">
-        <a
-          class={`feed-pagination__arrow ${currentPage <= 1 ? "is-disabled" : ""}`}
-          href={pageHref(Math.max(1, currentPage - 1))}
-          aria-disabled={currentPage <= 1 ? "true" : "false"}
-        >
-          ← Trang trước
-        </a>
         <div class="feed-pagination__meta">Trang {currentPage} / {totalPages}</div>
-        <ol class="feed-pagination__list">
-          {pageNumbers.map((page) => (
-            <li>
-              <a class={`feed-pagination__page ${page === currentPage ? "is-active" : ""}`} href={pageHref(page)} aria-current={page === currentPage ? "page" : undefined}>
-                {page}
-              </a>
-            </li>
-          ))}
-        </ol>
-        <a
-          class={`feed-pagination__arrow ${currentPage >= totalPages ? "is-disabled" : ""}`}
-          href={pageHref(Math.min(totalPages, currentPage + 1))}
-          aria-disabled={currentPage >= totalPages ? "true" : "false"}
-        >
-          Trang sau →
-        </a>
+        <div class="feed-pagination__row">
+          <a
+            class={`feed-pagination__arrow ${currentPage <= 1 ? "is-disabled" : ""}`}
+            href={pageHref(Math.max(1, currentPage - 1))}
+            aria-disabled={currentPage <= 1 ? "true" : "false"}
+          >
+            ← Trang trước
+          </a>
+          <ol class="feed-pagination__list">
+            {pageNumbers.map((page) => (
+              <li>
+                <a class={`feed-pagination__page ${page === currentPage ? "is-active" : ""}`} href={pageHref(page)} aria-current={page === currentPage ? "page" : undefined}>
+                  {page}
+                </a>
+              </li>
+            ))}
+          </ol>
+          <a
+            class={`feed-pagination__arrow ${currentPage >= totalPages ? "is-disabled" : ""}`}
+            href={pageHref(Math.min(totalPages, currentPage + 1))}
+            aria-disabled={currentPage >= totalPages ? "true" : "false"}
+          >
+            Trang sau →
+          </a>
+        </div>
       </nav>
     )}
   </section>

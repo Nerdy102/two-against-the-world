@@ -62,7 +62,7 @@ const pickFallbackImage = (seed: string) => {
 
 const fallbackImage = pickFallbackImage(`${href}|${title}|${topic ?? ""}`);
 const enableCfImageResize =
-  !import.meta.env.DEV && import.meta.env.PUBLIC_DISABLE_CF_IMAGE_OPTIMIZE !== "true";
+  !import.meta.env.DEV && import.meta.env.PUBLIC_ENABLE_CF_IMAGE_OPTIMIZE === "true";
 
 const CDN_IMAGE_EXTENSIONS = new Set([
   "jpg",
