@@ -169,12 +169,31 @@ const photosWithCandidates =
 const coverSrc = resolvePostCoverUrl(post);
 const coverExt = getImageExtension(post.cover_url);
 
-const orderedGallerySources =
+const normalizeGallerySource = (value: string): string => {
+  const trimmed = (value || "").trim();
+  if (!trimmed) return "";
+  const mediaMatch = trimmed.match(/^https?:\/\/[^/]+\/media\/(.+)$/i);
+  if (mediaMatch?.[1]) return `/media/${mediaMatch[1]}`;
+  return trimmed;
+};
+
+const dedupeOrderedSources = (sources: string[]) => {
+  const ordered: string[] = [];
+  const seen = new Set<string>();
+  for (const source of sources) {
+    const normalized = normalizeGallerySource(source);
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    ordered.push(normalized);
+  }
+  return ordered;
+};
+
+const orderedGallerySources = dedupeOrderedSources(
   postMediaUrls.length > 0
-    ? Array.from(
-        new Set([coverSrc, ...postMediaUrls])
-      )
-    : [coverSrc, ...photosWithCandidates.map((photo) => photo.src)];
+    ? [coverSrc, ...postMediaUrls]
+    : [coverSrc, ...photosWithCandidates.map((photo) => photo.src)]
+);
 
 const wallImages = orderedGallerySources.map((src, index) => ({
   src,

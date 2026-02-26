@@ -117,7 +117,14 @@ const isPair = frames.length === 2;
     const next = (f.idx + 1) % frames.length;
 
     return (
-      <div class="lb" id={`lb-${f.idx}`} aria-label="Image viewer">
+      <div
+        class="lb"
+        id={`lb-${f.idx}`}
+        data-lb-index={String(f.idx)}
+        data-lb-prev={String(prev)}
+        data-lb-next={String(next)}
+        aria-label="Image viewer"
+      >
         <a class="lb-backdrop" href="#lb-close" aria-label="Close"></a>
 
         <div class="lb-panel" role="dialog" aria-modal="true">
@@ -699,11 +706,159 @@ const isPair = frames.length === 2;
       true,
     );
 
+    const bindLightboxSwipe = () => {
+      if ((window as any).__twawFrameWallSwipeBound) return;
+
+      const swipeState = {
+        activeFrame: null as HTMLElement | null,
+        startX: 0,
+        startY: 0,
+        touchId: null as number | null,
+      };
+      const SWIPE_THRESHOLD_X = 44;
+      const SWIPE_DOMINANCE_RATIO = 1.2;
+
+      const getActiveLightbox = () => document.querySelector<HTMLElement>(".lb:target");
+
+      const navigateTo = (index: string | null | undefined) => {
+        const normalized = typeof index === "string" ? index.trim() : "";
+        if (!normalized) return;
+        window.location.hash = `lb-${normalized}`;
+      };
+
+      const findTouchById = (touches: TouchList, id: number | null) => {
+        if (id == null) return null;
+        for (let i = 0; i < touches.length; i += 1) {
+          const touch = touches.item(i);
+          if (touch?.identifier === id) return touch;
+        }
+        return null;
+      };
+
+      const startSwipe = (frame: HTMLElement, x: number, y: number, touchId: number | null = null) => {
+        swipeState.activeFrame = frame;
+        swipeState.startX = x;
+        swipeState.startY = y;
+        swipeState.touchId = touchId;
+      };
+
+      const endSwipe = (x: number, y: number) => {
+        const frame = swipeState.activeFrame;
+        if (!frame) return;
+        const lightbox = frame.closest<HTMLElement>(".lb");
+        if (!lightbox) return;
+
+        const dx = x - swipeState.startX;
+        const dy = y - swipeState.startY;
+        const absDx = Math.abs(dx);
+        const absDy = Math.abs(dy);
+        const dominantX = absDx >= absDy * SWIPE_DOMINANCE_RATIO;
+        if (!dominantX || absDx < SWIPE_THRESHOLD_X) return;
+
+        if (dx < 0) {
+          navigateTo(lightbox.dataset.lbNext);
+          return;
+        }
+        navigateTo(lightbox.dataset.lbPrev);
+      };
+
+      document.addEventListener(
+        "pointerdown",
+        (event) => {
+          if (event.pointerType === "mouse") return;
+          const frame = (event.target as Element | null)?.closest?.(".lb:target .lb-frame");
+          if (!(frame instanceof HTMLElement)) return;
+          startSwipe(frame, event.clientX, event.clientY);
+        },
+        { passive: true },
+      );
+
+      document.addEventListener(
+        "pointerup",
+        (event) => {
+          if (event.pointerType === "mouse") return;
+          if (!swipeState.activeFrame) return;
+          endSwipe(event.clientX, event.clientY);
+          swipeState.activeFrame = null;
+          swipeState.touchId = null;
+        },
+        { passive: true },
+      );
+
+      document.addEventListener(
+        "pointercancel",
+        () => {
+          swipeState.activeFrame = null;
+          swipeState.touchId = null;
+        },
+        { passive: true },
+      );
+
+      document.addEventListener(
+        "touchstart",
+        (event) => {
+          const target = event.target as Element | null;
+          const frame = target?.closest?.(".lb:target .lb-frame");
+          if (!(frame instanceof HTMLElement)) return;
+          if (event.changedTouches.length < 1) return;
+          const touch = event.changedTouches.item(0);
+          if (!touch) return;
+          startSwipe(frame, touch.clientX, touch.clientY, touch.identifier);
+        },
+        { passive: true },
+      );
+
+      document.addEventListener(
+        "touchend",
+        (event) => {
+          if (!swipeState.activeFrame) return;
+          const touch = findTouchById(event.changedTouches, swipeState.touchId);
+          if (!touch) return;
+          endSwipe(touch.clientX, touch.clientY);
+          swipeState.activeFrame = null;
+          swipeState.touchId = null;
+        },
+        { passive: true },
+      );
+
+      document.addEventListener(
+        "touchcancel",
+        () => {
+          swipeState.activeFrame = null;
+          swipeState.touchId = null;
+        },
+        { passive: true },
+      );
+
+      document.addEventListener("keydown", (event) => {
+        const active = getActiveLightbox();
+        if (!active) return;
+        if (event.key === "ArrowRight") {
+          event.preventDefault();
+          navigateTo(active.dataset.lbNext);
+          return;
+        }
+        if (event.key === "ArrowLeft") {
+          event.preventDefault();
+          navigateTo(active.dataset.lbPrev);
+          return;
+        }
+        if (event.key === "Escape") {
+          event.preventDefault();
+          window.location.hash = "lb-close";
+        }
+      });
+
+      (window as any).__twawFrameWallSwipeBound = true;
+    };
+
     initFallbacks();
     resolvePairLayouts();
+    bindLightboxSwipe();
     document.addEventListener("astro:page-load", () => {
       initFallbacks();
       resolvePairLayouts();
+      bindLightboxSwipe();
     });
   </script>
 </div>

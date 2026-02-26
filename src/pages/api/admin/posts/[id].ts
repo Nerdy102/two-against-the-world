@@ -12,6 +12,7 @@ import { requireAdminSession, verifyCsrf } from "../../../../lib/adminAuth";
 import { deriveVideoPoster } from "../../../../lib/stream";
 import { sanitizeSummaryText } from "../../../../lib/followUpLink";
 import { buildOrderedPostMediaUrls, syncPostMediaOrder } from "../../../../lib/postMedia";
+import { DEFAULT_TOPIC_SLUG, parseTopicSlug } from "../../../../config/topics";
 
 export const prerender = false;
 
@@ -117,9 +118,9 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
     await ensurePostMediaSchema(db, { allowBootstrap });
     const hasLegacyAuthor = await tableHasColumn(db, "posts", "author");
     const current = await db
-      .prepare(`SELECT slug, published_at, published_tz FROM posts WHERE id = ? LIMIT 1`)
+      .prepare(`SELECT slug, topic, published_at, published_tz FROM posts WHERE id = ? LIMIT 1`)
       .bind(id)
-      .first<{ slug: string; published_at: string | null; published_tz: string | null }>();
+      .first<{ slug: string; topic: string | null; published_at: string | null; published_tz: string | null }>();
     const incomingSlug = typeof payload.slug === "string" ? payload.slug.trim() : "";
     let nextSlug = current?.slug ?? "";
     if (incomingSlug) {
@@ -147,7 +148,15 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
       : typeof payload.author === "string"
         ? payload.author.trim()
         : null;
-    const topic = typeof payload.topic === "string" ? payload.topic.trim() : null;
+    const incomingTopicInput = typeof payload.topic === "string" ? payload.topic.trim() : "";
+    const parsedIncomingTopic = incomingTopicInput ? parseTopicSlug(incomingTopicInput) : null;
+    if (incomingTopicInput && !parsedIncomingTopic) {
+      return json(
+        { ok: false, error: "Invalid topic", detail: "Topic is not recognized.", code: "POST_TOPIC_INVALID" },
+        400
+      );
+    }
+    const topic = parsedIncomingTopic ?? parseTopicSlug(current?.topic ?? null) ?? DEFAULT_TOPIC_SLUG;
     const bodyMarkdown = typeof payload.body_markdown === "string"
       ? payload.body_markdown.trim()
       : typeof payload.content_md === "string"
@@ -240,7 +249,7 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
         resolvedCoverUrl,
         payload.content_md ?? null,
         authorName ?? null,
-        topic ?? null,
+        topic,
         payload.location ?? null,
         payload.event_time ?? null,
         payload.written_at ?? null,
