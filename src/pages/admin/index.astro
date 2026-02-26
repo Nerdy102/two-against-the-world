@@ -492,6 +492,62 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       return date.toISOString();
     };
 
+    const VIDEO_URL_RE = /\.(mp4|m4v|mov|webm|ogv|ogg|m3u8)(?:[?#].*)?$/i;
+    const STREAM_UID_RE = /^[a-f0-9]{32}$/i;
+    const STREAM_HOST_RE = /(^|\.)videodelivery\.net$/i;
+    const STREAM_HOST_ALT_RE = /(^|\.)cloudflarestream\.com$/i;
+
+    const normalizeVideoUrl = (value) => String(value || "").trim();
+
+    const looksLikeStreamVideo = (raw) => {
+      if (!raw) return false;
+      if (STREAM_UID_RE.test(raw)) return true;
+      try {
+        const parsed = new URL(raw);
+        if (!STREAM_HOST_RE.test(parsed.hostname) && !STREAM_HOST_ALT_RE.test(parsed.hostname)) {
+          return false;
+        }
+        return /\/[a-f0-9]{32}(?:[/?#]|$)/i.test(parsed.pathname);
+      } catch {
+        if (/^[a-z0-9.-]+\.[a-z]{2,}\/?/i.test(raw)) {
+          try {
+            const parsed = new URL(`https://${raw}`);
+            if (!STREAM_HOST_RE.test(parsed.hostname) && !STREAM_HOST_ALT_RE.test(parsed.hostname)) {
+              return false;
+            }
+            return /\/[a-f0-9]{32}(?:[/?#]|$)/i.test(parsed.pathname);
+          } catch {
+            return false;
+          }
+        }
+        return false;
+      }
+    };
+
+    const isLikelyVideoUrl = (value) => {
+      const raw = normalizeVideoUrl(value);
+      if (!raw) return false;
+      if (looksLikeStreamVideo(raw)) return true;
+      if (VIDEO_URL_RE.test(raw)) return true;
+      if (raw.startsWith("/videos/")) return true;
+      try {
+        const parsed = new URL(raw);
+        if (VIDEO_URL_RE.test(parsed.pathname)) return true;
+        if (/^\/videos\//i.test(parsed.pathname)) return true;
+      } catch {
+        if (/^[a-z0-9.-]+\.[a-z]{2,}\/?/i.test(raw)) {
+          try {
+            const parsed = new URL(`https://${raw}`);
+            if (VIDEO_URL_RE.test(parsed.pathname)) return true;
+            if (/^\/videos\//i.test(parsed.pathname)) return true;
+          } catch {
+            return false;
+          }
+        }
+      }
+      return false;
+    };
+
     const parseCommentDate = (value) => {
       if (typeof value !== "string") return null;
       const raw = value.trim();
@@ -958,7 +1014,7 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
         }
         const contentValue = String(data.content_md || "");
         const hasImage = Boolean(data.cover_url) || /!\[.*?\]\(.+?\)/.test(contentValue);
-        const hasVideo = Boolean(String(data.video_url || "").trim());
+        const hasVideo = isLikelyVideoUrl(data.video_url);
         if (!hasImage && !hasVideo) {
           note.textContent = "Thiếu media. Hãy upload ảnh hoặc video.";
           return false;

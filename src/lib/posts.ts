@@ -2,7 +2,7 @@ import { getCollection } from "astro:content";
 import type { CollectionEntry } from "astro:content";
 import { resolveTopicSlug } from "../config/topics";
 import type { PostRecord } from "./d1";
-import { deriveVideoPoster } from "./stream";
+import { deriveVideoPoster, isLikelyVideoUrl, normalizeVideoUrl } from "./stream";
 import { comparePostsByNewest } from "./postTime";
 
 export const DEFAULT_POST_CARD_IMAGE = "/collage/moodboard.jpg";
@@ -65,7 +65,11 @@ const nonEmpty = (value: string | null | undefined): string | null => {
 export const resolvePostCoverUrl = (
   post: Pick<PostRecord, "cover_url" | "body_markdown" | "content_md" | "video_url" | "video_poster">
 ): string => {
-  const videoPoster = nonEmpty(post.video_poster) || deriveVideoPoster(post.video_url);
+  const normalizedVideoUrl = normalizeVideoUrl(post.video_url);
+  const hasVideo = isLikelyVideoUrl(normalizedVideoUrl);
+  const videoPoster = hasVideo
+    ? nonEmpty(post.video_poster) || deriveVideoPoster(normalizedVideoUrl)
+    : null;
   if (videoPoster) return videoPoster;
 
   const directCover = nonEmpty(post.cover_url);
@@ -86,6 +90,11 @@ export const mapContentEntryToPostRecord = (
   const publishedAt = toContentPublishedAt(entry);
   const publishedTz = toMediaTimeZone(entry.data.postedTimezone ?? undefined);
   const body = entry.body || null;
+  const normalizedVideoUrl = normalizeVideoUrl(entry.data.videoUrl ?? null);
+  const hasVideo = isLikelyVideoUrl(normalizedVideoUrl);
+  const resolvedVideoPoster = hasVideo
+    ? entry.data.videoPoster || deriveVideoPoster(normalizedVideoUrl) || null
+    : null;
   return {
     id: entry.id,
     slug: entry.slug,
@@ -93,7 +102,7 @@ export const mapContentEntryToPostRecord = (
     summary: entry.data.description || null,
     content_md: body,
     body_markdown: body,
-    cover_url: entry.data.videoPoster || entry.data.cover || extractFirstImageUrl(body),
+    cover_url: (hasVideo ? resolvedVideoPoster : null) || entry.data.cover || extractFirstImageUrl(body),
     status: entry.data.draft ? "draft" : "published",
     author_name: entry.data.author || null,
     topic: resolveTopicSlug(entry.data.topic),
@@ -105,8 +114,8 @@ export const mapContentEntryToPostRecord = (
     side_note: entry.data.sideNote || null,
     voice_memo: entry.data.voiceMemo || null,
     voice_memo_title: entry.data.voiceMemoTitle || null,
-    video_url: entry.data.videoUrl || null,
-    video_poster: entry.data.videoPoster || null,
+    video_url: hasVideo ? normalizedVideoUrl : null,
+    video_poster: resolvedVideoPoster,
     photo_dir: entry.data.photoDir || null,
     photo_count: entry.data.photoCount ?? 0,
     pinned: entry.data.pinned ? 1 : 0,
@@ -122,11 +131,20 @@ export const mapContentEntryToPostRecord = (
   };
 };
 
-const withNormalizedPostFields = (post: PostRecord): PostRecord => ({
-  ...post,
-  topic: resolveTopicSlug(post.topic),
-  cover_url: resolvePostCoverUrl(post),
-});
+const withNormalizedPostFields = (post: PostRecord): PostRecord => {
+  const normalizedVideoUrl = normalizeVideoUrl(post.video_url);
+  const hasVideo = isLikelyVideoUrl(normalizedVideoUrl);
+  const normalized: PostRecord = {
+    ...post,
+    topic: resolveTopicSlug(post.topic),
+    video_url: hasVideo ? normalizedVideoUrl : null,
+    video_poster: hasVideo ? post.video_poster ?? null : null,
+  };
+  return {
+    ...normalized,
+    cover_url: resolvePostCoverUrl(normalized),
+  };
+};
 
 export const getPublishedPostsFromContent = async (): Promise<PostRecord[]> => {
   const entries = await getCollection("posts");

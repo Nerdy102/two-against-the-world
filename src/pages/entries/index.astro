@@ -11,6 +11,7 @@ import {
   resolvePostCoverUrl,
   shouldUseContentFallback,
 } from "../../lib/posts";
+import { isLikelyVideoUrl } from "../../lib/stream";
 
 export const prerender = false;
 
@@ -183,7 +184,7 @@ const buildSearchText = (post: PostRecord) =>
           if (dateKey) seenDates.add(dateKey);
           return (
             <FeedCard
-              href={`/entries/${post.slug}${post.video_url ? "#entry-video" : ""}`}
+              href={`/entries/${post.slug}${isLikelyVideoUrl(post.video_url) ? "#entry-video" : ""}`}
               title={post.title}
               description={post.summary ?? ""}
               author={post.author_name ?? ""}

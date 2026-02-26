@@ -79,19 +79,19 @@ const enableCompose = import.meta.env.PUBLIC_ENABLE_COMPOSE_PAGE === "true";
           </label>
           <label class="compose-field">
             <span>Ghi âm (URL)</span>
-            <input class="input" name="voiceMemo" placeholder="https://..." required />
+            <input class="input" name="voiceMemo" placeholder="https://..." />
           </label>
           <label class="compose-field">
             <span>Tiêu đề ghi âm</span>
-            <input class="input" name="voiceMemoTitle" placeholder="Tên đoạn ghi âm" required />
+            <input class="input" name="voiceMemoTitle" placeholder="Tên đoạn ghi âm" />
           </label>
           <label class="compose-field">
             <span>Video (URL)</span>
-            <input class="input" name="videoUrl" placeholder="https://..." required />
+            <input class="input" name="videoUrl" placeholder="https://..." />
           </label>
           <label class="compose-field">
             <span>Poster video (URL)</span>
-            <input class="input" name="videoPoster" placeholder="https://..." required />
+            <input class="input" name="videoPoster" placeholder="https://..." />
           </label>
         </div>
 
@@ -195,10 +195,6 @@ const enableCompose = import.meta.env.PUBLIC_ENABLE_COMPOSE_PAGE === "true";
           "eventTime",
           "writtenAt",
           "photoTime",
-          "voiceMemo",
-          "voiceMemoTitle",
-          "videoUrl",
-          "videoPoster",
           "body",
         ];
         const missing = required.filter((k) => !data[k]);
@@ -215,6 +211,25 @@ const enableCompose = import.meta.env.PUBLIC_ENABLE_COMPOSE_PAGE === "true";
         const coverFile = Array.from(files)[coverIndex] ?? files[0];
         const coverExt = fileExt(coverFile?.name || "");
         const md =
+          (() => {
+            const optionalMediaLines = [
+              data.voiceMemo
+                ? `voiceMemo: "${(data.voiceMemo || "").replaceAll('"', '\\"')}"\n`
+                : "",
+              data.voiceMemoTitle
+                ? `voiceMemoTitle: "${(data.voiceMemoTitle || "").replaceAll('"', '\\"')}"\n`
+                : "",
+              data.videoUrl
+                ? `videoUrl: "${(data.videoUrl || "").replaceAll('"', '\\"')}"\n`
+                : "",
+              data.videoPoster
+                ? `videoPoster: "${(data.videoPoster || "").replaceAll('"', '\\"')}"\n`
+                : "",
+            ]
+              .filter(Boolean)
+              .join("");
+
+            return (
           `---\n` +
           `title: "${(data.title || "Chưa đặt tên").replaceAll('"', '\\"')}"\n` +
           `description: "${(data.description || "").replaceAll('"', '\\"')}"\n` +
@@ -228,15 +243,14 @@ const enableCompose = import.meta.env.PUBLIC_ENABLE_COMPOSE_PAGE === "true";
           `eventTime: "${(data.eventTime || "").replaceAll('"', '\\"')}"\n` +
           `writtenAt: "${(data.writtenAt || "").replaceAll('"', '\\"')}"\n` +
           `photoTime: "${(data.photoTime || "").replaceAll('"', '\\"')}"\n\n` +
-          `voiceMemo: "${(data.voiceMemo || "").replaceAll('"', '\\"')}"\n` +
-          `voiceMemoTitle: "${(data.voiceMemoTitle || "").replaceAll('"', '\\"')}"\n` +
-          `videoUrl: "${(data.videoUrl || "").replaceAll('"', '\\"')}"\n` +
-          `videoPoster: "${(data.videoPoster || "").replaceAll('"', '\\"')}"\n\n` +
+          `${optionalMediaLines}${optionalMediaLines ? "\n" : ""}` +
           `tags: []\n` +
           `draft: true\n` +
           `sideNote: ""\n` +
           `---\n\n` +
-          `${data.body || "Viết ở đây."}\n`;
+          `${data.body || "Viết ở đây."}\n`
+            );
+          })();
         if (output) output.value = md;
         return { md, slug, files };
       };

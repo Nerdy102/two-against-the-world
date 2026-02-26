@@ -13,11 +13,18 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
 
       <section class="love-events-strip" data-love-events aria-label="Main events của Mỹ Uyên và Việt Hoà">
         <div class="love-events-strip__head">
-          <span class="love-events-strip__title">
-            <span aria-hidden="true">✦</span>
-            Featured 02
-          </span>
-          <span class="love-events-strip__next" data-love-event-next>⚡ THE UPCOMING EVENT · --D --:--:--</span>
+          <span class="love-events-strip__next" data-love-event-next>⚡ THE UPCOMING EVENT</span>
+          <button
+            class="love-events-strip__toggle"
+            type="button"
+            data-love-events-toggle
+            aria-expanded="false"
+            aria-controls="love-events-more"
+            aria-label="Mở full timeline"
+            title="Mở full timeline"
+          >
+            <span aria-hidden="true">▾</span>
+          </button>
         </div>
 
         <div class="love-events-strip__rail love-events-strip__rail--featured" role="list" aria-label="Featured event timeline">
@@ -56,18 +63,6 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
             </div>
             <strong class="love-event-chip__countdown" data-love-event-countdown>--D --:--:--</strong>
           </article>
-        </div>
-
-        <div class="love-events-strip__actions">
-          <button
-            class="love-events-strip__toggle"
-            type="button"
-            data-love-events-toggle
-            aria-expanded="false"
-            aria-controls="love-events-more"
-          >
-            🗂 OPEN FULL TIMELINE
-          </button>
         </div>
 
         <div class="love-events-strip__more" id="love-events-more" data-love-events-more hidden>
@@ -166,6 +161,8 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
       const dayEl = document.querySelector("[data-love-day]");
       const clockRoot = document.querySelector("[data-love-widgets]");
       const eventRoot = document.querySelector("[data-love-events]");
+      const featuredRail = eventRoot ? eventRoot.querySelector(".love-events-strip__rail--featured") : null;
+      const extraRail = eventRoot ? eventRoot.querySelector(".love-events-strip__rail--extra") : null;
       const clockEls = clockRoot
         ? {
             vn: clockRoot.querySelector("[data-love-clock='vn'] strong"),
@@ -181,9 +178,12 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         : 0;
       const eventEls = eventRoot
         ? Array.from(eventRoot.querySelectorAll("[data-love-event]")).map((eventEl) => ({
+            id: eventEl.getAttribute("data-love-event-name") || "event",
+            group: eventEl.getAttribute("data-love-event-group") || "extra",
             name: eventEl.getAttribute("data-love-event-name") || "event",
             month: Number(eventEl.getAttribute("data-love-event-month") || "1"),
             day: Number(eventEl.getAttribute("data-love-event-day") || "1"),
+            eventEl,
             countdownEl: eventEl.querySelector("[data-love-event-countdown]"),
             dateEl: eventEl.querySelector("[data-love-event-date]"),
           }))
@@ -234,9 +234,11 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         if (!eventToggleBtn || !eventMorePanel) return;
         eventMorePanel.hidden = !isOpen;
         eventToggleBtn.setAttribute("aria-expanded", isOpen ? "true" : "false");
-        eventToggleBtn.textContent = isOpen
-          ? "🗂 HIDE FULL TIMELINE"
-          : `🗂 OPEN FULL TIMELINE · ${extraEventsCount} MORE`;
+        eventToggleBtn.setAttribute("aria-label", isOpen ? "Ẩn full timeline" : "Mở full timeline");
+        eventToggleBtn.setAttribute(
+          "title",
+          isOpen ? "Ẩn full timeline" : `Mở full timeline (${extraEventsCount} sự kiện)`
+        );
       };
 
       if (eventToggleBtn && eventMorePanel) {
@@ -259,6 +261,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         if (!eventEls.length) return;
         const nowTs = Date.now();
         const currentYear = getDateParts("Asia/Ho_Chi_Minh").year;
+        const computedEvents = [];
         let nearest = null;
 
         eventEls.forEach((eventItem) => {
@@ -270,6 +273,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
           }
 
           const diff = Math.max(0, targetTs - nowTs);
+          computedEvents.push({ eventItem, diff });
           if (eventItem.countdownEl) eventItem.countdownEl.textContent = formatCountdown(diff);
           if (eventItem.dateEl) {
             eventItem.dateEl.textContent = `${pad(eventItem.day)}/${pad(eventItem.month)} · ${targetYear}`;
@@ -281,9 +285,24 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         });
 
         if (nextEventEl && nearest) {
-          nextEventEl.textContent = `⚡ THE UPCOMING EVENT · ${formatCountdown(nearest.diff)}`;
+          nextEventEl.textContent = "⚡ THE UPCOMING EVENT";
           nextEventEl.setAttribute("title", nearest.name);
         }
+
+        const sortAndRender = (railEl, group) => {
+          if (!(railEl instanceof HTMLElement)) return;
+          const sorted = computedEvents
+            .filter((entry) => entry.eventItem.group === group)
+            .sort((a, b) => a.diff - b.diff);
+          sorted.forEach(({ eventItem }) => {
+            if (eventItem.eventEl instanceof HTMLElement) {
+              railEl.appendChild(eventItem.eventEl);
+            }
+          });
+        };
+
+        sortAndRender(featuredRail, "featured");
+        sortAndRender(extraRail, "extra");
       };
 
       const makeClock = (timeZone) =>

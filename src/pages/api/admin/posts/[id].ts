@@ -9,7 +9,7 @@ import {
   tableHasColumn,
 } from "../../../../lib/d1";
 import { requireAdminSession, verifyCsrf } from "../../../../lib/adminAuth";
-import { deriveVideoPoster } from "../../../../lib/stream";
+import { deriveVideoPoster, isLikelyVideoUrl, normalizeVideoUrl } from "../../../../lib/stream";
 import { sanitizeSummaryText } from "../../../../lib/followUpLink";
 import { buildOrderedPostMediaUrls, syncPostMediaOrder } from "../../../../lib/postMedia";
 import { DEFAULT_TOPIC_SLUG, parseTopicSlug } from "../../../../config/topics";
@@ -185,16 +185,24 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
     const publishedTz = normalizeTimeZone(payload.published_tz) ?? current?.published_tz ?? null;
     const resolvedBodyMarkdown =
       bodyMarkdown ?? (typeof payload.body_markdown === "string" ? payload.body_markdown.trim() : null);
-    const videoUrl = typeof payload.video_url === "string" ? payload.video_url.trim() : "";
+    const normalizedVideoUrl = normalizeVideoUrl(
+      typeof payload.video_url === "string" ? payload.video_url : ""
+    );
+    const hasVideo = isLikelyVideoUrl(normalizedVideoUrl);
+    const videoUrl = hasVideo ? normalizedVideoUrl : "";
     const manualVideoPoster = typeof payload.video_poster === "string"
       ? payload.video_poster.trim()
       : "";
-    const derivedVideoPoster = deriveVideoPoster(videoUrl, {
-      deliveryBase: String(locals.runtime?.env?.PUBLIC_CF_STREAM_DELIVERY_BASE ?? ""),
-    });
-    const resolvedVideoPoster = manualVideoPoster || derivedVideoPoster || null;
-    const resolvedCoverKey = videoUrl ? null : payload.cover_key ?? null;
-    const resolvedCoverUrl = videoUrl
+    const derivedVideoPoster = hasVideo
+      ? deriveVideoPoster(videoUrl, {
+          deliveryBase: String(locals.runtime?.env?.PUBLIC_CF_STREAM_DELIVERY_BASE ?? ""),
+        })
+      : "";
+    const resolvedVideoPoster = hasVideo
+      ? (manualVideoPoster || derivedVideoPoster || null)
+      : null;
+    const resolvedCoverKey = hasVideo ? null : payload.cover_key ?? null;
+    const resolvedCoverUrl = hasVideo
       ? null
       : normalizeCoverUrl(payload.cover_url) ??
         firstMarkdownImage(resolvedBodyMarkdown) ??

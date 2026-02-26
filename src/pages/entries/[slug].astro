@@ -6,7 +6,12 @@ import { formatDate } from "../../lib/formatDate";
 import { topicLabel, topicMeta } from "../../config/topics";
 import { getDb, type PostRecord } from "../../lib/d1";
 import { getHybridPostBySlug, resolvePostCoverUrl } from "../../lib/posts";
-import { buildStreamUrls, extractStreamUid } from "../../lib/stream";
+import {
+  buildStreamUrls,
+  extractStreamUid,
+  isLikelyVideoUrl,
+  normalizeVideoUrl,
+} from "../../lib/stream";
 import { splitSummaryFollowUp } from "../../lib/followUpLink";
 import { REACTION_KINDS } from "../../lib/constants";
 import { marked } from "marked";
@@ -127,9 +132,11 @@ const tagsText = joinTags(
 );
 const voiceMemo = s(post.voice_memo);
 const voiceMemoTitle = s(post.voice_memo_title);
-const videoUrl = s(post.video_url);
-const videoPoster = s(post.video_poster);
-const streamUrls = buildStreamUrls(extractStreamUid(videoUrl));
+const normalizedVideoUrl = normalizeVideoUrl(post.video_url);
+const hasVideo = isLikelyVideoUrl(normalizedVideoUrl);
+const videoUrl = hasVideo ? normalizedVideoUrl : "";
+const videoPoster = hasVideo ? s(post.video_poster) : "";
+const streamUrls = hasVideo ? buildStreamUrls(extractStreamUid(videoUrl)) : buildStreamUrls("");
 const streamEmbedUrl = streamUrls.iframe
   ? (() => {
       let url: URL;
@@ -142,7 +149,6 @@ const streamEmbedUrl = streamUrls.iframe
       return url.toString();
     })()
   : "";
-const hasVideo = Boolean(videoUrl);
 
 const SUPPORTED_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "heic", "heif"] as const;
 const enableCfImageResize =
@@ -372,7 +378,7 @@ const wallPhotoCount = Math.max(0, wallImages.length - 1);
     )}
 
     {/* MEDIA */}
-    {(voiceMemo || videoUrl) && (
+    {(voiceMemo || hasVideo) && (
       <section
         class={`mt-10 media-section ${hasVideo ? "media-section--video" : ""}`}
         aria-label="Đa phương tiện"
@@ -385,7 +391,7 @@ const wallPhotoCount = Math.max(0, wallImages.length - 1);
             Xem và Khen <span class="media-title-icon" aria-hidden="true">😈</span>
           </h2>
 
-          {videoUrl && (
+          {hasVideo && (
             <div class="mt-4 video-punk-wrap">
               <div class="meta-label media-meta-label">Video</div>
               {streamEmbedUrl ? (

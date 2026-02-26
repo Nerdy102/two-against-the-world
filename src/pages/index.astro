@@ -11,6 +11,7 @@ import {
   resolvePostCoverUrl,
   shouldUseContentFallback,
 } from "../lib/posts";
+import { isLikelyVideoUrl } from "../lib/stream";
 
 export const prerender = false;
 
@@ -147,7 +148,7 @@ const pageHref = (page: number) => {
     <div class="pinterest-grid">
       {pagedPosts.map((post) => (
         <FeedCard
-          href={`/entries/${post.slug}${post.video_url ? "#entry-video" : ""}`}
+          href={`/entries/${post.slug}${isLikelyVideoUrl(post.video_url) ? "#entry-video" : ""}`}
           image={resolvePostCoverUrl(post)}
           title={post.title}
           description={post.summary ?? ""}

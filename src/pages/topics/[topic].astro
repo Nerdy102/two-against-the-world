@@ -19,6 +19,7 @@ import {
   resolvePostCoverUrl,
   shouldUseContentFallback,
 } from "../../lib/posts";
+import { isLikelyVideoUrl } from "../../lib/stream";
 import { comparePostsByNewest } from "../../lib/postTime";
 
 export const prerender = false;
@@ -138,7 +139,7 @@ for (const p of allPosts) {
         <div class="pinterest-grid">
           {posts.map((p) => (
             <FeedCard
-              href={`/entries/${p.slug}${p.video_url ? "#entry-video" : ""}`}
+              href={`/entries/${p.slug}${isLikelyVideoUrl(p.video_url) ? "#entry-video" : ""}`}
               image={resolvePostCoverUrl(p)}
               title={p.title}
               description={p.summary ?? ""}

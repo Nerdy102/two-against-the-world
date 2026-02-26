@@ -8,7 +8,7 @@ import {
   type PostRecord,
 } from "../../../../lib/d1";
 import { requireAdminSession, verifyCsrf } from "../../../../lib/adminAuth";
-import { deriveVideoPoster } from "../../../../lib/stream";
+import { deriveVideoPoster, isLikelyVideoUrl, normalizeVideoUrl } from "../../../../lib/stream";
 import { sanitizeSummaryText } from "../../../../lib/followUpLink";
 import { buildOrderedPostMediaUrls, syncPostMediaOrder } from "../../../../lib/postMedia";
 import { parseTopicSlug } from "../../../../config/topics";
@@ -206,16 +206,24 @@ export const POST: APIRoute = async ({ locals, request }) => {
         ? normalizedPublishedAt ?? new Date().toISOString()
         : normalizedPublishedAt ?? null;
     const publishedTz = normalizeTimeZone(payload.published_tz);
-    const videoUrl = typeof payload.video_url === "string" ? payload.video_url.trim() : "";
+    const normalizedVideoUrl = normalizeVideoUrl(
+      typeof payload.video_url === "string" ? payload.video_url : ""
+    );
+    const hasVideo = isLikelyVideoUrl(normalizedVideoUrl);
+    const videoUrl = hasVideo ? normalizedVideoUrl : "";
     const manualVideoPoster = typeof payload.video_poster === "string"
       ? payload.video_poster.trim()
       : "";
-    const derivedVideoPoster = deriveVideoPoster(videoUrl, {
-      deliveryBase: String(locals.runtime?.env?.PUBLIC_CF_STREAM_DELIVERY_BASE ?? ""),
-    });
-    const resolvedVideoPoster = manualVideoPoster || derivedVideoPoster || null;
-    const resolvedCoverKey = videoUrl ? null : payload.cover_key ?? null;
-    const resolvedCoverUrl = videoUrl
+    const derivedVideoPoster = hasVideo
+      ? deriveVideoPoster(videoUrl, {
+          deliveryBase: String(locals.runtime?.env?.PUBLIC_CF_STREAM_DELIVERY_BASE ?? ""),
+        })
+      : "";
+    const resolvedVideoPoster = hasVideo
+      ? (manualVideoPoster || derivedVideoPoster || null)
+      : null;
+    const resolvedCoverKey = hasVideo ? null : payload.cover_key ?? null;
+    const resolvedCoverUrl = hasVideo
       ? null
       : normalizeCoverUrl(payload.cover_url) ??
         firstMarkdownImage(bodyMarkdown) ??

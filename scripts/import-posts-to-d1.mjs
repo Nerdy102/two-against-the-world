@@ -33,6 +33,48 @@ const slugify = (input = "") =>
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-");
 
+const STREAM_UID_RE = /^[a-f0-9]{32}$/i;
+const VIDEO_PATH_RE = /\.(mp4|m4v|mov|webm|ogv|ogg|m3u8)(?:[?#].*)?$/i;
+const STREAM_HOST_RE = /(^|\.)videodelivery\.net$/i;
+const STREAM_HOST_ALT_RE = /(^|\.)cloudflarestream\.com$/i;
+
+const normalizeVideoUrl = (value) => String(value || "").trim();
+
+const extractStreamUid = (value) => {
+  const raw = normalizeVideoUrl(value);
+  if (!raw) return "";
+  if (STREAM_UID_RE.test(raw)) return raw.toLowerCase();
+  let parsed = null;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    if (/^[a-z0-9.-]+\.[a-z]{2,}\/?/i.test(raw)) {
+      try {
+        parsed = new URL(`https://${raw}`);
+      } catch {
+        return "";
+      }
+    } else {
+      return "";
+    }
+  }
+  if (!parsed) return "";
+  const isStreamHost =
+    STREAM_HOST_RE.test(parsed.hostname) || STREAM_HOST_ALT_RE.test(parsed.hostname);
+  if (!isStreamHost) return "";
+  const uidMatch = parsed.pathname.match(/\/([a-f0-9]{32})(?:[/?#]|$)/i);
+  return uidMatch?.[1]?.toLowerCase() ?? "";
+};
+
+const isLikelyVideoUrl = (value) => {
+  const raw = normalizeVideoUrl(value);
+  if (!raw) return false;
+  if (extractStreamUid(raw)) return true;
+  if (VIDEO_PATH_RE.test(raw)) return true;
+  if (raw.startsWith("/videos/")) return true;
+  return false;
+};
+
 const toDateString = (value) => {
   if (!value) return new Date().toISOString();
   const date = value instanceof Date ? value : new Date(value);
@@ -79,6 +121,8 @@ const main = async () => {
     const slug = data.slug ? String(data.slug) : slugify(data.title || file.replace(/\.(md|mdx)$/, ""));
     const publishedAt = toDateString(data.pubDate);
     const tags = Array.isArray(data.tags) ? data.tags.map(String) : [];
+    const rawVideoUrl = normalizeVideoUrl(data.videoUrl ? String(data.videoUrl) : "");
+    const hasVideo = isLikelyVideoUrl(rawVideoUrl);
     const post = {
       id: randomUUID(),
       slug,
@@ -100,8 +144,8 @@ const main = async () => {
       side_note: data.sideNote ? String(data.sideNote) : null,
       voice_memo: data.voiceMemo ? String(data.voiceMemo) : null,
       voice_memo_title: data.voiceMemoTitle ? String(data.voiceMemoTitle) : null,
-      video_url: data.videoUrl ? String(data.videoUrl) : null,
-      video_poster: data.videoPoster ? String(data.videoPoster) : null,
+      video_url: hasVideo ? rawVideoUrl : null,
+      video_poster: hasVideo && data.videoPoster ? String(data.videoPoster) : null,
       photo_dir: data.photoDir ? String(data.photoDir) : null,
       photo_count: Number(data.photoCount ?? 0),
       pinned: data.pinned ? 1 : 0,
