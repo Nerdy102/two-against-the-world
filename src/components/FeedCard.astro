@@ -43,8 +43,24 @@ const pinLabelMap: Record<string, string> = {
 };
 const pinLabel = pinnedStyle && pinLabelMap[pinnedStyle] ? pinLabelMap[pinnedStyle] : "Ghim";
 
-const buildImageCandidates = (src: string) => {
-  const defaultFallback = "/collage/cake.jpg";
+const FALLBACK_POOL = [
+  "/collage/moodboard.jpg",
+  "/collage/dinner.jpg",
+  "/collage/taste-angel-03.jpg",
+  "/collage/scrapbook-love.jpg",
+];
+
+const pickFallbackImage = (seed: string) => {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i += 1) {
+    hash = (hash * 33 + seed.charCodeAt(i)) >>> 0;
+  }
+  return FALLBACK_POOL[hash % FALLBACK_POOL.length]!;
+};
+
+const fallbackImage = pickFallbackImage(`${href}|${title}|${topic ?? ""}`);
+
+const buildImageCandidates = (src: string, defaultFallback: string) => {
   const [pathPart, suffix = ""] = src.split(/([?#].*)/, 2);
   const ext = pathPart.split(".").pop() ?? "";
   if (!ext) return [src, defaultFallback];
@@ -100,7 +116,7 @@ const buildImageCandidates = (src: string) => {
   return candidates;
 };
 
-const imageCandidates = buildImageCandidates(image);
+const imageCandidates = buildImageCandidates(image, fallbackImage);
 ---
 
 <a
@@ -140,16 +156,22 @@ const imageCandidates = buildImageCandidates(image);
       decoding="async"
       data-candidates={imageCandidates.join("|")}
       data-candidate-index="0"
+      data-fallback={fallbackImage}
     />
   </div>
 </a>
 
 <script>
-  import heic2any from "heic2any";
-
   const HEIC_RE = /\.(heic|heif)(?:[?#].*)?$/i;
   const convertedImageUrlCache = new Map();
-  const NON_SAFARI_RE = /(chrome|crios|edg|opr|android)/i;
+  let heic2anyLoader: Promise<any> | null = null;
+
+  const loadHeic2any = async () => {
+    if (!heic2anyLoader) {
+      heic2anyLoader = import("heic2any").then((mod) => mod.default ?? mod);
+    }
+    return heic2anyLoader;
+  };
 
   const initFeedImageFallbacks = () => {
     const imgs = document.querySelectorAll(".feed-card__media img[data-candidates]");
@@ -157,7 +179,6 @@ const imageCandidates = buildImageCandidates(image);
       if (!(img instanceof HTMLImageElement)) return;
       if (!img.dataset.candidateIndex) img.dataset.candidateIndex = "0";
     });
-    void primeHeicFallbacks();
   };
 
   const srcWithAbsUrl = (value: string): string => {
@@ -268,6 +289,7 @@ const imageCandidates = buildImageCandidates(image);
       { toType: "image/jpeg", quality: 0.9 },
       { toType: "image/png", quality: 1 },
     ];
+    const heic2any = await loadHeic2any();
     for (const target of conversionTargets) {
       const converted = await heic2any({
         blob: typedBlob,
@@ -288,28 +310,6 @@ const imageCandidates = buildImageCandidates(image);
       return true;
     }
     return false;
-  };
-
-  const isProbablySafari = () => /safari/i.test(navigator.userAgent) && !NON_SAFARI_RE.test(navigator.userAgent);
-
-  const primeHeicFallbacks = async () => {
-    if (isProbablySafari()) return;
-    const imgs = document.querySelectorAll(".feed-card__media img[data-candidates]");
-    for (const img of imgs) {
-      if (!(img instanceof HTMLImageElement)) continue;
-      if (img.dataset.heicPrimed === "1") continue;
-      const currentSrc = srcWithAbsUrl(img.currentSrc || img.src || "");
-      if (!HEIC_RE.test(currentSrc)) continue;
-      img.dataset.heicPrimed = "1";
-      try {
-        const converted = await convertHeicToJpeg(img);
-        if (converted) continue;
-      } catch (_error) {
-        // fallback chain below
-      }
-      const next = nextCandidate(img);
-      if (next) img.src = next;
-    }
   };
 
   if (!(window as any).__twawFeedImageFallbackBound) {
@@ -333,7 +333,7 @@ const imageCandidates = buildImageCandidates(image);
             target.src = next;
             return;
           }
-          target.src = "/collage/cake.jpg";
+          target.src = target.dataset.fallback || "/collage/moodboard.jpg";
         };
 
         void tryFallback();

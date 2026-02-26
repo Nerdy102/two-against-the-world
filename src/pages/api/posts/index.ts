@@ -30,6 +30,8 @@ export const GET: APIRoute = async ({ locals, request }) => {
                ),
                '/collage/cake.jpg'
              ) as cover_url,
+             video_url,
+             video_poster,
              status,
              author_name,
              topic,
@@ -63,6 +65,8 @@ export const GET: APIRoute = async ({ locals, request }) => {
                ),
                '/collage/cake.jpg'
              ) as cover_url,
+             video_url,
+             video_poster,
              status,
              author_name,
              topic,

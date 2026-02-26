@@ -1042,10 +1042,10 @@ a { color: inherit; text-decoration: none; }
   min-height: 170px;
   background:
     radial-gradient(140% 100% at 20% 0%, rgba(255,255,255,0.18), rgba(0,0,0,0.08) 56%, rgba(0,0,0,0.34) 100%),
-    url("/collage/cake.jpg");
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+    url("/decor/wallpaper.svg");
+  background-size: auto, 320px 320px;
+  background-position: center, center;
+  background-repeat: no-repeat, repeat;
 }
 
 .feed-card__media img {

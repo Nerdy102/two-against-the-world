@@ -324,10 +324,10 @@ const isPair = frames.length === 2;
       overflow: hidden;
       background:
         radial-gradient(120% 90% at 20% 0%, rgba(255,255,255,0.14), rgba(0,0,0,0.08) 55%, rgba(0,0,0,0.3) 100%),
-        url("/collage/cake.jpg");
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
+        url("/decor/wallpaper.svg");
+      background-size: auto, 360px 360px;
+      background-position: center, center;
+      background-repeat: no-repeat, repeat;
       border: 1px solid rgba(255,255,255,0.05);
       position: relative;
       z-index: 1;
@@ -683,7 +683,7 @@ const isPair = frames.length === 2;
               target.src = next;
               return;
             }
-            target.src = "/collage/cake.jpg";
+            target.src = "/collage/moodboard.jpg";
           };
 
           void run();

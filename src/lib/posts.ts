@@ -3,7 +3,7 @@ import type { CollectionEntry } from "astro:content";
 import type { PostRecord } from "./d1";
 import { deriveVideoPoster } from "./stream";
 
-export const DEFAULT_POST_CARD_IMAGE = "/collage/cake.jpg";
+export const DEFAULT_POST_CARD_IMAGE = "/collage/moodboard.jpg";
 
 const formatDate = (value: Date | undefined | null) =>
   value ? value.toISOString() : new Date().toISOString();

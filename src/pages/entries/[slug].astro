@@ -73,6 +73,7 @@ const videoUrl = s(post.video_url);
 const videoPoster = s(post.video_poster);
 const streamUrls = buildStreamUrls(extractStreamUid(videoUrl));
 const streamEmbedUrl = streamUrls.iframe;
+const hasVideo = Boolean(videoUrl);
 
 const SUPPORTED_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "heic", "heif"] as const;
 
@@ -108,7 +109,7 @@ const buildSrcCandidates = (src: string, ext: string) => {
     }
   }
 
-  candidates.push("/collage/cake.jpg");
+  candidates.push("/collage/moodboard.jpg");
 
   return Array.from(new Set(candidates));
 };
@@ -208,13 +209,15 @@ const wallImages = [
     </div>
 
     {/* PHOTO WALL */}
-    <section class="mt-10" aria-label="Bức tường ảnh">
-      <FrameWall images={wallImages} seed={post.slug} />
-    </section>
+    {!hasVideo && (
+      <section class="mt-10" aria-label="Bức tường ảnh">
+        <FrameWall images={wallImages} seed={post.slug} />
+      </section>
+    )}
 
     {/* MEDIA */}
     {(voiceMemo || videoUrl) && (
-      <section class="mt-10" aria-label="Đa phương tiện" data-reveal>
+      <section class="mt-10" aria-label="Đa phương tiện" data-reveal id={hasVideo ? "entry-video" : undefined}>
         <div class="paper edge-torn p-6 sm:p-10">
           <div class="kicker text-xs text-black/50">ĐA PHƯƠNG TIỆN</div>
           <h2 class="mt-3 text-[26px] sm:text-[32px] font-semibold text-black/80">Nghe & xem</h2>

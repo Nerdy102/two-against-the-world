@@ -68,7 +68,7 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
         <form class="mt-4 space-y-4" data-post-form>
           <p class="text-xs text-black/60">
             Trường có <span class="text-red-500">*</span> là bắt buộc. Bắt buộc tối thiểu: Tiêu đề, Chủ đề,
-            Tác giả, Ảnh, Nội dung.
+            Tác giả, Nội dung và ít nhất 1 media (ảnh hoặc video).
           </p>
           <input type="hidden" name="id" />
 
@@ -110,7 +110,7 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
           </label>
 
           <div class="compose-field">
-            <span>Ảnh <span class="text-red-500">*</span></span>
+            <span>Ảnh (tuỳ chọn cho bài video)</span>
             <input type="hidden" name="cover_key" />
             <input type="hidden" name="cover_url" />
             <input
@@ -121,7 +121,7 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
               multiple
               data-upload-input
             />
-            <p class="mt-2 text-xs text-black/50">Ảnh đầu tiên là ảnh bìa (cover).</p>
+            <p class="mt-2 text-xs text-black/50">Nếu là bài video thì có thể bỏ qua ảnh này.</p>
             <div class="compose-preview" data-upload-preview></div>
             {enableUploadHelpers && <button class="btn hidden mt-3" type="button" data-upload-cancel>Hủy</button>}
             {enableUploadHelpers && <p class="text-xs text-black/50" data-upload-progress></p>}
@@ -1276,7 +1276,7 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
 
         if (videoUploadProgress) {
           videoUploadProgress.textContent =
-            "Đang chốt video (set ảnh bìa từ đoạn giữa)...";
+            "Đang chốt video (set thumbnail ở đoạn giữa)...";
         }
         const finalized = await finalizeStreamVideo({
           uid: payload.uid,
@@ -1286,6 +1286,7 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
         const videoUrlInput = form?.querySelector("[name='video_url']");
         const posterInput = form?.querySelector("[name='video_poster']");
         const coverInput = form?.querySelector("[name='cover_url']");
+        const coverKeyInput = form?.querySelector("[name='cover_key']");
         const iframeUrl = finalized?.iframe || payload.iframe || `https://iframe.videodelivery.net/${payload.uid}`;
         const thumbnailUrl =
           finalized?.thumbnail ||
@@ -1301,14 +1302,18 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
           posterInput.dispatchEvent(new Event("input", { bubbles: true }));
         }
         if (coverInput) {
-          coverInput.value = thumbnailUrl;
+          coverInput.value = "";
           coverInput.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+        if (coverKeyInput) {
+          coverKeyInput.value = "";
+          coverKeyInput.dispatchEvent(new Event("input", { bubbles: true }));
         }
 
         markDirty();
         if (videoUploadNote) {
           videoUploadNote.textContent =
-            "Upload xong. Ảnh bìa đã lấy tự động từ đoạn giữa video.";
+            "Upload xong. Thumbnail ngoài bài đã lấy tự động từ đoạn giữa video.";
         }
         showToast("Đã upload video lên Cloudflare Stream.", "success");
       } catch (error) {

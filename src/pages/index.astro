@@ -38,6 +38,8 @@ try {
             LIMIT 1
           )
         ) as cover_url,
+        video_url,
+        video_poster,
         status,
         author_name,
         topic,
@@ -123,7 +125,7 @@ const entriesCard = {
     <div class="pinterest-grid">
       {posts.map((post) => (
         <FeedCard
-          href={`/entries/${post.slug}`}
+          href={`/entries/${post.slug}${post.video_url ? "#entry-video" : ""}`}
           image={resolvePostCoverUrl(post)}
           title={post.title}
           description={post.summary ?? ""}

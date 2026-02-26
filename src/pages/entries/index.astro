@@ -37,6 +37,8 @@ try {
             LIMIT 1
           )
         ) as cover_url,
+        video_url,
+        video_poster,
         topic,
         author_name,
         location,
@@ -44,8 +46,6 @@ try {
         written_at,
         photo_time,
         tags_csv,
-        side_note,
-        body_markdown,
         published_at,
         created_at,
         CASE
@@ -84,6 +84,22 @@ const dateStats = Object.entries(dateCounts)
     label: formatDate(dateKey),
   }))
   .sort((a, b) => b.dateKey.localeCompare(a.dateKey));
+
+const buildSearchText = (post: PostRecord) =>
+  [
+    post.title,
+    post.summary,
+    post.author_name,
+    post.location,
+    post.event_time,
+    post.written_at,
+    post.photo_time,
+    post.tags_csv,
+    post.topic,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .slice(0, 640);
 ---
 
 <BaseLayout title="Nhật ký" description="Kho lưu nhật ký tình yêu." active="entries">
@@ -111,7 +127,7 @@ const dateStats = Object.entries(dateCounts)
                 <input
                   class="input"
                   type="search"
-                  placeholder="Tìm trong tiêu đề / nội dung..."
+                  placeholder="Tìm trong tiêu đề / mô tả / tag..."
                   data-search-keyword
                   data-search-primary
                 />
@@ -144,7 +160,7 @@ const dateStats = Object.entries(dateCounts)
           seenDates.add(dateKey);
           return (
             <FeedCard
-              href={`/entries/${post.slug}`}
+              href={`/entries/${post.slug}${post.video_url ? "#entry-video" : ""}`}
               title={post.title}
               description={post.summary ?? ""}
               author={post.author_name ?? ""}
@@ -156,11 +172,7 @@ const dateStats = Object.entries(dateCounts)
               pinnedStyle={post.pinned_style ?? undefined}
               dateKey={dateKey}
               anchorId={anchorId}
-              searchText={`${post.title} ${post.summary ?? ""} ${post.author_name ?? ""} ${post.location ?? ""} ${
-                post.event_time ?? ""
-              } ${post.written_at ?? ""} ${post.photo_time ?? ""} ${post.side_note ?? ""} ${post.tags_csv ?? ""} ${
-                post.topic ?? ""
-              } ${post.body_markdown ?? ""}`}
+              searchText={buildSearchText(post)}
             />
           );
         })}
@@ -175,8 +187,13 @@ const dateStats = Object.entries(dateCounts)
       const cards = Array.from(document.querySelectorAll("[data-search-grid] .feed-card"));
       const keywordInput = document.querySelector("[data-search-keyword]");
       const primaryInput = document.querySelector("[data-search-primary]");
+      const indexedCards = cards.map((card) => ({
+        card,
+        date: card.getAttribute("data-date") || "",
+        haystack: (card.getAttribute("data-search") || "").toLowerCase(),
+      }));
 
-      if (!dateInputs.length || !resets.length || !cards.length) return;
+      if (!dateInputs.length || !resets.length || !indexedCards.length) return;
       if (dateInputs.some((input) => input.dataset.bound === "1")) return;
       dateInputs.forEach((input) => {
         input.dataset.bound = "1";
@@ -191,9 +208,7 @@ const dateStats = Object.entries(dateCounts)
       const filter = () => {
         const date = dateInputs[0]?.value ?? "";
         const keyword = keywordInput?.value?.trim().toLowerCase() ?? "";
-        cards.forEach((card) => {
-          const cardDate = card.getAttribute("data-date") || "";
-          const haystack = (card.getAttribute("data-search") || "").toLowerCase();
+        indexedCards.forEach(({ card, date: cardDate, haystack }) => {
           const matchesDate = date ? cardDate === date : true;
           const matchesKeyword = keyword ? haystack.includes(keyword) : true;
           card.classList.toggle("is-filtered", !(matchesDate && matchesKeyword));

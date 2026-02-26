@@ -164,8 +164,9 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
       deliveryBase: String(locals.runtime?.env?.PUBLIC_CF_STREAM_DELIVERY_BASE ?? ""),
     });
     const resolvedVideoPoster = manualVideoPoster || derivedVideoPoster || null;
+    const resolvedCoverKey = videoUrl ? null : payload.cover_key ?? null;
     const resolvedCoverUrl = videoUrl
-      ? resolvedVideoPoster
+      ? null
       : normalizeCoverUrl(payload.cover_url) ??
         firstMarkdownImage(resolvedBodyMarkdown) ??
         firstMarkdownImage(typeof payload.content_md === "string" ? payload.content_md : null);
@@ -214,7 +215,7 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
         payload.summary ?? null,
         resolvedBodyMarkdown ?? payload.content_md ?? null,
         tagsJson,
-        payload.cover_key ?? null,
+        resolvedCoverKey,
         resolvedCoverUrl,
         payload.content_md ?? null,
         authorName ?? null,
