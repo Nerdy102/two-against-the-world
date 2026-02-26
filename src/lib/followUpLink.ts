@@ -8,7 +8,7 @@ const MARKDOWN_LINK_RE = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/gi;
 const RAW_URL_RE = /https?:\/\/[^\s)]+/gi;
 const ESCAPED_NEWLINE_RE = /\\r\\n|\\n|\\r/g;
 const LINK_LABEL_LINE_RE = /^\s*(?:[-*•]\s*)?(?:stream\s*)?link\s*:?\s*$/gim;
-const ORPHAN_LINK_TOKEN_RE = /(^|[\s(])link(?=$|[\s).,:;!?])/gim;
+const ORPHAN_LINK_TOKEN_RE = /(^|[\s(])(?:\[\s*)?link(?:\s*])?(?=$|[\s).,:;!?"'])/gim;
 
 export const sanitizeSummaryText = (value: string | null | undefined): string => {
   if (typeof value !== "string") return "";
