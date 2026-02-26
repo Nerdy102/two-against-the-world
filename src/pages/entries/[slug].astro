@@ -103,7 +103,7 @@ try {
 }
 if (!post) throw new Error(`Post not found: ${slug}`);
 
-const contentHtml = marked.parse(post.body_markdown ?? post.content_md ?? "");
+const rawContentMarkdown = post.body_markdown ?? post.content_md ?? "";
 const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "";
 const siteUrl = import.meta.env.PUBLIC_SITE_URL ?? "";
 const canonicalUrl = siteUrl ? new URL(`/entries/${post.slug}`, siteUrl).toString() : "";
@@ -265,6 +265,31 @@ const fallbackPhotoSources = photosWithCandidates.map((photo) => photo.src);
 const orderedGallerySources = dedupeOrderedSources(
   [coverSrc, ...postMediaUrls, ...markdownGallerySources, ...fallbackPhotoSources]
 );
+
+const stripGalleryImagesFromMarkdown = (markdown: string, gallerySources: string[]) => {
+  const normalizedGallery = new Set(gallerySources.map((source) => normalizeGallerySource(source)).filter(Boolean));
+  if (!normalizedGallery.size) return markdown;
+
+  const withoutMarkdownImages = markdown.replace(
+    /!\[[^\]]*]\(([^)\s]+)(?:\s+"[^"]*")?\)\s*/g,
+    (fullMatch, src) => {
+      const normalized = normalizeGallerySource(String(src ?? "").trim().replace(/^<|>$/g, ""));
+      return normalizedGallery.has(normalized) ? "" : fullMatch;
+    }
+  );
+
+  const withoutHtmlImages = withoutMarkdownImages.replace(
+    /<img\s+[^>]*src=["']([^"']+)["'][^>]*>\s*/gi,
+    (fullMatch, src) => {
+      const normalized = normalizeGallerySource(String(src ?? "").trim().replace(/^<|>$/g, ""));
+      return normalizedGallery.has(normalized) ? "" : fullMatch;
+    }
+  );
+
+  return withoutHtmlImages.replace(/\n{3,}/g, "\n\n").trim();
+};
+
+const contentHtml = marked.parse(stripGalleryImagesFromMarkdown(rawContentMarkdown, orderedGallerySources));
 
 const wallImages = orderedGallerySources.map((src, index) => ({
   src,
