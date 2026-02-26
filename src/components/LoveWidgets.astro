@@ -17,7 +17,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
             <span aria-hidden="true">✦</span>
             Main Events
           </span>
-          <span class="love-events-strip__next" data-love-event-next>up next · --D --:--:--</span>
+          <span class="love-events-strip__next" data-love-event-next>⚡ THE UPCOMING EVENT · --D --:--:--</span>
         </div>
 
         <div class="love-events-strip__rail" role="list" aria-label="Main event timeline">
@@ -179,7 +179,8 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         });
 
         if (nextEventEl && nearest) {
-          nextEventEl.textContent = `${nearest.name} · ${formatCountdown(nearest.diff)}`;
+          nextEventEl.textContent = `⚡ THE UPCOMING EVENT · ${formatCountdown(nearest.diff)}`;
+          nextEventEl.setAttribute("title", nearest.name);
         }
       };
 
