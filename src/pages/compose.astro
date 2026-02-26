@@ -154,6 +154,11 @@ const enableCompose = import.meta.env.PUBLIC_ENABLE_COMPOSE_PAGE === "true";
           .replace(/\s+/g, "-")
           .replace(/-+/g, "-");
 
+      const fileExt = (name = "") => {
+        const ext = name.split(".").pop()?.trim().toLowerCase();
+        return ext || "jpg";
+      };
+
       const getFormData = () => {
         const data = {};
         wrap.querySelectorAll("input, select, textarea").forEach((el) => {
@@ -207,14 +212,15 @@ const enableCompose = import.meta.env.PUBLIC_ENABLE_COMPOSE_PAGE === "true";
         }
         const slug = slugify(data.title || "bai-chua-dat-ten");
         const photoCount = files.length ? Math.max(0, files.length - 1) : 0;
-        const cover = Array.from(files)[coverIndex] ?? files[0];
+        const coverFile = Array.from(files)[coverIndex] ?? files[0];
+        const coverExt = fileExt(coverFile?.name || "");
         const md =
           `---\n` +
           `title: "${(data.title || "Chưa đặt tên").replaceAll('"', '\\"')}"\n` +
           `description: "${(data.description || "").replaceAll('"', '\\"')}"\n` +
           `pubDate: ${data.pubDate || new Date().toISOString().slice(0, 10)}\n` +
           `topic: ${data.topic || "two-of-us"}\n` +
-          `cover: "/photos/${slug}/cover.jpg"\n` +
+          `cover: "/photos/${slug}/cover.${coverExt}"\n` +
           `photoDir: "${slug}"\n` +
           `photoCount: ${photoCount}\n\n` +
           `author: "${(data.author || "").replaceAll('"', '\\"')}"\n` +
@@ -256,7 +262,8 @@ const enableCompose = import.meta.env.PUBLIC_ENABLE_COMPOSE_PAGE === "true";
         ordered.unshift(cover);
         ordered.forEach((file, idx) => {
           const a = document.createElement("a");
-          const name = idx === 0 ? "cover.jpg" : String(idx).padStart(2, "0") + "." + file.name.split(".").pop();
+          const ext = fileExt(file.name);
+          const name = idx === 0 ? `cover.${ext}` : String(idx).padStart(2, "0") + `.${ext}`;
           a.href = URL.createObjectURL(file);
           a.download = `${slug}/${name}`;
           a.click();

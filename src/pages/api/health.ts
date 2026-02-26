@@ -32,7 +32,7 @@ const tableExists = async (db: D1Database, table: string) => {
 };
 
 export const GET: APIRoute = async ({ locals }) => {
-  const env = locals.runtime?.env ?? {};
+  const env = (locals.runtime?.env ?? {}) as Record<string, unknown>;
   const build = getBuildInfo(env);
   const schema = {
     posts: false,

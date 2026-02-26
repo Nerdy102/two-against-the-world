@@ -11,7 +11,11 @@ import { marked } from "marked";
 
 export const prerender = false;
 
-const { slug } = Astro.params;
+const slugParam = Astro.params.slug;
+if (!slugParam) {
+  throw new Error("Missing slug param");
+}
+const slug = slugParam;
 let post: PostRecord | null = null;
 try {
   const db = getDb(Astro.locals);

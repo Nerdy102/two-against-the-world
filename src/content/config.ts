@@ -20,6 +20,9 @@ const posts = defineCollection({
     photoDir: z.string(),
     photoCount: z.coerce.number().int().nonnegative().default(0),
     pinned: z.boolean().optional(),
+    pinnedPriority: z.coerce.number().int().nonnegative().optional(),
+    pinnedUntil: z.string().optional(),
+    pinnedStyle: z.string().optional(),
 
     // Topic / category (for your top navigation)
     // If you use a fixed topic system, swap to: z.enum(TOPIC_IDS)

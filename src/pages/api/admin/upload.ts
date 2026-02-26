@@ -105,7 +105,8 @@ export const POST: APIRoute = async ({ locals, request }) => {
       );
     }
 
-    await bucket.put(key, file.stream(), {
+    const bytes = await file.arrayBuffer();
+    await bucket.put(key, bytes, {
       httpMetadata: { contentType },
     });
 

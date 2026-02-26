@@ -1,4 +1,4 @@
-import { getCollection, getEntryBySlug } from "astro:content";
+import { getCollection } from "astro:content";
 import type { CollectionEntry } from "astro:content";
 import type { PostRecord } from "./d1";
 
@@ -53,7 +53,8 @@ export const getPublishedPostsFromContent = async (): Promise<PostRecord[]> => {
 export const getPostFromContentBySlug = async (
   slug: string
 ): Promise<PostRecord | null> => {
-  const entry = await getEntryBySlug("posts", slug);
+  const entries = await getCollection("posts");
+  const entry = entries.find((item) => item.slug === slug || item.id === slug);
   if (!entry || entry.data.draft) return null;
   return mapContentEntryToPostRecord(entry);
 };

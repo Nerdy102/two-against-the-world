@@ -291,7 +291,7 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
   </main>
 
   <script>
-    import heic2any from "heic2any";
+    // @ts-nocheck
     import { marked } from "marked";
 
     const slugify = (s = "") =>
@@ -997,25 +997,6 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       );
     };
 
-    const convertHeic = async (file, quality = 0.82) => {
-      if (!isHeic(file)) return file;
-      const attempts = [
-        { toType: "image/jpeg", quality },
-        { toType: "image/jpeg", quality: Math.max(0.6, quality - 0.2) },
-        { toType: "image/jpeg", quality: 0.5 },
-        { toType: "image/png" },
-      ];
-      for (const attempt of attempts) {
-        try {
-          const blob = await heic2any({ blob: file, ...attempt });
-          return blob instanceof Blob ? blob : new Blob([blob], { type: attempt.toType });
-        } catch (error) {
-          continue;
-        }
-      }
-      throw new Error("HEIC_CONVERT_FAILED");
-    };
-
     const encodeJpeg = (canvas, quality) =>
       new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
 
@@ -1046,7 +1027,7 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
     };
 
     const resizeImage = async (file, maxSize = 2048, quality = 0.82) => {
-      const source = await convertHeic(file, quality);
+      const source = file;
       let decoded = null;
       try {
         decoded = await decodeImage(source);
@@ -1094,13 +1075,14 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
     };
 
     const prepareUpload = async (file) => {
+      if (isHeic(file)) {
+        // Keep iPhone HEIC/HEIF files as-is (no auto conversion).
+        return { blob: file, width: null, height: null, original: true };
+      }
       try {
         const { blob, width, height } = await resizeImage(file);
         return { blob, width, height, original: false };
       } catch (error) {
-        if (isHeic(file)) {
-          return { blob: file, width: null, height: null, original: true };
-        }
         throw error;
       }
     };
@@ -1258,17 +1240,12 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
         } catch (error) {
           if (error?.name === "AbortError") {
             uploadNote.textContent = "Đã hủy upload ảnh.";
-          } else if (error?.message === "HEIC_CONVERT_FAILED") {
-            uploadNote.textContent =
-              "Không chuyển đổi được ảnh HEIC. Hệ thống sẽ cố upload bản gốc hoặc bạn hãy đổi Camera → Formats → Most Compatible.";
-            showToast("HEIC conversion failed. Uploading original if possible.", "info");
           } else if (error?.message === "IMAGE_DECODE_FAILED") {
-            uploadNote.textContent =
-              "Không giải mã được ảnh này. Hệ thống sẽ cố upload bản gốc hoặc bạn hãy đổi Camera → Formats → Most Compatible.";
-            showToast("Image decode failed. Uploading original if possible.", "info");
+            uploadNote.textContent = "Không đọc được ảnh này để tối ưu. Vui lòng thử ảnh khác.";
+            showToast("Image decode failed. Try another image.", "info");
           } else {
             uploadNote.textContent =
-              "Có ảnh upload lỗi. Thử ảnh khác hoặc đổi Camera → Formats → Most Compatible.";
+              "Có ảnh upload lỗi. Thử ảnh khác rồi upload lại.";
           }
         }
       }

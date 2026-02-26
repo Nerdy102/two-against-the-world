@@ -1,20 +1,57 @@
 /// <reference types="astro/client" />
-/// <reference types="@cloudflare/workers-types" />
+import type { D1Database, R2Bucket } from "@cloudflare/workers-types";
 
-declare namespace App {
-  interface Locals {
-    runtime?: {
-      env?: {
-        DB: D1Database;
-        MEDIA: R2Bucket;
-        TURNSTILE_SECRET?: string;
-        PUBLIC_R2_BASE_URL?: string;
-        PUBLIC_TURNSTILE_SITE_KEY?: string;
+type RuntimeEnv = {
+  DB: D1Database;
+  MEDIA: R2Bucket;
+  ADMIN_PASSWORD?: string;
+  TURNSTILE_SECRET?: string;
+  ALLOW_SCHEMA_BOOTSTRAP?: string;
+  DISABLE_HTML_CACHE?: string;
+  COMMENTS_REQUIRE_REVIEW?: string;
+  PUBLIC_SITE_URL?: string;
+  PUBLIC_R2_BASE_URL?: string;
+  PUBLIC_TURNSTILE_SITE_KEY?: string;
+  PUBLIC_BUILD_SHA?: string;
+  PUBLIC_BUILD_TIME?: string;
+  CF_PAGES_COMMIT_SHA?: string;
+  CF_PAGES_BUILD_TIMESTAMP?: string;
+  GITHUB_SHA?: string;
+  BUILD_SHA?: string;
+  BUILD_TIME?: string;
+  WORKER_NAME?: string;
+  [key: string]: unknown;
+};
+
+declare global {
+  namespace App {
+    interface Locals {
+      runtime?: {
+        env?: RuntimeEnv;
       };
-    };
+    }
+  }
+
+  interface ImportMetaEnv {
+    readonly PUBLIC_TURNSTILE_SITE_KEY?: string;
+    readonly PUBLIC_R2_BASE_URL?: string;
+    readonly PUBLIC_SITE_URL?: string;
+    readonly PUBLIC_BUILD_SHA?: string;
+    readonly PUBLIC_BUILD_TIME?: string;
+    readonly CF_PAGES_COMMIT_SHA?: string;
+    readonly CF_PAGES_BUILD_TIMESTAMP?: string;
+    readonly PUBLIC_ENABLE_CONTENT_FALLBACK?: string;
+    readonly PUBLIC_ENABLE_PINNED_BADGE?: string;
+    readonly PUBLIC_ENABLE_SITE_CREDITS?: string;
+    readonly PUBLIC_ENABLE_IG_LINKS?: string;
+    readonly PUBLIC_ENABLE_IG_EMBED?: string;
+    readonly PUBLIC_IG_EMBED_URL?: string;
+    readonly PUBLIC_ENABLE_ADMIN_DRAFT_SAVE?: string;
+    readonly PUBLIC_ENABLE_COMPOSE_PAGE?: string;
+    readonly PUBLIC_ENABLE_PINNED_FIELDS?: string;
+    readonly PUBLIC_ENABLE_UPLOAD_HELPERS?: string;
+    readonly PUBLIC_ENABLE_LOVE_WIDGETS?: string;
   }
 }
 
-interface ImportMetaEnv {
-  readonly PUBLIC_TURNSTILE_SITE_KEY?: string;
-}
+export {};

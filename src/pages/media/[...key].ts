@@ -30,7 +30,12 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
   }
 
   const headers = new Headers();
-  object.writeHttpMetadata(headers);
+  const metadata = object.httpMetadata;
+  if (metadata?.contentType) headers.set("content-type", metadata.contentType);
+  if (metadata?.contentDisposition) headers.set("content-disposition", metadata.contentDisposition);
+  if (metadata?.contentEncoding) headers.set("content-encoding", metadata.contentEncoding);
+  if (metadata?.contentLanguage) headers.set("content-language", metadata.contentLanguage);
+  if (metadata?.cacheControl) headers.set("cache-control", metadata.cacheControl);
   headers.set("etag", object.httpEtag);
   headers.set("cache-control", "public, max-age=31536000, immutable");
 
@@ -39,7 +44,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
     return new Response(null, { status: 304, headers });
   }
 
-  return new Response(object.body, { status: 200, headers });
+  return new Response((object.body ?? null) as unknown as BodyInit, { status: 200, headers });
 };
 
 export const HEAD: APIRoute = async (ctx) => {

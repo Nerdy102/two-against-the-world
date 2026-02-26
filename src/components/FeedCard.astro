@@ -42,6 +42,50 @@ const pinLabelMap: Record<string, string> = {
   memory: "Kỷ niệm",
 };
 const pinLabel = pinnedStyle && pinLabelMap[pinnedStyle] ? pinLabelMap[pinnedStyle] : "Ghim";
+
+const buildImageCandidates = (src: string) => {
+  const [pathPart, suffix = ""] = src.split(/([?#].*)/, 2);
+  const ext = pathPart.split(".").pop() ?? "";
+  if (!ext) return [src, "/noise.svg"];
+
+  const lower = ext.toLowerCase();
+  const base = pathPart.slice(0, -ext.length);
+  const suffixPart = suffix || "";
+  const candidates = [src];
+
+  const add = (nextPath: string) => {
+    const next = `${nextPath}${suffixPart}`;
+    if (!candidates.includes(next)) candidates.push(next);
+  };
+
+  if (ext !== lower) add(`${base}${lower}`);
+  const upper = ext.toUpperCase();
+  if (ext !== upper) add(`${base}${upper}`);
+
+  if (lower === "heic" || lower === "heif") {
+    add(`${base}jpg`);
+    add(`${base}jpeg`);
+    add(`${base}png`);
+    add(`${base}webp`);
+
+    const coverDir = pathPart.match(/^(.*\/)cover\.[^.]+$/i)?.[1];
+    if (coverDir) {
+      add(`${coverDir}01.jpg`);
+      add(`${coverDir}01.jpeg`);
+      add(`${coverDir}01.png`);
+      add(`${coverDir}01.webp`);
+      add(`${coverDir}1.jpg`);
+      add(`${coverDir}1.jpeg`);
+      add(`${coverDir}1.png`);
+      add(`${coverDir}1.webp`);
+    }
+  }
+
+  add("/noise.svg");
+  return candidates;
+};
+
+const imageCandidates = buildImageCandidates(image);
 ---
 
 <a
@@ -74,6 +118,121 @@ const pinLabel = pinnedStyle && pinLabelMap[pinnedStyle] ? pinLabelMap[pinnedSty
   {locked && <p class="feed-card__desc">🔒 Đã khóa</p>}
 
   <div class="feed-card__media">
-    <img src={image} alt="" loading="lazy" decoding="async" />
+    <img
+      src={image}
+      alt=""
+      loading="lazy"
+      decoding="async"
+      data-candidates={imageCandidates.join("|")}
+      data-candidate-index="0"
+    />
   </div>
 </a>
+
+<script>
+  const HEIC_RE = /\.(heic|heif)(?:[?#].*)?$/i;
+  const convertedImageUrlCache = new Map();
+  let heic2anyPromise;
+
+  const initFeedImageFallbacks = () => {
+    const imgs = document.querySelectorAll(".feed-card__media img[data-candidates]");
+    imgs.forEach((img) => {
+      if (!(img instanceof HTMLImageElement)) return;
+      if (!img.dataset.candidateIndex) img.dataset.candidateIndex = "0";
+    });
+  };
+
+  const loadHeic2any = async () => {
+    if (!heic2anyPromise) {
+      heic2anyPromise = import("heic2any")
+        .then((mod) => mod.default ?? mod)
+        .catch(() => null);
+    }
+    return heic2anyPromise;
+  };
+
+  const srcWithAbsUrl = (value) => {
+    try {
+      return new URL(value, window.location.origin).toString();
+    } catch (_error) {
+      return value;
+    }
+  };
+
+  const nextCandidate = (img) => {
+    const raw = img.dataset.candidates;
+    if (!raw) return null;
+    const candidates = raw.split("|").filter(Boolean);
+    const nextIndex = Number(img.dataset.candidateIndex ?? "0") + 1;
+    if (nextIndex >= candidates.length) return null;
+    img.dataset.candidateIndex = String(nextIndex);
+    return candidates[nextIndex];
+  };
+
+  const convertHeicToJpeg = async (img) => {
+    const currentSrc = srcWithAbsUrl(img.currentSrc || img.src || "");
+    if (!HEIC_RE.test(currentSrc)) return false;
+    if (img.dataset.heicConverted === "1") return false;
+    img.dataset.heicConverted = "1";
+
+    const cached = convertedImageUrlCache.get(currentSrc);
+    if (cached) {
+      img.src = cached;
+      return true;
+    }
+
+    const converter = await loadHeic2any();
+    if (!converter) return false;
+
+    const res = await fetch(currentSrc, { credentials: "same-origin" });
+    if (!res.ok) return false;
+    const blob = await res.blob();
+
+    const converted = await converter({
+      blob,
+      toType: "image/jpeg",
+      quality: 0.9,
+    });
+
+    const outBlob = Array.isArray(converted) ? converted[0] : converted;
+    if (!(outBlob instanceof Blob)) return false;
+    const objectUrl = URL.createObjectURL(outBlob);
+    convertedImageUrlCache.set(currentSrc, objectUrl);
+    img.src = objectUrl;
+    return true;
+  };
+
+  if (!window.__twawFeedImageFallbackBound) {
+    document.addEventListener(
+      "error",
+      (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLImageElement)) return;
+        if (!target.matches(".feed-card__media img[data-candidates]")) return;
+
+        const tryFallback = async () => {
+          try {
+            const converted = await convertHeicToJpeg(target);
+            if (converted) return;
+          } catch (_error) {
+            // fallback to path candidates below
+          }
+
+          const next = nextCandidate(target);
+          if (next) {
+            target.src = next;
+            return;
+          }
+          target.src = "/noise.svg";
+        };
+
+        void tryFallback();
+      },
+      true,
+    );
+    window.__twawFeedImageFallbackBound = true;
+  }
+
+  initFeedImageFallbacks();
+  document.addEventListener("astro:page-load", initFeedImageFallbacks);
+</script>

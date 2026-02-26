@@ -50,7 +50,6 @@ export const GET: APIRoute = async ({ locals, request }) => {
     const db = getDb(locals);
     const allowBootstrap = locals.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
     await ensurePostsSchema(db, { allowBootstrap });
-    const hasLegacyAuthor = await tableHasColumn(db, "posts", "author");
     const { results } = await db
       .prepare(
         `SELECT * FROM posts

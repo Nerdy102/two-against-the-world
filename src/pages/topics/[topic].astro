@@ -19,8 +19,8 @@ try {
   const db = getDb(Astro.locals);
   await ensurePostsSchema(db, { allowBootstrap });
   const { results = [] } = await db
-    .prepare(
-      `SELECT id, slug, title, summary, cover_url, topic, author, published_at, status,
+      .prepare(
+      `SELECT id, slug, title, summary, cover_url, topic, author_name, published_at, status,
         CASE
           WHEN pinned = 1 AND (pinned_until IS NULL OR datetime(pinned_until) > datetime('now')) THEN 1
           ELSE 0
@@ -97,7 +97,7 @@ for (const p of allPosts) {
               image={p.cover_url ?? "/noise.svg"}
               title={p.title}
               description={p.summary ?? ""}
-              author={p.author ?? ""}
+              author={p.author_name ?? ""}
               date={p.published_at ?? ""}
               topic={p.topic ?? undefined}
               locked={isLocked}
