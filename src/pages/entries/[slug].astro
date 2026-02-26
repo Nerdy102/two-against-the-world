@@ -20,6 +20,23 @@ if (!slugParam) {
 const slug = slugParam;
 let post: PostRecord | null = null;
 let postMediaUrls: string[] = [];
+const normalizeGallerySource = (value: string): string => {
+  const trimmed = (value || "").trim();
+  if (!trimmed) return "";
+  const mediaMatch = trimmed.match(/^https?:\/\/[^/]+\/media\/(.+)$/i);
+  if (mediaMatch?.[1]) return `/media/${mediaMatch[1]}`;
+  return trimmed;
+};
+const sortOrderFromMeta = (metaJson: string | null | undefined) => {
+  if (!metaJson) return Number.POSITIVE_INFINITY;
+  try {
+    const parsed = JSON.parse(metaJson);
+    const sort = Number(parsed?.sort_order);
+    return Number.isFinite(sort) ? sort : Number.POSITIVE_INFINITY;
+  } catch {
+    return Number.POSITIVE_INFINITY;
+  }
+};
 try {
   const db = getDb(Astro.locals);
   const dbPost = await db
@@ -37,13 +54,45 @@ try {
       const { results = [] } = await db
         .prepare(
           `SELECT url
-           FROM post_media
+          FROM post_media
            WHERE post_id = ?
            ORDER BY sort_order ASC, datetime(created_at) ASC`
         )
         .bind(dbPost.id)
         .all<{ url: string }>();
-      postMediaUrls = (results ?? []).map((row) => row.url).filter(Boolean);
+      postMediaUrls = (results ?? []).map((row) => normalizeGallerySource(row.url)).filter(Boolean);
+
+      if (postMediaUrls.length <= 1) {
+        const mediaLikePattern = `%posts/${slug}/%`;
+        const { results: recoveredRows = [] } = await db
+          .prepare(
+            `SELECT url, meta_json, created_at
+             FROM media
+             WHERE type = 'image' AND url LIKE ?
+             ORDER BY datetime(created_at) ASC`
+          )
+          .bind(mediaLikePattern)
+          .all<{ url: string; meta_json: string | null; created_at: string | null }>();
+
+        const recovered = (recoveredRows ?? [])
+          .map((row, index) => ({
+            url: normalizeGallerySource(row.url),
+            sortOrder: sortOrderFromMeta(row.meta_json),
+            createdAt: row.created_at ?? "",
+            index,
+          }))
+          .filter((row) => Boolean(row.url))
+          .sort((a, b) => {
+            if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder;
+            if (a.createdAt !== b.createdAt) return a.createdAt.localeCompare(b.createdAt);
+            return a.index - b.index;
+          })
+          .map((row) => row.url);
+
+        if (recovered.length > postMediaUrls.length) {
+          postMediaUrls = Array.from(new Set([...postMediaUrls, ...recovered]));
+        }
+      }
     } catch (mediaError) {
       console.warn("post_media unavailable, fallback to photo_dir:", mediaError);
     }
@@ -170,14 +219,6 @@ const photosWithCandidates =
 
 const coverSrc = resolvePostCoverUrl(post);
 const coverExt = getImageExtension(post.cover_url);
-
-const normalizeGallerySource = (value: string): string => {
-  const trimmed = (value || "").trim();
-  if (!trimmed) return "";
-  const mediaMatch = trimmed.match(/^https?:\/\/[^/]+\/media\/(.+)$/i);
-  if (mediaMatch?.[1]) return `/media/${mediaMatch[1]}`;
-  return trimmed;
-};
 
 const dedupeOrderedSources = (sources: string[]) => {
   const ordered: string[] = [];
