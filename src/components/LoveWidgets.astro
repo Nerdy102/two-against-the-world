@@ -149,7 +149,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
               </label>
               <label class="love-event-admin-modal__field">
                 <span>Description</span>
-                <textarea class="input" name="note" rows="3" placeholder="Mô tả ngắn cho event"></textarea>
+                <textarea class="input" name="note" rows="3" required placeholder="Mô tả ngắn cho event"></textarea>
               </label>
               <button class="love-event-admin-modal__btn" type="submit">Push To Timeline</button>
             </form>
@@ -166,6 +166,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
                   name="note"
                   rows="4"
                   data-love-event-admin-edit-note
+                  required
                   placeholder="Mô tả sẽ hiển thị khi bấm icon note"
                 ></textarea>
               </label>
@@ -536,7 +537,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
           return;
         }
         noteTitle.textContent = eventItem.name;
-        noteBody.textContent = eventItem.note || "No note yet.";
+        noteBody.textContent = eventItem.note || "Chưa có ghi chú.";
         noteModal.hidden = false;
         noteModal.dataset.open = "1";
       };
@@ -569,10 +570,59 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
       };
 
       let adminUnlocked = false;
+      let adminMode = "add";
       const setAdminStatus = (message, variant = "info") => {
         if (!(adminStatus instanceof HTMLElement)) return;
         adminStatus.textContent = message;
         adminStatus.dataset.state = variant;
+      };
+
+      const populateAdminEditOptions = (preferredId = "") => {
+        if (!(adminEditTarget instanceof HTMLSelectElement)) return;
+        if (!(adminEditNote instanceof HTMLTextAreaElement)) return;
+        const sorted = sortEventsForAdmin();
+        const currentValue = preferredId || adminEditTarget.value;
+        adminEditTarget.textContent = "";
+        if (!sorted.length) {
+          const option = document.createElement("option");
+          option.value = "";
+          option.textContent = "Chưa có event";
+          adminEditTarget.appendChild(option);
+          adminEditTarget.disabled = true;
+          adminEditNote.value = "";
+          return;
+        }
+        sorted.forEach((eventItem) => {
+          const option = document.createElement("option");
+          option.value = eventItem.id;
+          option.textContent = `${pad(eventItem.day)}/${pad(eventItem.month)} · ${eventItem.name}`;
+          adminEditTarget.appendChild(option);
+        });
+        adminEditTarget.disabled = false;
+        const nextId = sorted.some((item) => item.id === currentValue)
+          ? currentValue
+          : sorted[0].id;
+        adminEditTarget.value = nextId;
+        const activeEvent = findEventItemById(nextId);
+        adminEditNote.value = activeEvent?.note || "";
+      };
+
+      const setAdminMode = (mode) => {
+        adminMode = mode === "edit" ? "edit" : "add";
+        if (adminAddForm instanceof HTMLElement) {
+          adminAddForm.hidden = adminMode !== "add";
+        }
+        if (adminEditForm instanceof HTMLElement) {
+          adminEditForm.hidden = adminMode !== "edit";
+        }
+        adminTabEls.forEach((tabEl) => {
+          if (!(tabEl instanceof HTMLButtonElement)) return;
+          const tabMode = tabEl.getAttribute("data-love-event-admin-tab") || "add";
+          tabEl.setAttribute("aria-selected", tabMode === adminMode ? "true" : "false");
+        });
+        if (adminMode === "edit") {
+          populateAdminEditOptions();
+        }
       };
 
       const setAdminUnlocked = (value) => {
@@ -580,14 +630,18 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         if (adminAuth instanceof HTMLElement) {
           adminAuth.hidden = value;
         }
-        if (adminForm instanceof HTMLElement) {
-          adminForm.hidden = !value;
+        if (adminPanel instanceof HTMLElement) {
+          adminPanel.hidden = !value;
         }
         if (value) {
-          setAdminStatus("Unlocked. Push event mới ngay trên điện thoại.");
+          setAdminMode(adminMode);
+          populateAdminEditOptions();
+          setAdminStatus("Unlocked. Add event mới hoặc sửa description ngay trên điện thoại.");
           if (adminPasswordInput instanceof HTMLInputElement) {
             adminPasswordInput.value = "";
           }
+        } else {
+          setAdminStatus("Nhập password admin để mở quyền chỉnh sửa.");
         }
       };
 
@@ -620,6 +674,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         adminOpenBtn.addEventListener("click", (event) => {
           event.preventDefault();
           openAdminModal();
+          ensureAdminSession();
         });
       }
 
@@ -631,6 +686,27 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
             event.preventDefault();
             closeAdminModal();
           });
+        });
+      }
+
+      if (adminTabEls.length) {
+        adminTabEls.forEach((tabEl) => {
+          if (!(tabEl instanceof HTMLButtonElement)) return;
+          if (tabEl.dataset.bound === "1") return;
+          tabEl.dataset.bound = "1";
+          tabEl.addEventListener("click", (event) => {
+            event.preventDefault();
+            setAdminMode(tabEl.getAttribute("data-love-event-admin-tab") || "add");
+          });
+        });
+      }
+
+      if (adminEditTarget instanceof HTMLSelectElement && adminEditTarget.dataset.bound !== "1") {
+        adminEditTarget.dataset.bound = "1";
+        adminEditTarget.addEventListener("change", () => {
+          if (!(adminEditNote instanceof HTMLTextAreaElement)) return;
+          const selected = findEventItemById(adminEditTarget.value);
+          adminEditNote.value = selected?.note || "";
         });
       }
 
@@ -673,16 +749,16 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         });
       }
 
-      if (adminForm instanceof HTMLFormElement && adminForm.dataset.bound !== "1") {
-        adminForm.dataset.bound = "1";
-        adminForm.addEventListener("submit", async (event) => {
+      if (adminAddForm instanceof HTMLFormElement && adminAddForm.dataset.bound !== "1") {
+        adminAddForm.dataset.bound = "1";
+        adminAddForm.addEventListener("submit", async (event) => {
           event.preventDefault();
           if (!adminUnlocked) {
             setAdminStatus("Cần unlock bằng password trước.", "error");
             return;
           }
 
-          const fd = new FormData(adminForm);
+          const fd = new FormData(adminAddForm);
           const name = String(fd.get("name") || "").trim();
           const dateRaw = String(fd.get("event_date") || "").trim();
           if (!name || !dateRaw) {
@@ -706,6 +782,10 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
           const icon = String(fd.get("icon") || "").trim();
           const note = String(fd.get("note") || "").trim();
           const accentRgb = String(fd.get("accent_rgb") || "").trim();
+          if (!note) {
+            setAdminStatus("Description là bắt buộc cho event.", "error");
+            return;
+          }
           const csrf = getCsrfToken();
           if (!csrf) {
             setAdminStatus("Thiếu CSRF token, thử unlock lại.", "error");
@@ -761,8 +841,9 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
             eventEls = collectEventEls();
             refreshExtraEventsCount();
             bindAllNoteTriggers();
+            populateAdminEditOptions(created.id);
             updateEvents();
-            adminForm.reset();
+            adminAddForm.reset();
             setAdminStatus("Pushed. Event đã lên timeline.");
           } catch (_error) {
             setAdminStatus("Không thể push event lúc này.", "error");
@@ -770,6 +851,86 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         });
       }
 
+      if (adminEditForm instanceof HTMLFormElement && adminEditForm.dataset.bound !== "1") {
+        adminEditForm.dataset.bound = "1";
+        adminEditForm.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          if (!adminUnlocked) {
+            setAdminStatus("Cần unlock bằng password trước.", "error");
+            return;
+          }
+          if (!(adminEditTarget instanceof HTMLSelectElement)) return;
+          if (!(adminEditNote instanceof HTMLTextAreaElement)) return;
+
+          const id = adminEditTarget.value.trim();
+          const note = adminEditNote.value.trim();
+          if (!id) {
+            setAdminStatus("Chọn event cần sửa description.", "error");
+            return;
+          }
+          if (!note) {
+            setAdminStatus("Description không được để trống.", "error");
+            return;
+          }
+
+          const source = findEventItemById(id);
+          if (!source) {
+            setAdminStatus("Không tìm thấy event này trên timeline.", "error");
+            return;
+          }
+
+          const accentRgb =
+            source.eventEl instanceof HTMLElement
+              ? source.eventEl.style.getPropertyValue("--event-accent").trim()
+              : "";
+          const csrf = getCsrfToken();
+          if (!csrf) {
+            setAdminStatus("Thiếu CSRF token, thử unlock lại.", "error");
+            return;
+          }
+
+          setAdminStatus("Đang cập nhật description...");
+          try {
+            const res = await fetch("/api/admin/love-events", {
+              method: "PATCH",
+              headers: {
+                "content-type": "application/json",
+                "x-csrf-token": csrf,
+              },
+              body: JSON.stringify({
+                id,
+                name: source.name,
+                month: source.month,
+                day: source.day,
+                hour: source.hour,
+                minute: source.minute,
+                event_group: source.group === "featured" ? "featured" : "extra",
+                icon: source.icon || "",
+                note,
+                accent_rgb: accentRgb,
+              }),
+            });
+            const payload = await res.json().catch(() => null);
+            if (!res.ok || !payload?.ok || !payload?.event) {
+              setAdminStatus(payload?.error || "Update description failed.", "error");
+              return;
+            }
+
+            const updated = payload.event;
+            if (source.eventEl instanceof HTMLElement) {
+              source.eventEl.setAttribute("data-love-event-note", String(updated.note || ""));
+            }
+            eventEls = collectEventEls();
+            bindAllNoteTriggers();
+            populateAdminEditOptions(id);
+            setAdminStatus("Description đã được cập nhật.");
+          } catch (_error) {
+            setAdminStatus("Không thể cập nhật description lúc này.", "error");
+          }
+        });
+      }
+
+      setAdminMode("add");
       ensureAdminSession();
 
       const hydrateRemoteEvents = async () => {
@@ -814,6 +975,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
           eventEls = collectEventEls();
           refreshExtraEventsCount();
           bindAllNoteTriggers();
+          populateAdminEditOptions();
           updateEvents();
         } catch (_error) {}
       };
