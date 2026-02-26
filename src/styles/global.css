@@ -800,6 +800,10 @@ a { color: inherit; text-decoration: none; }
   white-space: nowrap;
 }
 
+.header-nav__about-icon {
+  display: none;
+}
+
 @media (max-width: 720px) {
   .site-header {
     padding-top: 16px;
@@ -824,8 +828,33 @@ a { color: inherit; text-decoration: none; }
 
   .header-nav {
     width: 100%;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: center;
+    gap: 6px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .header-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .header-nav .btn {
+    flex: 0 0 auto;
+    min-width: 34px;
+    padding-left: 9px;
+    padding-right: 9px;
+    white-space: nowrap;
+  }
+
+  .header-nav__about-text {
+    display: none;
+  }
+
+  .header-nav__about-icon {
+    display: inline;
+    line-height: 1;
   }
 
   .ransom-nowrap {
@@ -914,8 +943,23 @@ a { color: inherit; text-decoration: none; }
 
   .header-nav {
     width: 100%;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: center;
+    gap: 6px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .header-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .header-nav .btn {
+    flex: 0 0 auto;
+    min-width: 32px;
+    padding-left: 8px;
+    padding-right: 8px;
   }
 
   .ransom-nowrap {
@@ -2548,12 +2592,42 @@ a { color: inherit; text-decoration: none; }
 
 @media (max-width: 640px) {
   .entry-share {
-    top: 12px;
-    right: 12px;
+    position: static;
+    margin-top: 10px;
+    align-items: flex-end;
+  }
+
+  .share-btn--hero {
+    flex-direction: row;
+    min-width: 38px;
+    min-height: 38px;
+    padding: 5px 9px;
+    border-radius: 999px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.14);
+  }
+
+  .share-btn--hero svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .share-btn--hero .share-btn__label {
+    font-size: 9px;
+    letter-spacing: 0.16em;
   }
 }
 
 @media (max-width: 480px) {
+  .share-btn--hero {
+    min-width: 36px;
+    min-height: 36px;
+    padding: 6px;
+  }
+
+  .share-btn--hero .share-btn__label {
+    display: none;
+  }
+
   .entry-hero {
     padding: 20px !important;
   }

@@ -35,7 +35,8 @@ const searchHref = "/entries#journal-tools";
         class={`btn text-[13px] sm:text-[14px] whitespace-nowrap ${active === "about" ? "border-white/25" : ""}`}
         aria-current={active === "about" ? "page" : undefined}
       >
-        Who r we? 💜🧡
+        <span class="header-nav__about-text">Who r we? 💜🧡</span>
+        <span class="header-nav__about-icon" aria-hidden="true">💜🧡</span>
       </a>
       <a
         href="/past-events"

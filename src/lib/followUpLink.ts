@@ -8,6 +8,7 @@ const MARKDOWN_LINK_RE = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/gi;
 const RAW_URL_RE = /https?:\/\/[^\s)]+/gi;
 const ESCAPED_NEWLINE_RE = /\\r\\n|\\n|\\r/g;
 const LINK_LABEL_LINE_RE = /^\s*(?:[-*•]\s*)?(?:stream\s*)?link\s*:?\s*$/gim;
+const ORPHAN_LINK_TOKEN_RE = /(^|[\s(])link(?=$|[\s).,:;!?])/gim;
 
 export const sanitizeSummaryText = (value: string | null | undefined): string => {
   if (typeof value !== "string") return "";
@@ -35,13 +36,22 @@ export const splitSummaryFollowUp = (value: string | null | undefined): SummaryL
   const followUpUrl = markdownMatch?.[2]?.trim() || rawUrlMatch?.[0]?.trim() || "";
   const followUpLabel = markdownMatch?.[1]?.trim() || (followUpUrl ? "Link" : "");
 
-  const summaryText = normalized
+  let summaryText = normalized
     .replace(MARKDOWN_LINK_RE, "")
     .replace(RAW_URL_RE, "")
     .replace(LINK_LABEL_LINE_RE, "")
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+
+  if (!followUpUrl) {
+    summaryText = summaryText
+      .replace(ORPHAN_LINK_TOKEN_RE, "$1")
+      .replace(/[ \t]{2,}/g, " ")
+      .replace(/[ \t]+\n/g, "\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+  }
 
   return { summaryText, followUpUrl, followUpLabel };
 };

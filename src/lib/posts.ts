@@ -62,6 +62,30 @@ const nonEmpty = (value: string | null | undefined): string | null => {
   return trimmed ? trimmed : null;
 };
 
+const SUMMARY_LINK_RE = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|https?:\/\/[^\s)]+/i;
+const SUMMARY_ORPHAN_LINK_LABEL_RE = /\blink\b/i;
+
+const pickBetterSummary = (
+  dbSummary: string | null | undefined,
+  contentSummary: string | null | undefined
+): string | null => {
+  const dbValue = typeof dbSummary === "string" ? dbSummary.trim() : "";
+  const contentValue = typeof contentSummary === "string" ? contentSummary.trim() : "";
+  if (!contentValue) return dbValue || null;
+  if (!dbValue) return contentValue;
+  if (SUMMARY_LINK_RE.test(dbValue)) return dbValue;
+  if (SUMMARY_LINK_RE.test(contentValue) && SUMMARY_ORPHAN_LINK_LABEL_RE.test(dbValue)) {
+    return contentValue;
+  }
+  return dbValue;
+};
+
+const needsSummaryRescue = (summary: string | null | undefined) => {
+  const value = typeof summary === "string" ? summary.trim() : "";
+  if (!value) return false;
+  return !SUMMARY_LINK_RE.test(value) && SUMMARY_ORPHAN_LINK_LABEL_RE.test(value);
+};
+
 export const resolvePostCoverUrl = (
   post: Pick<PostRecord, "cover_url" | "body_markdown" | "content_md" | "video_url" | "video_poster">
 ): string => {
@@ -192,10 +216,22 @@ export const mergePostsBySlug = (
   dbPosts: PostRecord[],
   contentPosts: PostRecord[]
 ): PostRecord[] => {
+  const contentBySlug = new Map(
+    contentPosts
+      .filter((post) => Boolean(post?.slug))
+      .map((post) => [post.slug, post] as const)
+  );
   const map = new Map<string, PostRecord>();
   for (const post of dbPosts) {
     if (!post?.slug) continue;
-    map.set(post.slug, withNormalizedPostFields(post));
+    const summary = pickBetterSummary(post.summary, contentBySlug.get(post.slug)?.summary);
+    map.set(
+      post.slug,
+      withNormalizedPostFields({
+        ...post,
+        summary,
+      })
+    );
   }
   for (const post of contentPosts) {
     if (!post?.slug || map.has(post.slug)) continue;
@@ -208,11 +244,18 @@ export const getHybridPostBySlug = async (
   dbPost: PostRecord | null,
   slug: string
 ): Promise<PostRecord | null> => {
-  if (dbPost) {
-    return withNormalizedPostFields(dbPost);
+  const allowContentFallback = shouldUseContentFallback();
+  const shouldRescueDbSummary = needsSummaryRescue(dbPost?.summary);
+  if (!allowContentFallback && !shouldRescueDbSummary) {
+    return dbPost ? withNormalizedPostFields(dbPost) : null;
   }
-  if (!shouldUseContentFallback()) return null;
   const contentPost = await getPostFromContentBySlug(slug);
+  if (dbPost) {
+    return withNormalizedPostFields({
+      ...dbPost,
+      summary: pickBetterSummary(dbPost.summary, contentPost?.summary),
+    });
+  }
   if (!contentPost) return null;
   return withNormalizedPostFields(contentPost);
 };
