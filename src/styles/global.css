@@ -1144,11 +1144,30 @@ a { color: inherit; text-decoration: none; }
 }
 
 .feed-card__date {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  text-align: right;
+  line-height: 1.15;
+  color: rgba(255,255,255,0.74);
+}
+
+.feed-card__date-main {
   font-family: var(--font-mono);
   font-size: 11px;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.6);
+  color: rgba(255,255,255,0.62);
+}
+
+.feed-card__date-zone {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.9);
+  white-space: nowrap;
 }
 
 .feed-card__title {

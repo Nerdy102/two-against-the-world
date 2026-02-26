@@ -516,18 +516,12 @@ const isPair = frames.length === 2;
       });
     };
 
-    const initFallbacks = () => {
-      const images = document.querySelectorAll("img[data-candidates]");
-      images.forEach((img) => {
-        if (!(img instanceof HTMLImageElement)) return;
-        if (!img.dataset.candidateIndex) {
-          img.dataset.candidateIndex = "0";
-        }
-      });
-    };
-
     const HEIC_RE = /\.(heic|heif)(?:[?#].*)?$/i;
-    const convertedImageUrlCache = new Map();
+    const NON_SAFARI_RE = /(chrome|crios|edg|opr|android)/i;
+    const convertedImageUrlCache = new Map<string, string>();
+    const heicConvertResultCache = new Map<string, boolean>();
+    const candidateProbeResultCache = new Map<string, boolean>();
+    const candidateProbePromiseCache = new Map<string, Promise<boolean>>();
     let heic2anyLoader: Promise<any> | null = null;
 
     const loadHeic2any = async () => {
@@ -537,6 +531,9 @@ const isPair = frames.length === 2;
       return heic2anyLoader;
     };
 
+    const isProbablySafari = () =>
+      /safari/i.test(navigator.userAgent) && !NON_SAFARI_RE.test(navigator.userAgent);
+
     const srcWithAbsUrl = (value: string): string => {
       try {
         return new URL(value, window.location.origin).toString();
@@ -545,14 +542,83 @@ const isPair = frames.length === 2;
       }
     };
 
-    const nextCandidate = (img: HTMLImageElement): string | null => {
-      const raw = img.dataset.candidates;
-      if (!raw) return null;
+    const parseCandidates = (img: HTMLImageElement) => {
+      const raw = img.dataset.candidates ?? "";
       const candidates = raw.split("|").filter(Boolean);
-      const nextIndex = Number(img.dataset.candidateIndex ?? "0") + 1;
-      if (nextIndex >= candidates.length) return null;
-      img.dataset.candidateIndex = String(nextIndex);
-      return candidates[nextIndex];
+      const indexRaw = Number.parseInt(img.dataset.candidateIndex ?? "0", 10);
+      const index = Number.isNaN(indexRaw)
+        ? 0
+        : Math.max(0, Math.min(indexRaw, Math.max(candidates.length - 1, 0)));
+      return { candidates, index };
+    };
+
+    const setCandidate = (img: HTMLImageElement, index: number, next: string) => {
+      img.dataset.candidateIndex = String(index);
+      if (img.getAttribute("src") !== next) {
+        img.src = next;
+      }
+    };
+
+    const probeCandidate = async (value: string): Promise<boolean> => {
+      const abs = srcWithAbsUrl(value);
+      const cached = candidateProbeResultCache.get(abs);
+      if (typeof cached === "boolean") return cached;
+      const inFlight = candidateProbePromiseCache.get(abs);
+      if (inFlight) return inFlight;
+
+      const promise = new Promise<boolean>((resolve) => {
+        const probe = new Image();
+        let settled = false;
+        const done = (ok: boolean) => {
+          if (settled) return;
+          settled = true;
+          candidateProbeResultCache.set(abs, ok);
+          candidateProbePromiseCache.delete(abs);
+          resolve(ok);
+        };
+        const timeout = window.setTimeout(() => done(false), 8000);
+        probe.onload = () => {
+          window.clearTimeout(timeout);
+          done((probe.naturalWidth || 0) > 1 && (probe.naturalHeight || 0) > 1);
+        };
+        probe.onerror = () => {
+          window.clearTimeout(timeout);
+          done(false);
+        };
+        probe.src = abs;
+      });
+
+      candidateProbePromiseCache.set(abs, promise);
+      return promise;
+    };
+
+    const findWorkingCandidate = async (
+      img: HTMLImageElement,
+      startIndex: number,
+      { skipHeic }: { skipHeic: boolean }
+    ): Promise<boolean> => {
+      const { candidates } = parseCandidates(img);
+      if (!candidates.length) return false;
+      for (let i = Math.max(0, startIndex); i < candidates.length; i += 1) {
+        const candidate = candidates[i];
+        if (!candidate) continue;
+        const abs = srcWithAbsUrl(candidate);
+        if (skipHeic && HEIC_RE.test(abs)) continue;
+        const ok = await probeCandidate(candidate);
+        if (!ok) continue;
+        setCandidate(img, i, candidate);
+        return true;
+      }
+      return false;
+    };
+
+    const initFallbacks = () => {
+      const images = document.querySelectorAll("img[data-candidates]");
+      images.forEach((img) => {
+        if (!(img instanceof HTMLImageElement)) return;
+        const { index } = parseCandidates(img);
+        img.dataset.candidateIndex = String(index);
+      });
     };
 
     const blobIsRenderable = async (blob: Blob): Promise<boolean> => {
@@ -621,24 +687,26 @@ const isPair = frames.length === 2;
       }
     };
 
-    const convertHeicToJpeg = async (img: HTMLImageElement): Promise<boolean> => {
-      const currentSrc = srcWithAbsUrl(img.currentSrc || img.src || "");
-      if (!HEIC_RE.test(currentSrc)) return false;
-      if (img.dataset.heicConverted === "1") return false;
-      img.dataset.heicConverted = "1";
-
-      const cached = convertedImageUrlCache.get(currentSrc);
+    const convertHeicToJpeg = async (img: HTMLImageElement, source: string): Promise<boolean> => {
+      const heicSrc = srcWithAbsUrl(source);
+      if (!HEIC_RE.test(heicSrc)) return false;
+      const cached = convertedImageUrlCache.get(heicSrc);
       if (cached) {
         img.src = cached;
         return true;
       }
+      const known = heicConvertResultCache.get(heicSrc);
+      if (known === false) return false;
 
-      const res = await fetch(currentSrc, { credentials: "same-origin" });
-      if (!res.ok) return false;
+      const res = await fetch(heicSrc, { credentials: "same-origin" });
+      if (!res.ok) {
+        heicConvertResultCache.set(heicSrc, false);
+        return false;
+      }
       const raw = await res.arrayBuffer();
       const sourceBytes = raw.byteLength;
       const typedBlob = new Blob([raw], {
-        type: /\.heif(?:[?#].*)?$/i.test(currentSrc) ? "image/heif" : "image/heic",
+        type: /\.heif(?:[?#].*)?$/i.test(heicSrc) ? "image/heif" : "image/heic",
       });
       const conversionTargets = [
         { toType: "image/jpeg", quality: 0.9 },
@@ -660,11 +728,63 @@ const isPair = frames.length === 2;
         if (!renderable) continue;
 
         const objectUrl = URL.createObjectURL(outBlob);
-        convertedImageUrlCache.set(currentSrc, objectUrl);
+        convertedImageUrlCache.set(heicSrc, objectUrl);
+        heicConvertResultCache.set(heicSrc, true);
         img.src = objectUrl;
         return true;
       }
+      heicConvertResultCache.set(heicSrc, false);
       return false;
+    };
+
+    const recoverImage = async (
+      img: HTMLImageElement,
+      { fromError }: { fromError: boolean }
+    ) => {
+      if (img.dataset.recovering === "1") return;
+      img.dataset.recovering = "1";
+      try {
+        const { candidates, index } = parseCandidates(img);
+        if (!candidates.length) {
+          img.src = "/collage/moodboard.jpg";
+          return;
+        }
+
+        const startIndex = fromError ? Math.min(index + 1, candidates.length - 1) : index;
+        const skipHeic = !isProbablySafari();
+        const foundStatic = await findWorkingCandidate(img, startIndex, { skipHeic });
+        if (foundStatic) return;
+
+        if (!skipHeic) {
+          const foundHeic = await findWorkingCandidate(img, startIndex, { skipHeic: false });
+          if (foundHeic) return;
+        }
+
+        for (const candidate of candidates) {
+          if (!candidate) continue;
+          if (!HEIC_RE.test(srcWithAbsUrl(candidate))) continue;
+          try {
+            const converted = await convertHeicToJpeg(img, candidate);
+            if (converted) return;
+          } catch (_error) {
+            // continue through next HEIC candidate
+          }
+        }
+
+        img.src = "/collage/moodboard.jpg";
+      } finally {
+        img.dataset.recovering = "0";
+      }
+    };
+
+    const primeBrokenWallImages = async () => {
+      const images = document.querySelectorAll("img[data-candidates]");
+      for (const img of images) {
+        if (!(img instanceof HTMLImageElement)) continue;
+        if (!img.complete) continue;
+        if ((img.naturalWidth || 0) > 1 && (img.naturalHeight || 0) > 1) continue;
+        await recoverImage(img, { fromError: false });
+      }
     };
 
     if (!(window as any).__twawFrameWallFallbackBound) {
@@ -674,23 +794,7 @@ const isPair = frames.length === 2;
           const target = event.target;
           if (!(target instanceof HTMLImageElement)) return;
           if (!target.dataset.candidates) return;
-
-          const run = async () => {
-            try {
-              const converted = await convertHeicToJpeg(target);
-              if (converted) return;
-            } catch (_error) {
-              // fallback to candidate chain below
-            }
-            const next = nextCandidate(target);
-            if (next) {
-              target.src = next;
-              return;
-            }
-            target.src = "/collage/moodboard.jpg";
-          };
-
-          void run();
+          void recoverImage(target, { fromError: true });
         },
         true,
       );
@@ -855,10 +959,28 @@ const isPair = frames.length === 2;
     initFallbacks();
     resolvePairLayouts();
     bindLightboxSwipe();
+    window.setTimeout(() => {
+      void primeBrokenWallImages();
+    }, 300);
+    window.setTimeout(() => {
+      void primeBrokenWallImages();
+    }, 1600);
+    window.setTimeout(() => {
+      void primeBrokenWallImages();
+    }, 3600);
     document.addEventListener("astro:page-load", () => {
       initFallbacks();
       resolvePairLayouts();
       bindLightboxSwipe();
+      window.setTimeout(() => {
+        void primeBrokenWallImages();
+      }, 300);
+      window.setTimeout(() => {
+        void primeBrokenWallImages();
+      }, 1600);
+      window.setTimeout(() => {
+        void primeBrokenWallImages();
+      }, 3600);
     });
   </script>
 </div>
