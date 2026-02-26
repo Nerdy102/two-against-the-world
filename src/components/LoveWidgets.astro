@@ -40,28 +40,9 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
           <article
             class="love-event-chip"
             role="listitem"
-            style="--event-accent: 255 141 177;"
-            data-love-event
-            data-love-event-group="featured"
-            data-love-event-name="Sinh nhật Mỹ Uyên"
-            data-love-event-month="3"
-            data-love-event-day="17"
-            data-love-event-note="Sinh nhật em bé Mỹ Uyên. Ngày đặc biệt nhất tháng 3."
-          >
-            <span class="love-event-chip__icon" aria-hidden="true">🎂</span>
-            <div class="love-event-chip__meta">
-              <span class="love-event-chip__name">Sinh nhật Mỹ Uyên</span>
-              <span class="love-event-chip__date" data-love-event-date>17/03</span>
-            </div>
-            <strong class="love-event-chip__countdown" data-love-event-countdown>--D --:--:--</strong>
-            <button class="love-event-chip__note-btn" type="button" data-love-event-note-trigger aria-label="Xem note event">✦</button>
-          </article>
-
-          <article
-            class="love-event-chip"
-            role="listitem"
             style="--event-accent: 116 218 255;"
             data-love-event
+            data-love-event-id="viet-hoa-ve-viet-nam"
             data-love-event-group="featured"
             data-love-event-name="Việt Hoà về Việt Nam"
             data-love-event-month="3"
@@ -81,67 +62,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         </div>
 
         <div class="love-events-strip__more" id="love-events-more" data-love-events-more hidden>
-          <div class="love-events-strip__rail love-events-strip__rail--extra" role="list" aria-label="Extra event timeline">
-            <article
-              class="love-event-chip love-event-chip--extra"
-              role="listitem"
-              style="--event-accent: 255 205 118;"
-              data-love-event
-              data-love-event-group="extra"
-              data-love-event-name="Sinh nhật Việt Hoà"
-              data-love-event-month="6"
-              data-love-event-day="4"
-              data-love-event-note="Sinh nhật của Hoà, ngày reset năng lượng để bắt đầu chapter mới."
-            >
-              <span class="love-event-chip__icon" aria-hidden="true">🎉</span>
-              <div class="love-event-chip__meta">
-                <span class="love-event-chip__name">Sinh nhật Việt Hoà</span>
-                <span class="love-event-chip__date" data-love-event-date>04/06</span>
-              </div>
-              <strong class="love-event-chip__countdown" data-love-event-countdown>--D --:--:--</strong>
-              <button class="love-event-chip__note-btn" type="button" data-love-event-note-trigger aria-label="Xem note event">✦</button>
-            </article>
-
-            <article
-              class="love-event-chip love-event-chip--extra"
-              role="listitem"
-              style="--event-accent: 186 255 158;"
-              data-love-event
-              data-love-event-group="extra"
-              data-love-event-name="Valentine Day"
-              data-love-event-month="2"
-              data-love-event-day="14"
-              data-love-event-note="Valentine, một điểm neo cảm xúc cho những thứ không nói thành lời."
-            >
-              <span class="love-event-chip__icon" aria-hidden="true">💌</span>
-              <div class="love-event-chip__meta">
-                <span class="love-event-chip__name">Valentine Day</span>
-                <span class="love-event-chip__date" data-love-event-date>14/02</span>
-              </div>
-              <strong class="love-event-chip__countdown" data-love-event-countdown>--D --:--:--</strong>
-              <button class="love-event-chip__note-btn" type="button" data-love-event-note-trigger aria-label="Xem note event">✦</button>
-            </article>
-
-            <article
-              class="love-event-chip love-event-chip--extra"
-              role="listitem"
-              style="--event-accent: 255 167 118;"
-              data-love-event
-              data-love-event-group="extra"
-              data-love-event-name="Anniversary 1 Year"
-              data-love-event-month="12"
-              data-love-event-day="31"
-              data-love-event-note="Anniversary 1 năm, checkpoint lớn của cả hai sau một năm đồng hành."
-            >
-              <span class="love-event-chip__icon" aria-hidden="true">🥂</span>
-              <div class="love-event-chip__meta">
-                <span class="love-event-chip__name">Anniversary 1 Year</span>
-                <span class="love-event-chip__date" data-love-event-date>31/12</span>
-              </div>
-              <strong class="love-event-chip__countdown" data-love-event-countdown>--D --:--:--</strong>
-              <button class="love-event-chip__note-btn" type="button" data-love-event-note-trigger aria-label="Xem note event">✦</button>
-            </article>
-          </div>
+          <div class="love-events-strip__rail love-events-strip__rail--extra" role="list" aria-label="Extra event timeline"></div>
         </div>
       </section>
 
@@ -166,7 +87,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         <button class="love-event-admin-modal__backdrop" type="button" data-love-events-admin-close aria-label="Đóng event admin"></button>
         <section class="love-event-admin-modal__card" role="dialog" aria-modal="true" aria-labelledby="love-event-admin-title">
           <div class="love-event-admin-modal__eyebrow">EVENT ADMIN</div>
-          <h3 id="love-event-admin-title" class="love-event-admin-modal__title">Add New Event</h3>
+          <h3 id="love-event-admin-title" class="love-event-admin-modal__title">Event Control</h3>
 
           <div class="love-event-admin-modal__auth" data-love-event-admin-auth>
             <label class="love-event-admin-modal__field">
@@ -176,40 +97,81 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
             <button class="love-event-admin-modal__btn" type="button" data-love-event-admin-unlock>Unlock</button>
           </div>
 
-          <form class="love-event-admin-modal__form" data-love-event-admin-form hidden>
-            <label class="love-event-admin-modal__field">
-              <span>Event title</span>
-              <input class="input" name="name" required placeholder="Tên sự kiện" />
-            </label>
-            <label class="love-event-admin-modal__field">
-              <span>Date</span>
-              <input class="input" type="date" name="event_date" required />
-            </label>
-            <label class="love-event-admin-modal__field">
-              <span>Time (optional)</span>
-              <input class="input" type="time" name="event_time" step="60" />
-            </label>
-            <label class="love-event-admin-modal__field">
-              <span>Icon</span>
-              <input class="input" name="icon" maxlength="4" placeholder="✈︎" />
-            </label>
-            <label class="love-event-admin-modal__field">
-              <span>Group</span>
-              <select class="input" name="event_group">
-                <option value="extra">Timeline</option>
-                <option value="featured">Featured</option>
-              </select>
-            </label>
-            <label class="love-event-admin-modal__field">
-              <span>Accent rgb (optional)</span>
-              <input class="input" name="accent_rgb" placeholder="116 218 255" />
-            </label>
-            <label class="love-event-admin-modal__field">
-              <span>Note</span>
-              <textarea class="input" name="note" rows="3" placeholder="Mô tả ngắn cho event"></textarea>
-            </label>
-            <button class="love-event-admin-modal__btn" type="submit">Push To Timeline</button>
-          </form>
+          <div class="love-event-admin-modal__panel" data-love-event-admin-panel hidden>
+            <div class="love-event-admin-modal__tabs" role="tablist" aria-label="Event admin mode">
+              <button
+                class="love-event-admin-modal__tab"
+                type="button"
+                role="tab"
+                data-love-event-admin-tab="add"
+                aria-selected="true"
+              >
+                Add
+              </button>
+              <button
+                class="love-event-admin-modal__tab"
+                type="button"
+                role="tab"
+                data-love-event-admin-tab="edit"
+                aria-selected="false"
+              >
+                Edit Description
+              </button>
+            </div>
+
+            <form class="love-event-admin-modal__form" data-love-event-admin-form>
+              <label class="love-event-admin-modal__field">
+                <span>Event title</span>
+                <input class="input" name="name" required placeholder="Tên sự kiện" />
+              </label>
+              <label class="love-event-admin-modal__field">
+                <span>Date</span>
+                <input class="input" type="date" name="event_date" required />
+              </label>
+              <label class="love-event-admin-modal__field">
+                <span>Time (optional)</span>
+                <input class="input" type="time" name="event_time" step="60" />
+              </label>
+              <label class="love-event-admin-modal__field">
+                <span>Icon</span>
+                <input class="input" name="icon" maxlength="4" placeholder="✈︎" />
+              </label>
+              <label class="love-event-admin-modal__field">
+                <span>Group</span>
+                <select class="input" name="event_group">
+                  <option value="extra">Timeline</option>
+                  <option value="featured">Featured</option>
+                </select>
+              </label>
+              <label class="love-event-admin-modal__field">
+                <span>Accent rgb (optional)</span>
+                <input class="input" name="accent_rgb" placeholder="116 218 255" />
+              </label>
+              <label class="love-event-admin-modal__field">
+                <span>Description</span>
+                <textarea class="input" name="note" rows="3" placeholder="Mô tả ngắn cho event"></textarea>
+              </label>
+              <button class="love-event-admin-modal__btn" type="submit">Push To Timeline</button>
+            </form>
+
+            <form class="love-event-admin-modal__form" data-love-event-admin-edit-form hidden>
+              <label class="love-event-admin-modal__field">
+                <span>Event</span>
+                <select class="input" data-love-event-admin-edit-target required></select>
+              </label>
+              <label class="love-event-admin-modal__field">
+                <span>Description</span>
+                <textarea
+                  class="input"
+                  name="note"
+                  rows="4"
+                  data-love-event-admin-edit-note
+                  placeholder="Mô tả sẽ hiển thị khi bấm icon note"
+                ></textarea>
+              </label>
+              <button class="love-event-admin-modal__btn" type="submit">Save Description</button>
+            </form>
+          </div>
 
           <p class="love-event-admin-modal__status" data-love-event-admin-status></p>
         </section>
@@ -261,8 +223,13 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
       const noteBody = noteModal ? noteModal.querySelector("[data-love-event-note-body]") : null;
       const adminOpenBtn = eventRoot ? eventRoot.querySelector("[data-love-events-admin-open]") : null;
       const adminModal = document.querySelector("[data-love-event-admin-modal]");
-      const adminForm = adminModal ? adminModal.querySelector("[data-love-event-admin-form]") : null;
       const adminAuth = adminModal ? adminModal.querySelector("[data-love-event-admin-auth]") : null;
+      const adminPanel = adminModal ? adminModal.querySelector("[data-love-event-admin-panel]") : null;
+      const adminAddForm = adminModal ? adminModal.querySelector("[data-love-event-admin-form]") : null;
+      const adminEditForm = adminModal ? adminModal.querySelector("[data-love-event-admin-edit-form]") : null;
+      const adminEditTarget = adminModal ? adminModal.querySelector("[data-love-event-admin-edit-target]") : null;
+      const adminEditNote = adminModal ? adminModal.querySelector("[data-love-event-admin-edit-note]") : null;
+      const adminTabEls = adminModal ? adminModal.querySelectorAll("[data-love-event-admin-tab]") : [];
       const adminPasswordInput = adminModal ? adminModal.querySelector("[data-love-event-admin-password]") : null;
       const adminUnlockBtn = adminModal ? adminModal.querySelector("[data-love-event-admin-unlock]") : null;
       const adminStatus = adminModal ? adminModal.querySelector("[data-love-event-admin-status]") : null;
@@ -292,7 +259,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         day: Number(eventEl.getAttribute("data-love-event-day") || "1"),
         hour: Number(eventEl.getAttribute("data-love-event-hour") || "0"),
         minute: Number(eventEl.getAttribute("data-love-event-minute") || "0"),
-        note: eventEl.getAttribute("data-love-event-note") || "No note yet.",
+        note: eventEl.getAttribute("data-love-event-note") || "",
         icon:
           eventEl.querySelector(".love-event-chip__icon")?.textContent?.trim() || "✦",
         eventEl,
@@ -349,6 +316,32 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
 
       const eventTargetUtc = (year, month, day, hour, minute) =>
         Date.UTC(year, month - 1, day, hour, minute, 0) - eventTimezoneOffsetMinutes * 60 * 1000;
+
+      const sortEventsForAdmin = () => {
+        const nowTs = Date.now();
+        const currentYear = getDateParts("Asia/Ho_Chi_Minh").year;
+        return [...eventEls]
+          .map((eventItem) => {
+            const targetTs = eventTargetUtc(
+              currentYear,
+              eventItem.month,
+              eventItem.day,
+              eventItem.hour,
+              eventItem.minute
+            );
+            const diff = targetTs - nowTs;
+            const rank = diff >= 0 ? 0 : 1;
+            return { eventItem, diff, rank };
+          })
+          .sort((a, b) => {
+            if (a.rank !== b.rank) return a.rank - b.rank;
+            if (a.rank === 0) return a.diff - b.diff;
+            return b.diff - a.diff;
+          })
+          .map((entry) => entry.eventItem);
+      };
+
+      const findEventItemById = (id) => eventEls.find((eventItem) => eventItem.id === id);
 
       const formatCountdown = (diffMs) => {
         const totalSeconds = Math.max(0, Math.floor(diffMs / 1000));

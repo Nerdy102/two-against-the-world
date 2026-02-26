@@ -196,9 +196,9 @@ const buildSrcCandidates = (src: string, ext: string) => {
 
   // Prefer static sidecars first so Chromium doesn't get stuck on HEIC decode failures.
   if (isHeicFamily) {
-    add(`${base}png`);
     add(`${base}jpg`);
     add(`${base}jpeg`);
+    add(`${base}png`);
     add(`${base}webp`);
   }
 

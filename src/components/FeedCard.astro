@@ -170,9 +170,9 @@ const buildImageCandidates = (src: string, defaultFallback: string) => {
 
   // On non-Safari browsers, static JPG/PNG/WebP sidecars are far more reliable than direct HEIC.
   if (isHeicFamily) {
-    add(`${base}png`);
     add(`${base}jpg`);
     add(`${base}jpeg`);
+    add(`${base}png`);
     add(`${base}webp`);
   }
 

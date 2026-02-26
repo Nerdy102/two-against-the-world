@@ -16,8 +16,6 @@ photoTime: "Tối ngày 04/02, bị dizzy, nói chuyện nhưng không thể nó
 tags: ["khôgn tên"]
 draft: false
 sideNote: "fix bug mệt vcl"
-videoUrl: "/videos/2026-02-05-code-journey.mp4"
-videoPoster: "/photos/2026-02-05-code-journey/cover.jpg"
 ---
 
 Nói chung bắt đầu từ ý tưởng nhỏ bé và lời nói được coi là bâng khua những lúc còn không gian, dư địa ở bên sát sườn nhau, ít nhất là chung một thành phố. Rồi sau tự hỏi how I (we) save LR situation?
