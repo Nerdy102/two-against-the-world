@@ -237,19 +237,23 @@ const wallImages = [
 
     {/* MEDIA */}
     {(voiceMemo || videoUrl) && (
-      <section class="mt-10" aria-label="Đa phương tiện" data-reveal id={hasVideo ? "entry-video" : undefined}>
-        <div class="paper edge-torn p-6 sm:p-10">
-          <div class="kicker text-xs text-black/50">ĐA PHƯƠNG TIỆN</div>
-          <h2 class="mt-3 text-[26px] sm:text-[32px] font-semibold text-black/80">Nghe & xem</h2>
+      <section
+        class={`mt-10 media-section ${hasVideo ? "media-section--video" : ""}`}
+        aria-label="Đa phương tiện"
+        data-reveal
+        id={hasVideo ? "entry-video" : undefined}
+      >
+        <div class={`paper edge-torn p-6 sm:p-10 media-paper ${hasVideo ? "media-paper--video" : ""}`}>
+          <div class="kicker text-xs media-kicker">ĐA PHƯƠNG TIỆN</div>
+          <h2 class="mt-3 text-[26px] sm:text-[32px] font-semibold media-title">
+            Xem và Khen <span class="media-title-icon" aria-hidden="true">😈</span>
+          </h2>
 
           {videoUrl && (
-            <div class="mt-4">
-              <div class="meta-label">Video</div>
+            <div class="mt-4 video-punk-wrap">
+              <div class="meta-label media-meta-label">Video</div>
               {streamEmbedUrl ? (
-                <div
-                  class="mt-2 overflow-hidden rounded-2xl border border-black/10 bg-black shadow-sm"
-                  style="aspect-ratio: 16 / 9;"
-                >
+                <div class="video-punk-frame mt-2" style="aspect-ratio: 16 / 9;">
                   <iframe
                     class="h-full w-full"
                     src={streamEmbedUrl}
@@ -260,23 +264,25 @@ const wallImages = [
                   ></iframe>
                 </div>
               ) : (
-                <video
-                  class="mt-2 w-full rounded-2xl border border-black/10 bg-black shadow-sm"
-                  controls
-                  preload="metadata"
-                  playsinline
-                  poster={videoPoster || undefined}
-                  src={videoUrl}
-                ></video>
+                <div class="video-punk-frame mt-2" style="aspect-ratio: 16 / 9;">
+                  <video
+                    class="h-full w-full bg-black object-contain"
+                    controls
+                    preload="metadata"
+                    playsinline
+                    poster={videoPoster || undefined}
+                    src={videoUrl}
+                  ></video>
+                </div>
               )}
             </div>
           )}
 
           {voiceMemo && (
             <div class="mt-4">
-              <div class="meta-label">Ghi âm</div>
-              {voiceMemoTitle && <div class="mt-1 text-black/70">{voiceMemoTitle}</div>}
-              <audio class="mt-2 w-full" controls src={voiceMemo}></audio>
+              <div class="meta-label media-meta-label">Ghi âm</div>
+              {voiceMemoTitle && <div class="mt-1 media-voice-title">{voiceMemoTitle}</div>}
+              <audio class="mt-2 w-full media-audio" controls src={voiceMemo}></audio>
             </div>
           )}
         </div>
