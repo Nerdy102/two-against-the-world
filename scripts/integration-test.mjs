@@ -43,6 +43,36 @@ const requestJson = async (path, options = {}) => {
   return { res, payload };
 };
 
+const requestUpload = async ({ slug, batchId = Date.now(), index = 1, sortOrder = 0 } = {}) => {
+  const form = new FormData();
+  const bytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+  const file = new File([bytes], `integration-${batchId}-${index}.png`, { type: "image/png" });
+  form.append("file", file);
+  form.append("slug", slug);
+  form.append(
+    "meta",
+    JSON.stringify({
+      index,
+      batch_id: batchId,
+      sort_order: sortOrder,
+      width: 1,
+      height: 1,
+      size: bytes.length,
+    })
+  );
+  const res = await fetch(`${baseUrl}/api/admin/upload`, {
+    method: "POST",
+    headers: {
+      "x-csrf-token": getCsrfToken(),
+      cookie: cookieHeader(),
+    },
+    body: form,
+  });
+  captureCookies(res);
+  const payload = await res.json().catch(() => ({}));
+  return { res, payload };
+};
+
 const assertOk = (condition, message) => {
   if (!condition) {
     console.error(`❌ ${message}`);
@@ -77,6 +107,7 @@ const createPost = await requestJson("/api/admin/posts", {
     summary: "Integration test post",
     content_md: "Testing post content.",
     status: "draft",
+    topic: "uncategorized",
     author: "admin",
   }),
 });
@@ -84,6 +115,11 @@ assertOk(createPost.res.ok, `Create post failed: ${createPost.payload?.error ?? 
 const postId = createPost.payload?.id;
 assertOk(postId, "Create post did not return id.");
 console.log("✅ /api/admin/posts create ok");
+
+const upload = await requestUpload({ slug, sortOrder: 0 });
+assertOk(upload.res.ok, `Upload failed: ${upload.payload?.error ?? upload.payload?.detail ?? upload.res.status}`);
+assertOk(upload.payload?.url, "Upload did not return url.");
+console.log("✅ /api/admin/upload ok");
 
 const publish = await requestJson(`/api/admin/posts/${postId}/publish`, {
   method: "POST",
