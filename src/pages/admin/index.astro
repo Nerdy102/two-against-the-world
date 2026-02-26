@@ -507,7 +507,9 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
         if (!STREAM_HOST_RE.test(parsed.hostname) && !STREAM_HOST_ALT_RE.test(parsed.hostname)) {
           return false;
         }
-        return /\/[a-f0-9]{32}(?:[/?#]|$)/i.test(parsed.pathname);
+        if (/\/[a-f0-9]{32}(?:[/?#]|$)/i.test(parsed.pathname)) return true;
+        const fromQuery = (parsed.searchParams.get("video") || "").trim();
+        return STREAM_UID_RE.test(fromQuery);
       } catch {
         if (/^[a-z0-9.-]+\.[a-z]{2,}\/?/i.test(raw)) {
           try {
@@ -515,7 +517,9 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
             if (!STREAM_HOST_RE.test(parsed.hostname) && !STREAM_HOST_ALT_RE.test(parsed.hostname)) {
               return false;
             }
-            return /\/[a-f0-9]{32}(?:[/?#]|$)/i.test(parsed.pathname);
+            if (/\/[a-f0-9]{32}(?:[/?#]|$)/i.test(parsed.pathname)) return true;
+            const fromQuery = (parsed.searchParams.get("video") || "").trim();
+            return STREAM_UID_RE.test(fromQuery);
           } catch {
             return false;
           }

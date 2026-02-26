@@ -107,6 +107,12 @@ try {
   post = await getHybridPostBySlug(null, slug);
 }
 if (!post) throw new Error(`Post not found: ${slug}`);
+if (!String(post.cover_url ?? "").trim() && postMediaUrls.length > 0) {
+  post = {
+    ...post,
+    cover_url: postMediaUrls[0] ?? post.cover_url,
+  };
+}
 
 const rawContentMarkdown = post.body_markdown ?? post.content_md ?? "";
 const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "";

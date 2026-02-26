@@ -55,6 +55,8 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
             data-love-event-name="Việt Hoà về Việt Nam"
             data-love-event-month="3"
             data-love-event-day="23"
+            data-love-event-hour="21"
+            data-love-event-minute="30"
           >
             <span class="love-event-chip__icon" aria-hidden="true">✈︎</span>
             <div class="love-event-chip__meta">
@@ -183,6 +185,8 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
             name: eventEl.getAttribute("data-love-event-name") || "event",
             month: Number(eventEl.getAttribute("data-love-event-month") || "1"),
             day: Number(eventEl.getAttribute("data-love-event-day") || "1"),
+            hour: Number(eventEl.getAttribute("data-love-event-hour") || "0"),
+            minute: Number(eventEl.getAttribute("data-love-event-minute") || "0"),
             eventEl,
             countdownEl: eventEl.querySelector("[data-love-event-countdown]"),
             dateEl: eventEl.querySelector("[data-love-event-date]"),
@@ -218,8 +222,8 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         dayEl.textContent = `DAY ${diff}`;
       };
 
-      const eventTargetUtc = (year, month, day) =>
-        Date.UTC(year, month - 1, day, 0, 0, 0) - eventTimezoneOffsetMinutes * 60 * 1000;
+      const eventTargetUtc = (year, month, day, hour, minute) =>
+        Date.UTC(year, month - 1, day, hour, minute, 0) - eventTimezoneOffsetMinutes * 60 * 1000;
 
       const formatCountdown = (diffMs) => {
         const totalSeconds = Math.max(0, Math.floor(diffMs / 1000));
@@ -266,17 +270,33 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
 
         eventEls.forEach((eventItem) => {
           let targetYear = currentYear;
-          let targetTs = eventTargetUtc(targetYear, eventItem.month, eventItem.day);
+          let targetTs = eventTargetUtc(
+            targetYear,
+            eventItem.month,
+            eventItem.day,
+            eventItem.hour,
+            eventItem.minute
+          );
           if (targetTs <= nowTs) {
             targetYear += 1;
-            targetTs = eventTargetUtc(targetYear, eventItem.month, eventItem.day);
+            targetTs = eventTargetUtc(
+              targetYear,
+              eventItem.month,
+              eventItem.day,
+              eventItem.hour,
+              eventItem.minute
+            );
           }
 
           const diff = Math.max(0, targetTs - nowTs);
           computedEvents.push({ eventItem, diff });
           if (eventItem.countdownEl) eventItem.countdownEl.textContent = formatCountdown(diff);
           if (eventItem.dateEl) {
-            eventItem.dateEl.textContent = `${pad(eventItem.day)}/${pad(eventItem.month)} · ${targetYear}`;
+            const eventTime =
+              eventItem.hour !== 0 || eventItem.minute !== 0
+                ? ` · ${pad(eventItem.hour)}:${pad(eventItem.minute)}`
+                : "";
+            eventItem.dateEl.textContent = `${pad(eventItem.day)}/${pad(eventItem.month)}${eventTime} · ${targetYear}`;
           }
 
           if (!nearest || diff < nearest.diff) {

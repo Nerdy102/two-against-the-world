@@ -63,7 +63,9 @@ const extractStreamUid = (value) => {
     STREAM_HOST_RE.test(parsed.hostname) || STREAM_HOST_ALT_RE.test(parsed.hostname);
   if (!isStreamHost) return "";
   const uidMatch = parsed.pathname.match(/\/([a-f0-9]{32})(?:[/?#]|$)/i);
-  return uidMatch?.[1]?.toLowerCase() ?? "";
+  if (uidMatch?.[1]) return uidMatch[1].toLowerCase();
+  const fromQuery = (parsed.searchParams.get("video") || "").trim();
+  return STREAM_UID_RE.test(fromQuery) ? fromQuery.toLowerCase() : "";
 };
 
 const isLikelyVideoUrl = (value) => {
