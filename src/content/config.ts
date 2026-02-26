@@ -1,9 +1,5 @@
 import { defineCollection, z } from "astro:content";
-
-// Optional: keep your topic IDs consistent.
-// If you later add src/config/topics.ts exporting TOPIC_IDS,
-// you can replace `z.string()` with `z.enum(TOPIC_IDS)`
-// import { TOPIC_IDS } from "../config/topics";
+import { DEFAULT_TOPIC_SLUG, TOPIC_IDS } from "../config/topics";
 
 const posts = defineCollection({
   type: "content",
@@ -27,8 +23,7 @@ const posts = defineCollection({
     pinnedStyle: z.string().optional(),
 
     // Topic / category (for your top navigation)
-    // If you use a fixed topic system, swap to: z.enum(TOPIC_IDS)
-    topic: z.string().default("two-of-us"),
+    topic: z.enum(TOPIC_IDS).default(DEFAULT_TOPIC_SLUG),
 
     // Minimal meta (shown as separate cards)
     author: z.string().default(""),

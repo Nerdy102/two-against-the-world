@@ -454,16 +454,21 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
 
     const getSiteBase = () => import.meta.env.PUBLIC_SITE_URL || window.location.origin;
 
+    const formatUtcOffset = (offsetMinutes) => {
+      if (!Number.isFinite(offsetMinutes)) return "";
+      const sign = offsetMinutes >= 0 ? "+" : "-";
+      const absMinutes = Math.abs(Math.trunc(offsetMinutes));
+      const hours = String(Math.floor(absMinutes / 60)).padStart(2, "0");
+      const minutes = String(absMinutes % 60).padStart(2, "0");
+      return `${sign}${hours}:${minutes}`;
+    };
+
     const getDeviceTimeZone = () =>
       Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 
     const getDeviceOffsetLabel = () => {
       const offsetMinutes = -new Date().getTimezoneOffset();
-      const sign = offsetMinutes >= 0 ? "+" : "-";
-      const absMinutes = Math.abs(offsetMinutes);
-      const hours = String(Math.floor(absMinutes / 60)).padStart(2, "0");
-      const minutes = String(absMinutes % 60).padStart(2, "0");
-      return `UTC${sign}${hours}:${minutes}`;
+      return `UTC${formatUtcOffset(offsetMinutes)}`;
     };
 
     const getDeviceTimeZoneLabel = () => `${getDeviceTimeZone()} (${getDeviceOffsetLabel()})`;
@@ -485,6 +490,44 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       const date = new Date(value);
       if (Number.isNaN(date.getTime())) return null;
       return date.toISOString();
+    };
+
+    const parseCommentDate = (value) => {
+      if (typeof value !== "string") return null;
+      const raw = value.trim();
+      if (!raw) return null;
+      let normalized = raw;
+      if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(raw)) {
+        normalized = `${raw.replace(" ", "T")}Z`;
+      } else if (
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(raw)
+      ) {
+        normalized = `${raw}Z`;
+      }
+      const parsed = new Date(normalized);
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
+    };
+
+    const getPostedZoneLabel = (timeZone) => {
+      const tz = typeof timeZone === "string" ? timeZone.trim() : "";
+      if (tz === "Asia/Ho_Chi_Minh" || tz === "Asia/Saigon") return "🇻🇳 Giờ Việt";
+      if (tz === "Asia/Tokyo") return "🇯🇵 Giờ Nhật";
+      if (tz.startsWith("America/") || tz === "Pacific/Honolulu") return "🇺🇸 Giờ Mỹ";
+      return "";
+    };
+
+    const formatCommentTime = (item = {}) => {
+      const clientLocal = parseCommentDate(item.client_local_at);
+      const tz = typeof item.client_time_zone === "string" ? item.client_time_zone.trim() : "";
+      if (clientLocal) {
+        const text = tz
+          ? clientLocal.toLocaleString("vi-VN", { timeZone: tz })
+          : clientLocal.toLocaleString("vi-VN");
+        const label = getPostedZoneLabel(tz);
+        return label ? `${text} (${label})` : text;
+      }
+      const createdAt = parseCommentDate(item.created_at);
+      return createdAt ? createdAt.toLocaleString("vi-VN") : "—";
     };
 
     const setLoginLoading = (isLoading) => {
@@ -783,7 +826,7 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
             <div class="comment-card">
               <div class="comment-meta">
                 <span class="comment-name">${escapeHtml(item.display_name || "Ẩn danh")}</span>
-                <span class="comment-time">${new Date(item.created_at).toLocaleString("vi-VN")}</span>
+                <span class="comment-time">${escapeHtml(formatCommentTime(item))}</span>
                 <span class="comment-nick">${escapeHtml(item.post_slug)}</span>
               </div>
               <p class="comment-body">${escapeHtml(item.body)}</p>

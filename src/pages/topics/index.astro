@@ -2,13 +2,14 @@
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import RansomTitle from "../../components/RansomTitle.astro";
 import TopicCard from "../../components/TopicCard.astro";
-import { TOPICS } from "../../config/topics";
+import { resolveTopicSlug, TOPICS } from "../../config/topics";
 import { ensurePostsSchema, getDb, type PostRecord } from "../../lib/d1";
-import { getPublishedPostsFromContent, shouldUseContentFallback } from "../../lib/posts";
+import { getPublishedPostsFromContent, mergePostsBySlug, shouldUseContentFallback } from "../../lib/posts";
 
 export const prerender = false;
 
 let posts: PostRecord[] = [];
+let dbPosts: PostRecord[] = [];
 try {
   const allowBootstrap = Astro.locals?.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
   const db = getDb(Astro.locals);
@@ -25,9 +26,12 @@ try {
        WHERE status = 'published'`
     )
     .all<PostRecord>();
-  posts = results ?? [];
-  if (!posts.length && shouldUseContentFallback()) {
-    posts = await getPublishedPostsFromContent();
+  dbPosts = results ?? [];
+  if (shouldUseContentFallback()) {
+    const contentPosts = await getPublishedPostsFromContent();
+    posts = mergePostsBySlug(dbPosts, contentPosts);
+  } else {
+    posts = dbPosts;
   }
 } catch (err) {
   console.warn("Using content posts fallback:", err);
@@ -36,7 +40,7 @@ try {
 
 const counts: Record<string, number> = {};
 for (const p of posts) {
-  const t = p.topic ?? "two-of-us";
+  const t = resolveTopicSlug(p.topic);
   counts[t] = (counts[t] ?? 0) + 1;
 }
 ---

@@ -196,6 +196,7 @@ const initialImage = imageCandidates[0] ?? image;
   const HEIC_RE = /\.(heic|heif)(?:[?#].*)?$/i;
   const convertedImageUrlCache = new Map();
   let heic2anyLoader: Promise<any> | null = null;
+  const NON_SAFARI_RE = /(chrome|crios|edg|opr|android)/i;
 
   const loadHeic2any = async () => {
     if (!heic2anyLoader) {
@@ -343,6 +344,33 @@ const initialImage = imageCandidates[0] ?? image;
     return false;
   };
 
+  const isProbablySafari = () =>
+    /safari/i.test(navigator.userAgent) && !NON_SAFARI_RE.test(navigator.userAgent);
+
+  const primeHeicFallbacks = async () => {
+    if (isProbablySafari()) return;
+    const imgs = document.querySelectorAll(".feed-card__media img[data-candidates]");
+    for (const img of imgs) {
+      if (!(img instanceof HTMLImageElement)) continue;
+      if (img.dataset.heicPrimed === "1") continue;
+      const currentSrc = srcWithAbsUrl(img.currentSrc || img.src || "");
+      if (!HEIC_RE.test(currentSrc)) continue;
+      img.dataset.heicPrimed = "1";
+
+      // If browser already decoded it fine, do nothing.
+      if (img.complete && (img.naturalWidth || 0) > 1 && (img.naturalHeight || 0) > 1) continue;
+
+      try {
+        const converted = await convertHeicToJpeg(img);
+        if (converted) continue;
+      } catch (_error) {
+        // fallback path below
+      }
+      const next = nextCandidate(img);
+      if (next) img.src = next;
+    }
+  };
+
   if (!(window as any).__twawFeedImageFallbackBound) {
     document.addEventListener(
       "error",
@@ -375,5 +403,9 @@ const initialImage = imageCandidates[0] ?? image;
   }
 
   initFeedImageFallbacks();
+  void primeHeicFallbacks();
   document.addEventListener("astro:page-load", initFeedImageFallbacks);
+  document.addEventListener("astro:page-load", () => {
+    void primeHeicFallbacks();
+  });
 </script>

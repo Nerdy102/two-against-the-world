@@ -492,6 +492,61 @@ const wallPhotoCount = Math.max(0, wallImages.length - 1);
           .replace(/>/g, "&gt;")
           .replace(/"/g, "&quot;")
           .replace(/'/g, "&#039;");
+      const parseCommentDate = (value) => {
+        if (typeof value !== "string") return null;
+        const raw = value.trim();
+        if (!raw) return null;
+        let normalized = raw;
+        if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(raw)) {
+          normalized = `${raw.replace(" ", "T")}Z`;
+        } else if (
+          /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(raw)
+        ) {
+          normalized = `${raw}Z`;
+        }
+        const parsed = new Date(normalized);
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+      };
+      const formatOffset = (minutesEast) => {
+        if (!Number.isFinite(minutesEast)) return "";
+        const sign = minutesEast >= 0 ? "+" : "-";
+        const abs = Math.abs(Math.trunc(minutesEast));
+        const hh = String(Math.floor(abs / 60)).padStart(2, "0");
+        const mm = String(abs % 60).padStart(2, "0");
+        return `${sign}${hh}:${mm}`;
+      };
+      const getPostedZoneLabel = (timeZone) => {
+        const tz = typeof timeZone === "string" ? timeZone.trim() : "";
+        if (tz === "Asia/Ho_Chi_Minh" || tz === "Asia/Saigon") return "🇻🇳 Giờ Việt";
+        if (tz === "Asia/Tokyo") return "🇯🇵 Giờ Nhật";
+        if (tz.startsWith("America/") || tz === "Pacific/Honolulu") return "🇺🇸 Giờ Mỹ";
+        return "";
+      };
+      const formatCommentTime = (item = {}) => {
+        const clientLocal = parseCommentDate(item.client_local_at);
+        const tz = typeof item.client_time_zone === "string" ? item.client_time_zone.trim() : "";
+        if (clientLocal) {
+          const text = tz
+            ? clientLocal.toLocaleString("vi-VN", { timeZone: tz })
+            : clientLocal.toLocaleString("vi-VN");
+          const label = getPostedZoneLabel(tz);
+          return label ? `${text} (${label})` : text;
+        }
+        const createdAt = parseCommentDate(item.created_at);
+        return createdAt ? createdAt.toLocaleString("vi-VN") : "—";
+      };
+      const buildClientLocalIso = (date) => {
+        const pad = (value) => String(value).padStart(2, "0");
+        const year = date.getFullYear();
+        const month = pad(date.getMonth() + 1);
+        const day = pad(date.getDate());
+        const hours = pad(date.getHours());
+        const minutes = pad(date.getMinutes());
+        const seconds = pad(date.getSeconds());
+        const offsetMinutes = -date.getTimezoneOffset();
+        const offset = formatOffset(offsetMinutes);
+        return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${offset}`;
+      };
       const render = (items = []) => {
         if (!items.length) {
           list.innerHTML = "<p class='text-black/60 text-sm'>Chưa có lời nhắn nào.</p>";
@@ -503,7 +558,7 @@ const wallPhotoCount = Math.max(0, wallImages.length - 1);
               <div class="comment-card">
                 <div class="comment-meta">
                   <span class="comment-name">${escapeHtml(item.display_name || "Ẩn danh")}</span>
-                  <span class="comment-time">${new Date(item.created_at).toLocaleString("vi-VN")}</span>
+                  <span class="comment-time">${escapeHtml(formatCommentTime(item))}</span>
                 </div>
                 <p class="comment-body">${escapeHtml(item.body)}</p>
               </div>
@@ -560,6 +615,10 @@ const wallPhotoCount = Math.max(0, wallImages.length - 1);
           showToast("Nhập biệt danh + lời nhắn mới được nhé!");
           return;
         }
+        const now = new Date();
+        const clientTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || null;
+        const clientOffsetMinutes = -now.getTimezoneOffset();
+        const clientLocalAt = buildClientLocalIso(now);
         fetch("/api/comments", {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -567,6 +626,9 @@ const wallPhotoCount = Math.max(0, wallImages.length - 1);
             slug,
             displayName: nickname,
             body: message,
+            clientTimeZone,
+            clientOffsetMinutes,
+            clientLocalAt,
             turnstileToken: hasTurnstile && window.turnstile ? window.turnstile.getResponse() : null,
           }),
         })

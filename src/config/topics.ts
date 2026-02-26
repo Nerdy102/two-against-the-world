@@ -16,9 +16,17 @@ export const TOPICS = [
 ] as const;
 
 export type TopicSlug = (typeof TOPICS)[number]["slug"];
+export const DEFAULT_TOPIC_SLUG: TopicSlug = "two-of-us";
+export const TOPIC_IDS = TOPICS.map((t) => t.slug) as [TopicSlug, ...TopicSlug[]];
 
 export const UI_LABELS = {
   entries: "🩸 Nhật ký “Tin Yêu”",
+};
+
+const TOPIC_SLUG_SET = new Set<string>(TOPIC_IDS);
+const TOPIC_ALIASES: Record<string, TopicSlug> = {
+  uncategorized: DEFAULT_TOPIC_SLUG,
+  "chua-phan-loai": DEFAULT_TOPIC_SLUG,
 };
 
 export const TOPIC_BY_SLUG: Record<
@@ -26,13 +34,43 @@ export const TOPIC_BY_SLUG: Record<
   { slug: string; label: string; icon: string; color: string }
 > = Object.fromEntries(TOPICS.map((t) => [t.slug, t]));
 
+const normalizeTopicKey = (value: string) =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/[_\s]+/g, "-")
+    .replace(/-+/g, "-");
+
+export const normalizeTopicSlug = (value: string | null | undefined) => {
+  if (typeof value !== "string") return "";
+  const normalized = normalizeTopicKey(value);
+  if (!normalized) return "";
+  return TOPIC_ALIASES[normalized] ?? normalized;
+};
+
+export const isTopicSlug = (value: string | null | undefined): value is TopicSlug =>
+  typeof value === "string" && TOPIC_SLUG_SET.has(value);
+
+export const parseTopicSlug = (value: string | null | undefined): TopicSlug | null => {
+  const normalized = normalizeTopicSlug(value);
+  if (!normalized || !isTopicSlug(normalized)) return null;
+  return normalized;
+};
+
+export const resolveTopicSlug = (
+  value: string | null | undefined,
+  fallback: TopicSlug = DEFAULT_TOPIC_SLUG
+): TopicSlug => parseTopicSlug(value) ?? fallback;
+
 export function topicLabel(slug: string | undefined) {
-  if (!slug) return "Uncategorized";
-  return TOPIC_BY_SLUG[slug]?.label ?? slug;
+  const normalized = normalizeTopicSlug(slug);
+  if (!normalized) return "Uncategorized";
+  return TOPIC_BY_SLUG[normalized]?.label ?? normalized;
 }
 
 export function topicMeta(slug: string | undefined) {
-  if (!slug)
+  const normalized = normalizeTopicSlug(slug);
+  if (!normalized)
     return {
       slug: "uncategorized",
       label: "Chưa phân loại",
@@ -40,7 +78,7 @@ export function topicMeta(slug: string | undefined) {
       color: "#a3a3a3",
     };
   return (
-    TOPIC_BY_SLUG[slug] ?? { slug, label: slug, icon: "📌", color: "#a3a3a3" }
+    TOPIC_BY_SLUG[normalized] ?? { slug: normalized, label: normalized, icon: "📌", color: "#a3a3a3" }
   );
 }
 

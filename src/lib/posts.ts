@@ -1,5 +1,6 @@
 import { getCollection } from "astro:content";
 import type { CollectionEntry } from "astro:content";
+import { resolveTopicSlug } from "../config/topics";
 import type { PostRecord } from "./d1";
 import { deriveVideoPoster } from "./stream";
 import { comparePostsByNewest } from "./postTime";
@@ -95,7 +96,7 @@ export const mapContentEntryToPostRecord = (
     cover_url: entry.data.videoPoster || entry.data.cover || extractFirstImageUrl(body),
     status: entry.data.draft ? "draft" : "published",
     author_name: entry.data.author || null,
-    topic: entry.data.topic || null,
+    topic: resolveTopicSlug(entry.data.topic),
     location: entry.data.location || null,
     event_time: entry.data.eventTime || null,
     written_at: entry.data.writtenAt || null,
@@ -120,6 +121,12 @@ export const mapContentEntryToPostRecord = (
     updated_at: publishedAt,
   };
 };
+
+const withNormalizedPostFields = (post: PostRecord): PostRecord => ({
+  ...post,
+  topic: resolveTopicSlug(post.topic),
+  cover_url: resolvePostCoverUrl(post),
+});
 
 export const getPublishedPostsFromContent = async (): Promise<PostRecord[]> => {
   const entries = await getCollection("posts");
@@ -170,17 +177,11 @@ export const mergePostsBySlug = (
   const map = new Map<string, PostRecord>();
   for (const post of dbPosts) {
     if (!post?.slug) continue;
-    map.set(post.slug, {
-      ...post,
-      cover_url: resolvePostCoverUrl(post),
-    });
+    map.set(post.slug, withNormalizedPostFields(post));
   }
   for (const post of contentPosts) {
     if (!post?.slug || map.has(post.slug)) continue;
-    map.set(post.slug, {
-      ...post,
-      cover_url: resolvePostCoverUrl(post),
-    });
+    map.set(post.slug, withNormalizedPostFields(post));
   }
   return Array.from(map.values()).sort(comparePosts);
 };
@@ -190,16 +191,10 @@ export const getHybridPostBySlug = async (
   slug: string
 ): Promise<PostRecord | null> => {
   if (dbPost) {
-    return {
-      ...dbPost,
-      cover_url: resolvePostCoverUrl(dbPost),
-    };
+    return withNormalizedPostFields(dbPost);
   }
   if (!shouldUseContentFallback()) return null;
   const contentPost = await getPostFromContentBySlug(slug);
   if (!contentPost) return null;
-  return {
-    ...contentPost,
-    cover_url: resolvePostCoverUrl(contentPost),
-  };
+  return withNormalizedPostFields(contentPost);
 };

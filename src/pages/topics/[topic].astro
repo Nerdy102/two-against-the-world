@@ -3,18 +3,35 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import RansomTitle from "../../components/RansomTitle.astro";
 import FeedCard from "../../components/FeedCard.astro";
 import TopicCard from "../../components/TopicCard.astro";
-import { TOPICS, topicLabel, TOPIC_COPY } from "../../config/topics";
+import {
+  DEFAULT_TOPIC_SLUG,
+  normalizeTopicSlug,
+  parseTopicSlug,
+  resolveTopicSlug,
+  TOPICS,
+  topicLabel,
+  TOPIC_COPY,
+} from "../../config/topics";
 import { ensurePostMediaSchema, ensurePostsSchema, getDb, type PostRecord } from "../../lib/d1";
-import { getPublishedPostsFromContent, resolvePostCoverUrl, shouldUseContentFallback } from "../../lib/posts";
+import {
+  getPublishedPostsFromContent,
+  mergePostsBySlug,
+  resolvePostCoverUrl,
+  shouldUseContentFallback,
+} from "../../lib/posts";
 import { comparePostsByNewest } from "../../lib/postTime";
 
 export const prerender = false;
 
-const { topic = "two-of-us" } = Astro.params;
+const rawTopic = Astro.params.topic ?? DEFAULT_TOPIC_SLUG;
+const normalizedTopic = normalizeTopicSlug(rawTopic);
+const topicFromRoute = parseTopicSlug(normalizedTopic);
+const topic = topicFromRoute ?? (normalizedTopic || DEFAULT_TOPIC_SLUG);
 const label = topicLabel(topic);
-const isLocked = topic === "trash-bin";
+const isLocked = topicFromRoute === "trash-bin";
 
 let allPosts: PostRecord[] = [];
+let dbPosts: PostRecord[] = [];
 try {
   const allowBootstrap = Astro.locals?.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
   const db = getDb(Astro.locals);
@@ -56,9 +73,12 @@ try {
          COALESCE(unixepoch(published_at), unixepoch(created_at), 0) DESC`
     )
     .all<PostRecord>();
-  allPosts = results ?? [];
-  if (!allPosts.length && shouldUseContentFallback()) {
-    allPosts = await getPublishedPostsFromContent();
+  dbPosts = results ?? [];
+  if (shouldUseContentFallback()) {
+    const contentPosts = await getPublishedPostsFromContent();
+    allPosts = mergePostsBySlug(dbPosts, contentPosts);
+  } else {
+    allPosts = dbPosts;
   }
 } catch (err) {
   console.warn("Using content posts fallback:", err);
@@ -66,7 +86,7 @@ try {
 }
 
 const posts = allPosts
-  .filter((p) => (p.topic ?? "two-of-us") === topic)
+  .filter((p) => (topicFromRoute ? resolveTopicSlug(p.topic) === topicFromRoute : false))
   .sort((a, b) => {
     const pinnedA = Number(a.pinned ?? 0);
     const pinnedB = Number(b.pinned ?? 0);
@@ -78,7 +98,7 @@ const posts = allPosts
   });
 const counts: Record<string, number> = {};
 for (const p of allPosts) {
-  const t = p.topic ?? "two-of-us";
+  const t = resolveTopicSlug(p.topic);
   counts[t] = (counts[t] ?? 0) + 1;
 }
 ---

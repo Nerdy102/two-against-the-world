@@ -3,7 +3,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import RansomTitle from "../components/RansomTitle.astro";
 import FeedCard from "../components/FeedCard.astro";
 import TopicCard from "../components/TopicCard.astro";
-import { TOPICS } from "../config/topics";
+import { resolveTopicSlug, TOPICS } from "../config/topics";
 import { ensurePostMediaSchema, ensurePostsSchema, getDb, type PostRecord } from "../lib/d1";
 import {
   getPublishedPostsFromContent,
@@ -71,7 +71,7 @@ try {
 
 const counts: Record<string, number> = {};
 for (const p of posts) {
-  const t = p.topic ?? "two-of-us";
+  const t = resolveTopicSlug(p.topic);
   counts[t] = (counts[t] ?? 0) + 1;
 }
 

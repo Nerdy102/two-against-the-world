@@ -11,6 +11,7 @@ import { requireAdminSession, verifyCsrf } from "../../../../lib/adminAuth";
 import { deriveVideoPoster } from "../../../../lib/stream";
 import { sanitizeSummaryText } from "../../../../lib/followUpLink";
 import { buildOrderedPostMediaUrls, syncPostMediaOrder } from "../../../../lib/postMedia";
+import { parseTopicSlug } from "../../../../config/topics";
 
 export const prerender = false;
 
@@ -131,7 +132,8 @@ export const POST: APIRoute = async ({ locals, request }) => {
       : typeof payload.author === "string"
         ? payload.author.trim()
         : "";
-    const topic = typeof payload.topic === "string" ? payload.topic.trim() : "";
+    const topicInput = typeof payload.topic === "string" ? payload.topic.trim() : "";
+    const topic = parseTopicSlug(topicInput);
     const bodyMarkdown = typeof payload.body_markdown === "string"
       ? payload.body_markdown.trim()
       : typeof payload.content_md === "string"
@@ -143,9 +145,15 @@ export const POST: APIRoute = async ({ locals, request }) => {
         400
       );
     }
-    if (!topic) {
+    if (!topicInput) {
       return json(
         { ok: false, error: "Missing topic", detail: "Topic is required.", code: "POST_TOPIC_MISSING" },
+        400
+      );
+    }
+    if (!topic) {
+      return json(
+        { ok: false, error: "Invalid topic", detail: "Topic is not recognized.", code: "POST_TOPIC_INVALID" },
         400
       );
     }
