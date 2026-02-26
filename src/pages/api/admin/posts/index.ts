@@ -21,6 +21,21 @@ const slugify = (value: string) =>
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-");
 
+const FIRST_MARKDOWN_IMAGE_RE = /!\[[^\]]*]\(([^)\s]+)(?:\s+"[^"]*")?\)/;
+
+const firstMarkdownImage = (markdown: string | null | undefined) => {
+  if (!markdown) return null;
+  const match = markdown.match(FIRST_MARKDOWN_IMAGE_RE);
+  const value = match?.[1]?.trim().replace(/^<|>$/g, "");
+  return value || null;
+};
+
+const normalizeCoverUrl = (value: unknown) => {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed || null;
+};
+
 const slugExists = async (db: D1Database, slug: string, excludeId?: string) => {
   const query = excludeId
     ? db.prepare(`SELECT id FROM posts WHERE slug = ? AND id != ? LIMIT 1`).bind(slug, excludeId)
@@ -155,6 +170,10 @@ export const POST: APIRoute = async ({ locals, request }) => {
       status === "published"
         ? payload.published_at ?? new Date().toISOString()
         : payload.published_at ?? null;
+    const resolvedCoverUrl =
+      normalizeCoverUrl(payload.cover_url) ??
+      firstMarkdownImage(bodyMarkdown) ??
+      firstMarkdownImage(typeof payload.content_md === "string" ? payload.content_md : null);
 
     const legacyAuthorColumn = hasLegacyAuthor ? ", author" : "";
     const legacyAuthorValue = hasLegacyAuthor ? ", ?" : "";
@@ -182,7 +201,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
         bodyMarkdown,
         tagsJson,
         payload.cover_key ?? null,
-        payload.cover_url ?? null,
+        resolvedCoverUrl,
         payload.content_md ?? null,
         status,
         authorName,

@@ -2,21 +2,62 @@ import { getCollection } from "astro:content";
 import type { CollectionEntry } from "astro:content";
 import type { PostRecord } from "./d1";
 
+export const DEFAULT_POST_CARD_IMAGE = "/collage/cake.jpg";
+
 const formatDate = (value: Date | undefined | null) =>
   value ? value.toISOString() : new Date().toISOString();
+
+const IMAGE_MARKDOWN_RE = /!\[[^\]]*]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
+
+const normalizeImageUrl = (value: string): string | null => {
+  const trimmed = value.trim().replace(/^<|>$/g, "");
+  if (!trimmed) return null;
+  return trimmed;
+};
+
+export const extractFirstImageUrl = (markdown: string | null | undefined): string | null => {
+  if (!markdown) return null;
+  IMAGE_MARKDOWN_RE.lastIndex = 0;
+  const match = IMAGE_MARKDOWN_RE.exec(markdown);
+  const raw = match?.[1];
+  return raw ? normalizeImageUrl(raw) : null;
+};
+
+const nonEmpty = (value: string | null | undefined): string | null => {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (trimmed === "/noise.svg") return null;
+  return trimmed ? trimmed : null;
+};
+
+export const resolvePostCoverUrl = (
+  post: Pick<PostRecord, "cover_url" | "body_markdown" | "content_md">
+): string => {
+  const directCover = nonEmpty(post.cover_url);
+  if (directCover) return directCover;
+
+  const bodyImage = extractFirstImageUrl(post.body_markdown);
+  if (bodyImage) return bodyImage;
+
+  const contentImage = extractFirstImageUrl(post.content_md);
+  if (contentImage) return contentImage;
+
+  return DEFAULT_POST_CARD_IMAGE;
+};
 
 export const mapContentEntryToPostRecord = (
   entry: CollectionEntry<"posts">
 ): PostRecord => {
   const publishedAt = formatDate(entry.data.pubDate);
+  const body = entry.body || null;
   return {
     id: entry.id,
     slug: entry.slug,
     title: entry.data.title,
     summary: entry.data.description || null,
-    content_md: entry.body || null,
-    body_markdown: entry.body || null,
-    cover_url: entry.data.cover || null,
+    content_md: body,
+    body_markdown: body,
+    cover_url: entry.data.cover || extractFirstImageUrl(body),
     status: entry.data.draft ? "draft" : "published",
     author_name: entry.data.author || null,
     topic: entry.data.topic || null,
@@ -96,11 +137,17 @@ export const mergePostsBySlug = (
   const map = new Map<string, PostRecord>();
   for (const post of dbPosts) {
     if (!post?.slug) continue;
-    map.set(post.slug, post);
+    map.set(post.slug, {
+      ...post,
+      cover_url: resolvePostCoverUrl(post),
+    });
   }
   for (const post of contentPosts) {
     if (!post?.slug || map.has(post.slug)) continue;
-    map.set(post.slug, post);
+    map.set(post.slug, {
+      ...post,
+      cover_url: resolvePostCoverUrl(post),
+    });
   }
   return Array.from(map.values()).sort(comparePosts);
 };
@@ -109,7 +156,17 @@ export const getHybridPostBySlug = async (
   dbPost: PostRecord | null,
   slug: string
 ): Promise<PostRecord | null> => {
-  if (dbPost) return dbPost;
+  if (dbPost) {
+    return {
+      ...dbPost,
+      cover_url: resolvePostCoverUrl(dbPost),
+    };
+  }
   if (!shouldUseContentFallback()) return null;
-  return getPostFromContentBySlug(slug);
+  const contentPost = await getPostFromContentBySlug(slug);
+  if (!contentPost) return null;
+  return {
+    ...contentPost,
+    cover_url: resolvePostCoverUrl(contentPost),
+  };
 };

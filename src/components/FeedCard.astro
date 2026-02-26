@@ -62,6 +62,20 @@ const buildImageCandidates = (src: string) => {
   const upper = ext.toUpperCase();
   if (ext !== upper) add(`${base}${upper}`);
 
+  const mediaProxyMatch = pathPart.match(/^https?:\/\/[^/]+\/media\/(.+)$/i);
+  if (mediaProxyMatch?.[1]) {
+    const localMediaPath = `/media/${mediaProxyMatch[1]}`;
+    add(localMediaPath);
+    const localExt = localMediaPath.split(".").pop() ?? "";
+    if (localExt) {
+      const localBase = localMediaPath.slice(0, -localExt.length);
+      const localLower = localExt.toLowerCase();
+      if (localExt !== localLower) add(`${localBase}${localLower}`);
+      const localUpper = localExt.toUpperCase();
+      if (localExt !== localUpper) add(`${localBase}${localUpper}`);
+    }
+  }
+
   if (lower === "heic" || lower === "heif") {
     add(`${base}jpg`);
     add(`${base}jpeg`);

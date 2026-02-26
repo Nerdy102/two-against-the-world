@@ -4,8 +4,8 @@ import RansomTitle from "../../components/RansomTitle.astro";
 import FeedCard from "../../components/FeedCard.astro";
 import TopicCard from "../../components/TopicCard.astro";
 import { TOPICS, topicLabel, TOPIC_COPY } from "../../config/topics";
-import { ensurePostsSchema, getDb, type PostRecord } from "../../lib/d1";
-import { getPublishedPostsFromContent, shouldUseContentFallback } from "../../lib/posts";
+import { ensurePostMediaSchema, ensurePostsSchema, getDb, type PostRecord } from "../../lib/d1";
+import { getPublishedPostsFromContent, resolvePostCoverUrl, shouldUseContentFallback } from "../../lib/posts";
 
 export const prerender = false;
 
@@ -18,9 +18,28 @@ try {
   const allowBootstrap = Astro.locals?.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
   const db = getDb(Astro.locals);
   await ensurePostsSchema(db, { allowBootstrap });
+  await ensurePostMediaSchema(db, { allowBootstrap });
   const { results = [] } = await db
       .prepare(
-      `SELECT id, slug, title, summary, cover_url, topic, author_name, published_at, status,
+      `SELECT
+        id,
+        slug,
+        title,
+        summary,
+        COALESCE(
+          NULLIF(posts.cover_url, ''),
+          (
+            SELECT pm.url
+            FROM post_media pm
+            WHERE pm.post_id = posts.id
+            ORDER BY pm.sort_order ASC, datetime(pm.created_at) ASC
+            LIMIT 1
+          )
+        ) as cover_url,
+        topic,
+        author_name,
+        published_at,
+        status,
         CASE
           WHEN pinned = 1 AND (pinned_until IS NULL OR datetime(pinned_until) > datetime('now')) THEN 1
           ELSE 0
@@ -94,7 +113,7 @@ for (const p of allPosts) {
           {posts.map((p) => (
             <FeedCard
               href={`/entries/${p.slug}`}
-              image={p.cover_url ?? "/noise.svg"}
+              image={resolvePostCoverUrl(p)}
               title={p.title}
               description={p.summary ?? ""}
               author={p.author_name ?? ""}

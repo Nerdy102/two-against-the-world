@@ -5,7 +5,7 @@ import FrameWall from "../../components/FrameWall.astro";
 import { formatDate } from "../../lib/formatDate";
 import { topicLabel, topicMeta } from "../../config/topics";
 import { getDb, type PostRecord } from "../../lib/d1";
-import { getHybridPostBySlug } from "../../lib/posts";
+import { getHybridPostBySlug, resolvePostCoverUrl } from "../../lib/posts";
 import { REACTION_KINDS } from "../../lib/constants";
 import { marked } from "marked";
 
@@ -106,6 +106,17 @@ const buildSrcCandidates = (src: string, ext: string) => {
     candidates.push(`${base}jpg`, `${base}jpeg`, `${base}png`, `${base}webp`);
   }
 
+  const mediaProxyMatch = src.match(/^https?:\/\/[^/]+\/media\/(.+)$/i);
+  if (mediaProxyMatch?.[1]) {
+    const localMediaPath = `/media/${mediaProxyMatch[1]}`;
+    candidates.push(localMediaPath);
+    const localExt = localMediaPath.split(".").pop()?.toLowerCase();
+    if (localExt && (localExt === "heic" || localExt === "heif")) {
+      const localBase = localMediaPath.slice(0, -localExt.length);
+      candidates.push(`${localBase}jpg`, `${localBase}jpeg`, `${localBase}png`, `${localBase}webp`);
+    }
+  }
+
   return Array.from(new Set(candidates));
 };
 
@@ -124,7 +135,7 @@ const photosWithCandidates =
       })
     : [];
 
-const coverSrc = post.cover_url ?? "/noise.svg";
+const coverSrc = resolvePostCoverUrl(post);
 const coverExt = getImageExtension(post.cover_url);
 
 const wallImages = [

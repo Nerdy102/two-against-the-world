@@ -10,6 +10,7 @@ export const TOPICS = [
   { slug: "quotes", label: "Quotes", icon: "📜", color: "#f8b4c9" },
   { slug: "memes", label: "Meme", icon: "😼", color: "#a3e635" },
   { slug: "taste-yap", label: "Taste yap", icon: "🍽️", color: "#fca5a5" },
+  { slug: "vid-viu-viu", label: "Vid vìu vịu", icon: "🎥", color: "#38bdf8" },
   { slug: "grey-h", label: "chữ H xám xịt", icon: "☁️", color: "#9fa5b8" },
   { slug: "trash-bin", label: "Thùng rác cảm xúc", icon: "🧸", color: "#94a3b8" },
 ] as const;
@@ -60,4 +61,5 @@ export const TOPIC_COPY: Record<string, string> = {
   quotes: "Quotes đủ thể loại, tao dự là chắc toàn meme quotes thôi :))))",
   memes: "Bà chúa soạn Meme - Uyên Trần",
   "taste-yap": "Gu mình là bữa tiệc chữ: place, food, style.",
+  "vid-viu-viu": "Khu này chỉ để đăng video cho đỡ quên.",
 };

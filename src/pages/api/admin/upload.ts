@@ -143,7 +143,13 @@ export const POST: APIRoute = async ({ locals, request }) => {
     });
 
     const baseUrl = locals.runtime?.env?.PUBLIC_R2_BASE_URL?.replace(/\/$/, "");
-    const url = baseUrl ? `${baseUrl}/${key}` : key;
+    const requestUrl = new URL(request.url);
+    const isLocalHost =
+      requestUrl.hostname === "localhost" ||
+      requestUrl.hostname === "127.0.0.1" ||
+      requestUrl.hostname === "[::1]";
+    const localUrl = `/media/${key}`;
+    const url = isLocalHost ? localUrl : (baseUrl ? `${baseUrl}/${key}` : localUrl);
 
     const db = getDb(locals);
     const allowBootstrap = locals.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";

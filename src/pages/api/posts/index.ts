@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { ensurePostsSchema, getDb, type PostRecord } from "../../../lib/d1";
+import { ensurePostMediaSchema, ensurePostsSchema, getDb, type PostRecord } from "../../../lib/d1";
 
 export const prerender = false;
 
@@ -8,12 +8,34 @@ export const GET: APIRoute = async ({ locals, request }) => {
     const db = getDb(locals);
     const allowBootstrap = locals.runtime?.env?.ALLOW_SCHEMA_BOOTSTRAP === "true";
     await ensurePostsSchema(db, { allowBootstrap });
+    await ensurePostMediaSchema(db, { allowBootstrap });
     const url = new URL(request.url);
     const query = url.searchParams.get("q")?.trim().toLowerCase() ?? "";
     const likeQuery = `%${query}%`;
     const statement = query
       ? db.prepare(
-          `SELECT id, slug, title, summary, cover_url, status, author_name, topic, published_at, created_at, updated_at
+          `SELECT
+             id,
+             slug,
+             title,
+             summary,
+             COALESCE(
+               NULLIF(posts.cover_url, ''),
+               (
+                 SELECT pm.url
+                 FROM post_media pm
+                 WHERE pm.post_id = posts.id
+                 ORDER BY pm.sort_order ASC, datetime(pm.created_at) ASC
+                 LIMIT 1
+               ),
+               '/collage/cake.jpg'
+             ) as cover_url,
+             status,
+             author_name,
+             topic,
+             published_at,
+             created_at,
+             updated_at
            FROM posts
            WHERE status = 'published'
              AND (
@@ -25,7 +47,28 @@ export const GET: APIRoute = async ({ locals, request }) => {
            ORDER BY datetime(published_at) DESC`
         )
       : db.prepare(
-          `SELECT id, slug, title, summary, cover_url, status, author_name, topic, published_at, created_at, updated_at
+          `SELECT
+             id,
+             slug,
+             title,
+             summary,
+             COALESCE(
+               NULLIF(posts.cover_url, ''),
+               (
+                 SELECT pm.url
+                 FROM post_media pm
+                 WHERE pm.post_id = posts.id
+                 ORDER BY pm.sort_order ASC, datetime(pm.created_at) ASC
+                 LIMIT 1
+               ),
+               '/collage/cake.jpg'
+             ) as cover_url,
+             status,
+             author_name,
+             topic,
+             published_at,
+             created_at,
+             updated_at
            FROM posts
            WHERE status = 'published'
            ORDER BY datetime(published_at) DESC`
