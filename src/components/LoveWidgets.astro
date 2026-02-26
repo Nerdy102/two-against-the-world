@@ -11,7 +11,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         <div class="love-counter__since">since 31 Dec 2025</div>
       </div>
 
-      <section class="love-events-strip" data-love-events aria-label="Main events của Mỹ Uyên và Việt Hoà">
+      <section class="love-events-strip" data-love-events aria-label="Sự kiện của Mỹ Uyên và Việt Hoà">
         <div class="love-events-strip__head">
           <span class="love-events-strip__next" data-love-event-next>⚡ THE UPCOMING EVENT</span>
           <button
@@ -36,7 +36,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
           </button>
         </div>
 
-        <div class="love-events-strip__rail love-events-strip__rail--featured" role="list" aria-label="Featured event timeline">
+        <div class="love-events-strip__rail love-events-strip__rail--featured" role="list" aria-label="Sự kiện chính">
           <article
             class="love-event-chip"
             role="listitem"
@@ -83,7 +83,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         </div>
 
         <div class="love-events-strip__more" id="love-events-more" data-love-events-more hidden>
-          <div class="love-events-strip__rail love-events-strip__rail--extra" role="list" aria-label="Extra event timeline">
+          <div class="love-events-strip__rail love-events-strip__rail--extra" role="list" aria-label="Sự kiện pending">
             <article
               class="love-event-chip love-event-chip--extra"
               role="listitem"
@@ -171,7 +171,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         <button class="love-event-admin-modal__backdrop" type="button" data-love-events-admin-close aria-label="Đóng event admin"></button>
         <section class="love-event-admin-modal__card" role="dialog" aria-modal="true" aria-labelledby="love-event-admin-title">
           <div class="love-event-admin-modal__eyebrow">EVENT ADMIN</div>
-          <h3 id="love-event-admin-title" class="love-event-admin-modal__title">Event Control</h3>
+          <h3 id="love-event-admin-title" class="love-event-admin-modal__title">Quản lý sự kiện</h3>
 
           <div class="love-event-admin-modal__auth" data-love-event-admin-auth>
             <label class="love-event-admin-modal__field">
@@ -190,7 +190,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
                 data-love-event-admin-tab="add"
                 aria-selected="true"
               >
-                Add
+                Thêm mới
               </button>
               <button
                 class="love-event-admin-modal__tab"
@@ -199,52 +199,52 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
                 data-love-event-admin-tab="edit"
                 aria-selected="false"
               >
-                Edit Description
+                Sửa mô tả
               </button>
             </div>
 
             <form class="love-event-admin-modal__form" data-love-event-admin-form>
               <label class="love-event-admin-modal__field">
-                <span>Event title</span>
+                <span>Tên sự kiện</span>
                 <input class="input" name="name" required placeholder="Tên sự kiện" />
               </label>
               <label class="love-event-admin-modal__field">
-                <span>Date</span>
+                <span>Ngày</span>
                 <input class="input" type="date" name="event_date" required />
               </label>
               <label class="love-event-admin-modal__field">
-                <span>Time (optional)</span>
+                <span>Giờ (tuỳ chọn)</span>
                 <input class="input" type="time" name="event_time" step="60" />
               </label>
               <label class="love-event-admin-modal__field">
-                <span>Icon</span>
+                <span>Biểu tượng</span>
                 <input class="input" name="icon" maxlength="4" placeholder="✈︎" />
               </label>
               <label class="love-event-admin-modal__field">
-                <span>Group</span>
+                <span>Nhóm hiển thị</span>
                 <select class="input" name="event_group">
-                  <option value="extra">Timeline</option>
-                  <option value="featured">Featured</option>
+                  <option value="featured">Sự kiện chính</option>
+                  <option value="extra">Sự kiện pending</option>
                 </select>
               </label>
               <label class="love-event-admin-modal__field">
-                <span>Accent rgb (optional)</span>
+                <span>Màu RGB (tuỳ chọn)</span>
                 <input class="input" name="accent_rgb" placeholder="116 218 255" />
               </label>
               <label class="love-event-admin-modal__field">
-                <span>Description</span>
+                <span>Mô tả</span>
                 <textarea class="input" name="note" rows="3" required placeholder="Mô tả ngắn cho event"></textarea>
               </label>
-              <button class="love-event-admin-modal__btn" type="submit">Push To Timeline</button>
+              <button class="love-event-admin-modal__btn" type="submit">Thêm vào timeline</button>
             </form>
 
             <form class="love-event-admin-modal__form" data-love-event-admin-edit-form hidden>
               <label class="love-event-admin-modal__field">
-                <span>Event</span>
+                <span>Sự kiện</span>
                 <select class="input" data-love-event-admin-edit-target required></select>
               </label>
               <label class="love-event-admin-modal__field">
-                <span>Description</span>
+                <span>Mô tả</span>
                 <textarea
                   class="input"
                   name="note"
@@ -254,7 +254,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
                   placeholder="Mô tả sẽ hiển thị khi bấm icon note"
                 ></textarea>
               </label>
-              <button class="love-event-admin-modal__btn" type="submit">Save Description</button>
+              <button class="love-event-admin-modal__btn" type="submit">Lưu mô tả</button>
             </form>
           </div>
 
@@ -329,6 +329,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
       const eventToggleBtn = eventRoot ? eventRoot.querySelector("[data-love-events-toggle]") : null;
       const eventMorePanel = eventRoot ? eventRoot.querySelector("[data-love-events-more]") : null;
       let extraEventsCount = 0;
+      const featuredSlots = 2;
 
       const parseEventEl = (eventEl) => ({
         id:
@@ -358,9 +359,11 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
           ? Array.from(eventRoot.querySelectorAll("[data-love-event]")).map((eventEl) => parseEventEl(eventEl))
           : [];
       const refreshExtraEventsCount = () => {
-        extraEventsCount = eventRoot
-          ? eventRoot.querySelectorAll("[data-love-event-group='extra']").length
-          : 0;
+        if (!(extraRail instanceof HTMLElement)) {
+          extraEventsCount = 0;
+          return extraEventsCount;
+        }
+        extraEventsCount = Array.from(extraRail.querySelectorAll("[data-love-event]")).filter((eventEl) => !eventEl.hidden).length;
         return extraEventsCount;
       };
 
@@ -670,7 +673,9 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         eventItem.noteTrigger.addEventListener("click", (event) => {
           event.preventDefault();
           event.stopPropagation();
-          openNoteModal(eventItem);
+          // Read the latest DOM attributes on each click to avoid stale note data.
+          const current = parseEventEl(eventItem.eventEl);
+          openNoteModal(current);
         });
       };
 
@@ -1000,10 +1005,6 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
             return;
           }
 
-          const accentRgb =
-            source.eventEl instanceof HTMLElement
-              ? source.eventEl.style.getPropertyValue("--event-accent").trim()
-              : "";
           const csrf = getCsrfToken();
           if (!csrf) {
             setAdminStatus("Thiếu CSRF token, thử unlock lại.", "error");
@@ -1028,7 +1029,6 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
                 event_group: source.group === "featured" ? "featured" : "extra",
                 icon: source.icon || "",
                 note,
-                accent_rgb: accentRgb,
               }),
             });
             const payload = await res.json().catch(() => null);
@@ -1157,23 +1157,45 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
           nextEventEl.setAttribute("title", "No upcoming event");
         }
 
-        const sortAndRender = (railEl, group) => {
-          if (!(railEl instanceof HTMLElement)) return;
-          const sorted = upcomingEntries
-            .filter((entry) => entry.eventItem.group === group)
-            .sort((a, b) => a.diff - b.diff);
-          sorted.forEach(({ eventItem }) => {
+        const sortedFeatured = upcomingEntries
+          .filter((entry) => entry.eventItem.group === "featured")
+          .sort((a, b) => a.diff - b.diff);
+        const sortedExtra = upcomingEntries
+          .filter((entry) => entry.eventItem.group === "extra")
+          .sort((a, b) => a.diff - b.diff);
+
+        const displayedFeatured = [...sortedFeatured.slice(0, featuredSlots)];
+        if (displayedFeatured.length < featuredSlots) {
+          displayedFeatured.push(...sortedExtra.slice(0, featuredSlots - displayedFeatured.length));
+        }
+
+        const displayedFeaturedIds = new Set(
+          displayedFeatured.map((entry) => entry.eventItem.id)
+        );
+        const displayedExtra = upcomingEntries
+          .filter((entry) => !displayedFeaturedIds.has(entry.eventItem.id))
+          .sort((a, b) => a.diff - b.diff);
+
+        if (featuredRail instanceof HTMLElement) {
+          displayedFeatured.forEach(({ eventItem }) => {
             if (eventItem.eventEl instanceof HTMLElement) {
-              railEl.appendChild(eventItem.eventEl);
+              featuredRail.appendChild(eventItem.eventEl);
             }
           });
-        };
+        }
 
-        sortAndRender(featuredRail, "featured");
-        sortAndRender(extraRail, "extra");
+        if (extraRail instanceof HTMLElement) {
+          displayedExtra.forEach(({ eventItem }) => {
+            if (eventItem.eventEl instanceof HTMLElement) {
+              extraRail.appendChild(eventItem.eventEl);
+            }
+          });
+        }
+
+        extraEventsCount = displayedExtra.length;
 
         if (eventToggleBtn && eventMorePanel) {
-          const hasUpcomingExtra = upcomingEntries.some((entry) => entry.eventItem.group === "extra");
+          const hasUpcomingExtra = displayedExtra.length > 0;
           if (!hasUpcomingExtra) {
             eventToggleBtn.hidden = true;
             eventMorePanel.hidden = true;
@@ -1181,6 +1203,10 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
             eventToggleBtn.hidden = false;
             const isOpen = eventToggleBtn.getAttribute("aria-expanded") === "true";
             eventMorePanel.hidden = !isOpen;
+            eventToggleBtn.setAttribute(
+              "title",
+              isOpen ? "Ẩn full timeline" : `Mở full timeline (${extraEventsCount} sự kiện)`
+            );
           }
         }
       };
