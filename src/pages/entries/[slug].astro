@@ -103,8 +103,6 @@ const wallImages = [
     candidates: photo.candidates,
   })),
 ];
-const isSingleImage = wallImages.length === 1;
-const useBlendedStory = isSingleImage;
 ---
 
 <BaseLayout title={post.title} description={post.summary ?? ""}>
@@ -162,11 +160,9 @@ const useBlendedStory = isSingleImage;
     </div>
 
     {/* PHOTO WALL */}
-    {!useBlendedStory && (
-      <section class="mt-10" aria-label="Bức tường ảnh">
-        <FrameWall images={wallImages} seed={post.slug} />
-      </section>
-    )}
+    <section class="mt-10" aria-label="Bức tường ảnh">
+      <FrameWall images={wallImages} seed={post.slug} />
+    </section>
 
     {/* MEDIA */}
     {voiceMemo && (
@@ -186,20 +182,9 @@ const useBlendedStory = isSingleImage;
 
     {/* NOTES / BODY */}
     <section class="mt-10" aria-label="Ghi chú" data-reveal>
-      {useBlendedStory ? (
-        <div class="paper edge-torn post-story">
-          <div class="post-story__media">
-            <img src={wallImages[0]?.src} alt={wallImages[0]?.alt ?? ""} loading="lazy" decoding="async" />
-          </div>
-          <div class="post-story__body p-6 sm:p-10 prose prose-scrap max-w-none">
-            <div set:html={contentHtml} />
-          </div>
-        </div>
-      ) : (
-        <div class="paper edge-torn p-6 sm:p-10 prose prose-scrap max-w-none">
-          <div set:html={contentHtml} />
-        </div>
-      )}
+      <div class="paper edge-torn p-6 sm:p-10 prose prose-scrap max-w-none">
+        <div set:html={contentHtml} />
+      </div>
     </section>
 
     {/* COMMENTS */}
