@@ -86,6 +86,24 @@ const needsSummaryRescue = (summary: string | null | undefined) => {
   return !SUMMARY_LINK_RE.test(value) && SUMMARY_ORPHAN_LINK_LABEL_RE.test(value);
 };
 
+const mergePinnedMeta = (dbPost: PostRecord, contentPost?: PostRecord | null) => {
+  const isContentPinned = Number(contentPost?.pinned ?? 0) === 1;
+  if (!isContentPinned) {
+    return {
+      pinned: Number(dbPost.pinned ?? 0),
+      pinned_priority: Number(dbPost.pinned_priority ?? 0),
+      pinned_until: dbPost.pinned_until ?? null,
+      pinned_style: dbPost.pinned_style ?? null,
+    };
+  }
+  return {
+    pinned: 1,
+    pinned_priority: Number(contentPost?.pinned_priority ?? dbPost.pinned_priority ?? 0),
+    pinned_until: contentPost?.pinned_until ?? null,
+    pinned_style: contentPost?.pinned_style ?? dbPost.pinned_style ?? null,
+  };
+};
+
 export const resolvePostCoverUrl = (
   post: Pick<PostRecord, "cover_url" | "body_markdown" | "content_md" | "video_url" | "video_poster">
 ): string => {
@@ -224,12 +242,15 @@ export const mergePostsBySlug = (
   const map = new Map<string, PostRecord>();
   for (const post of dbPosts) {
     if (!post?.slug) continue;
-    const summary = pickBetterSummary(post.summary, contentBySlug.get(post.slug)?.summary);
+    const contentPost = contentBySlug.get(post.slug);
+    const summary = pickBetterSummary(post.summary, contentPost?.summary);
+    const pinnedMeta = mergePinnedMeta(post, contentPost);
     map.set(
       post.slug,
       withNormalizedPostFields({
         ...post,
         summary,
+        ...pinnedMeta,
       })
     );
   }

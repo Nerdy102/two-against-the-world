@@ -6,6 +6,9 @@ topic: miu-notes
 cover: "/photos/2026-01-31-why-tin-yeu-exists/cover.jpg"
 photoDir: "2026-01-31-why-tin-yeu-exists"
 photoCount: 0
+pinned: true
+pinnedPriority: 999
+pinnedStyle: memory
 
 author: "My Uyen Tran"
 location: "Nhà của Uyên"
