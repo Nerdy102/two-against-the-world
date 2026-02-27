@@ -46,6 +46,7 @@ const pinLabelMap: Record<string, string> = {
   memory: "Kỷ niệm",
 };
 const pinLabel = pinnedStyle && pinLabelMap[pinnedStyle] ? pinLabelMap[pinnedStyle] : "Ghim";
+const pinBannerLabel = pinLabel === "Kỷ niệm" ? "Kỷ niệm PIN" : `${pinLabel} PIN`;
 
 const zoneOptions = [
   { timeZone: "Asia/Ho_Chi_Minh", label: "🇻🇳 Giờ Việt" },
@@ -225,6 +226,12 @@ const initialImage = imageCandidates[0] ?? image;
   data-date={dateKey}
   id={anchorId}
 >
+  {showPinBadge && (
+    <div class="feed-card__pin-banner" data-pin-style={pinnedStyle ?? "default"} aria-label="Bài ghim">
+      <span class="feed-card__pin-banner-icon" aria-hidden="true">📌</span>
+      <span class="feed-card__pin-banner-label">{pinBannerLabel}</span>
+    </div>
+  )}
   <div class="feed-card__head">
     <div class="feed-card__topic" style={`--topic-color:${meta.color};`}>
       <span class="feed-card__icon">{meta.icon}</span>
@@ -237,13 +244,6 @@ const initialImage = imageCandidates[0] ?? image;
       </div>
     )}
   </div>
-  {showPinBadge && (
-    <span class="feed-card__pin" data-pin-style={pinnedStyle ?? "default"} aria-label="Bài ghim">
-      <span class="feed-card__pin-emoji" aria-hidden="true">📌</span>
-      <span class="feed-card__pin-label">{pinLabel}</span>
-    </span>
-  )}
-
   <h3 class="feed-card__title">{title}</h3>
   {!locked && (summaryText || followUpUrl || author) && (
     <div class="feed-card__meta-line">
