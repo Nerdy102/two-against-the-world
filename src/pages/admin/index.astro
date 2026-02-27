@@ -1023,6 +1023,11 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
         applySavedPrefsToForm();
       }
       updateLinkPreview();
+      if (post?.id) {
+        updateQuickHint("Đang chỉnh bài đã có. Bấm “Đăng ngay (1 chạm)” để cập nhật và publish.");
+      } else {
+        updateQuickHint();
+      }
     };
 
     const renderList = () => {
@@ -1706,33 +1711,35 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       }
     };
 
-    videoUploadStart?.addEventListener("click", async () => {
+    const startVideoUpload = async () => {
       if (!isUnlocked()) {
         if (videoUploadNote) videoUploadNote.textContent = "Cần mở khóa để upload video.";
-        return;
+        return false;
       }
 
       const file = videoUploadInput?.files?.[0];
       if (!(file instanceof File)) {
         if (videoUploadNote) videoUploadNote.textContent = "Chọn 1 video trước khi upload.";
-        return;
+        return false;
       }
       if (file.size <= 0) {
         if (videoUploadNote) videoUploadNote.textContent = "File video rỗng hoặc không hợp lệ.";
-        return;
+        return false;
       }
       if (file.size > MAX_VIDEO_FILE_BYTES) {
         if (videoUploadNote) {
           videoUploadNote.textContent =
             "File video quá lớn (>50GB). Tách nhỏ hoặc upload từ dashboard Cloudflare Stream.";
         }
-        return;
+        return false;
       }
 
       const safeSlug = getSlugValue({ allowFallback: true }) || "untitled";
       videoUploadController?.abort();
       videoUploadController = new AbortController();
       videoUploadCancel?.classList.remove("hidden");
+      if (videoUploadPick) videoUploadPick.disabled = true;
+      if (videoUploadStart) videoUploadStart.disabled = true;
       if (videoUploadProgress) videoUploadProgress.textContent = "Đang tạo link upload Cloudflare Stream...";
       if (videoUploadNote) videoUploadNote.textContent = "";
 
@@ -1795,6 +1802,7 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
             "Upload xong. Thumbnail ngoài bài đã lấy tự động từ đoạn giữa video.";
         }
         showToast("Đã upload video lên Cloudflare Stream.", "success");
+        return true;
       } catch (error) {
         if (error?.name === "AbortError") {
           if (videoUploadNote) videoUploadNote.textContent = "Đã hủy upload video.";
@@ -1809,11 +1817,30 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
           if (videoUploadNote) videoUploadNote.textContent = message;
           showToast(message);
         }
+        return false;
       } finally {
         if (videoUploadProgress) videoUploadProgress.textContent = "";
         videoUploadCancel?.classList.add("hidden");
+        if (videoUploadPick) videoUploadPick.disabled = false;
+        if (videoUploadStart) videoUploadStart.disabled = false;
         videoUploadController = null;
       }
+    };
+
+    const queueVideoUpload = async () => {
+      if (videoUploadTask) return videoUploadTask;
+      videoUploadTask = startVideoUpload().finally(() => {
+        videoUploadTask = null;
+      });
+      return videoUploadTask;
+    };
+
+    videoUploadPick?.addEventListener("click", () => {
+      videoUploadInput?.click();
+    });
+
+    videoUploadStart?.addEventListener("click", async () => {
+      await queueVideoUpload();
     });
 
     videoUploadCancel?.addEventListener("click", () => {
@@ -1822,7 +1849,7 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       if (videoUploadProgress) videoUploadProgress.textContent = "";
     });
 
-    videoUploadInput?.addEventListener("change", () => {
+    videoUploadInput?.addEventListener("change", async () => {
       const file = videoUploadInput.files?.[0];
       if (!videoUploadNote) return;
       if (!(file instanceof File)) {
@@ -1830,7 +1857,8 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
         return;
       }
       const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
-      videoUploadNote.textContent = `Đã chọn: ${file.name} (${sizeMb} MB).`;
+      videoUploadNote.textContent = `Đã chọn: ${file.name} (${sizeMb} MB). Đang upload...`;
+      await queueVideoUpload();
     });
 
     clearPreviewUrls = () => {
@@ -1870,13 +1898,36 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       });
     };
 
-    uploadInput?.addEventListener("change", () => {
-      selectedFiles = Array.from(uploadInput.files || []);
+    const queueImagesForUpload = (files) => {
+      const nextFiles = Array.from(files || []).filter((file) => file instanceof File);
+      if (!nextFiles.length) return;
+      if (imageUploadTask) {
+        uploadNote.textContent = "Đang upload ảnh trước đó. Chờ xong rồi thêm ảnh mới.";
+        return;
+      }
+      selectedFiles = nextFiles;
       coverIndex = 0;
       uploadBatchId = Date.now();
       renderPreview();
       markDirty();
       startUpload();
+    };
+
+    uploadLibraryBtn?.addEventListener("click", () => {
+      uploadInput?.click();
+    });
+
+    uploadCameraBtn?.addEventListener("click", () => {
+      uploadCameraInput?.click();
+    });
+
+    uploadInput?.addEventListener("change", () => {
+      queueImagesForUpload(uploadInput.files || []);
+    });
+
+    uploadCameraInput?.addEventListener("change", () => {
+      queueImagesForUpload(uploadCameraInput.files || []);
+      uploadCameraInput.value = "";
     });
 
     uploadCancel?.addEventListener("click", () => {
@@ -1885,7 +1936,7 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       uploadCancel?.classList.add("hidden");
     });
 
-    const startUpload = async () => {
+    const runImageUpload = async () => {
       if (!isUnlocked()) {
         uploadNote.textContent = "Cần mở khóa để upload.";
         return;
@@ -1895,6 +1946,8 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
         uploadNote.textContent = `Chọn tối đa ${MAX_UPLOAD_FILES} ảnh thôi nha.`;
         return;
       }
+      if (uploadLibraryBtn) uploadLibraryBtn.disabled = true;
+      if (uploadCameraBtn) uploadCameraBtn.disabled = true;
       uploadNote.textContent = "";
       if (uploadProgress) uploadProgress.textContent = "Đang xử lý ảnh...";
       const safeSlug = getSlugValue({ allowFallback: true }) || "untitled";
@@ -1968,6 +2021,16 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       uploadCancel?.classList.add("hidden");
       uploadController = null;
       uploadBatchId = null;
+      if (uploadLibraryBtn) uploadLibraryBtn.disabled = false;
+      if (uploadCameraBtn) uploadCameraBtn.disabled = false;
+    };
+
+    const startUpload = async () => {
+      if (imageUploadTask) return imageUploadTask;
+      imageUploadTask = runImageUpload().finally(() => {
+        imageUploadTask = null;
+      });
+      return imageUploadTask;
     };
 
     setLocked(true);
