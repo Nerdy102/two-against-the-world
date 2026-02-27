@@ -1,0 +1,28 @@
+{
+  "baseUrl": "http://localhost:8788",
+  "title": "🥺🥺🥺 one-tap test 1772212258502",
+  "screenshotDir": "/Users/viethoanguyen/Desktop/two-against-the-world/tmp-playwright/screenshots/admin-flow-20260227171057",
+  "screenshots": [
+    "/Users/viethoanguyen/Desktop/two-against-the-world/tmp-playwright/screenshots/admin-flow-20260227171057/01-admin-locked.png",
+    "/Users/viethoanguyen/Desktop/two-against-the-world/tmp-playwright/screenshots/admin-flow-20260227171057/02-admin-unlocked.png",
+    "/Users/viethoanguyen/Desktop/two-against-the-world/tmp-playwright/screenshots/admin-flow-20260227171057/03-filled-form.png",
+    "/Users/viethoanguyen/Desktop/two-against-the-world/tmp-playwright/screenshots/admin-flow-20260227171057/04-image-uploaded.png",
+    "/Users/viethoanguyen/Desktop/two-against-the-world/tmp-playwright/screenshots/admin-flow-20260227171057/05-published-in-admin.png",
+    "/Users/viethoanguyen/Desktop/two-against-the-world/tmp-playwright/screenshots/admin-flow-20260227171057/06-public-entry.png"
+  ],
+  "checks": {
+    "apiPostBySlug": {
+      "status": 200,
+      "ok": true,
+      "hasPost": true
+    },
+    "apiHealth": {
+      "status": 200,
+      "ok": true,
+      "schemaPosts": true,
+      "schemaPostMedia": true
+    }
+  },
+  "entryLink": "http://localhost:8788/entries/post-mm55f7jq",
+  "slug": "post-mm55f7jq"
+}
