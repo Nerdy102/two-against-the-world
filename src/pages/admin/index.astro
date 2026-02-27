@@ -114,15 +114,28 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
             <input type="hidden" name="cover_key" />
             <input type="hidden" name="cover_url" />
             <input
-              class="input"
+              class="sr-only"
               type="file"
               name="upload_photos"
               accept="image/*,image/heic,image/heif"
               multiple
               data-upload-input
             />
-            <p class="mt-2 text-xs text-black/50">Nếu là bài video thì có thể bỏ qua ảnh này.</p>
-            <p class="text-xs text-black/50">Ảnh HEIC/HEIF từ iPhone được giữ nguyên, không tự convert trước khi upload.</p>
+            <input
+              class="sr-only"
+              type="file"
+              accept="image/*,image/heic,image/heif"
+              capture="environment"
+              data-upload-camera-input
+            />
+            <div class="mt-2 flex flex-wrap gap-2">
+              <button class="btn" type="button" data-upload-library>Thêm ảnh</button>
+              <button class="btn" type="button" data-upload-camera>Chụp nhanh</button>
+            </div>
+            <p class="mt-2 text-xs text-black/50">
+              Chọn/chụp xong sẽ tự upload ngay và tự chèn vào nội dung.
+            </p>
+            <p class="text-xs text-black/50">Nếu là bài video thì có thể bỏ qua ảnh. Ảnh HEIC/HEIF từ iPhone được giữ nguyên.</p>
             <div class="compose-preview" data-upload-preview></div>
             {enableUploadHelpers && <button class="btn hidden mt-3" type="button" data-upload-cancel>Hủy</button>}
             {enableUploadHelpers && <p class="text-xs text-black/50" data-upload-progress></p>}
@@ -205,9 +218,10 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
 
               <div class="compose-field">
                 <span>Video file (Cloudflare Stream)</span>
-                <input class="input" type="file" name="upload_video" accept="video/*" data-video-upload-input />
+                <input class="sr-only" type="file" name="upload_video" accept="video/*" data-video-upload-input />
                 <div class="mt-2 flex flex-wrap gap-2">
-                  <button class="btn" type="button" data-video-upload-start>Upload video</button>
+                  <button class="btn" type="button" data-video-upload-pick>Chọn video</button>
+                  <button class="btn" type="button" data-video-upload-start>Upload ngay</button>
                   <button class="btn hidden" type="button" data-video-upload-cancel>Hủy upload video</button>
                 </div>
                 <p class="mt-2 text-xs text-black/50" data-video-upload-progress></p>
@@ -290,12 +304,27 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
             </div>
           </details>
 
-          <div class="flex flex-wrap gap-3">
-            <button class="btn" type="submit" data-save-post>Lưu</button>
-            <button class="btn" type="button" data-submit-post>Đăng bài ngay</button>
-            <button class="btn" type="button" data-publish-post>Publish</button>
-            <button class="btn" type="button" data-unpublish-post>Gỡ publish</button>
-            <button class="btn" type="button" data-delete-post>Xóa</button>
+          <div class="admin-quick-actions">
+            <button class="btn admin-btn-primary" type="button" data-submit-post>Đăng ngay (1 chạm)</button>
+            <button class="btn" type="button" data-save-quick>Lưu nháp nhanh</button>
+            <button class="btn" type="button" data-smart-fill>Tự điền metadata</button>
+          </div>
+          <p class="text-xs text-black/50" data-quick-hint>
+            Chỉ cần nhập tiêu đề + nội dung + chọn ảnh/video, rồi bấm “Đăng ngay (1 chạm)”.
+          </p>
+          <details class="compose-advanced">
+            <summary class="compose-advanced__summary">Tác vụ nâng cao</summary>
+            <div class="mt-3 flex flex-wrap gap-3">
+              <button class="btn" type="submit" data-save-post>Lưu thủ công</button>
+              <button class="btn" type="button" data-publish-post>Publish</button>
+              <button class="btn" type="button" data-unpublish-post>Gỡ publish</button>
+              <button class="btn" type="button" data-delete-post>Xóa</button>
+            </div>
+          </details>
+          <div class="compose-field">
+            <p class="text-xs text-black/50">
+              Hệ thống tự tạo: slug, summary, thời gian đăng và timezone nếu bạn để trống.
+            </p>
           </div>
           <p class="text-xs text-black/50" data-form-note></p>
         </form>
@@ -329,6 +358,11 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
     // @ts-nocheck
     import { marked } from "marked";
 
+    marked.setOptions({
+      gfm: true,
+      breaks: true,
+    });
+
     const slugify = (s = "") =>
       s
         .toLowerCase()
@@ -356,13 +390,20 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
     const publishBtn = document.querySelector("[data-publish-post]");
     const unpublishBtn = document.querySelector("[data-unpublish-post]");
     const submitBtn = document.querySelector("[data-submit-post]");
+    const saveQuickBtn = document.querySelector("[data-save-quick]");
+    const smartFillBtn = document.querySelector("[data-smart-fill]");
+    const quickHint = document.querySelector("[data-quick-hint]");
     const deleteBtn = document.querySelector("[data-delete-post]");
     const uploadInput = document.querySelector("[data-upload-input]");
+    const uploadLibraryBtn = document.querySelector("[data-upload-library]");
+    const uploadCameraBtn = document.querySelector("[data-upload-camera]");
+    const uploadCameraInput = document.querySelector("[data-upload-camera-input]");
     const uploadPreview = document.querySelector("[data-upload-preview]");
     const uploadNote = document.querySelector("[data-upload-note]");
     const uploadProgress = document.querySelector("[data-upload-progress]");
     const uploadCancel = document.querySelector("[data-upload-cancel]");
     const videoUploadInput = document.querySelector("[data-video-upload-input]");
+    const videoUploadPick = document.querySelector("[data-video-upload-pick]");
     const videoUploadStart = document.querySelector("[data-video-upload-start]");
     const videoUploadCancel = document.querySelector("[data-video-upload-cancel]");
     const videoUploadNote = document.querySelector("[data-video-upload-note]");
@@ -397,6 +438,8 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
     let previewUrls = [];
     let coverIndex = 0;
     let uploadBatchId = null;
+    let imageUploadTask = null;
+    let videoUploadTask = null;
 
     const state = {
       posts: [],
@@ -454,6 +497,130 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
         adminToast.textContent = "";
         adminToast.dataset.state = "";
       }, 2200);
+    };
+
+    const PREF_KEY = "twaw_admin_prefs_v1";
+    const readPrefs = () => {
+      try {
+        const raw = localStorage.getItem(PREF_KEY);
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        return typeof parsed === "object" && parsed ? parsed : {};
+      } catch {
+        return {};
+      }
+    };
+    const writePrefs = (patch = {}) => {
+      const current = readPrefs();
+      localStorage.setItem(PREF_KEY, JSON.stringify({ ...current, ...patch }));
+    };
+    const field = (name) => form?.querySelector(`[name="${name}"]`);
+    const triggerInput = (input) => input?.dispatchEvent(new Event("input", { bubbles: true }));
+    const stripMarkdown = (value = "") =>
+      String(value || "")
+        .replace(/!\[[^\]]*]\([^)\n]+\)/g, " ")
+        .replace(/\[([^\]]+)\]\([^)\n]+\)/g, "$1")
+        .replace(/[`*_>#~]/g, " ")
+        .replace(/\n+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    const buildAutoSummary = (markdown = "") => {
+      const plain = stripMarkdown(markdown);
+      if (!plain) return "";
+      if (plain.length <= 160) return plain;
+      return `${plain.slice(0, 157).trim()}...`;
+    };
+    const getTodayLabel = () => {
+      const now = new Date();
+      return now.toLocaleDateString("vi-VN");
+    };
+    const getDefaultTopic = () => {
+      const topicInput = field("topic");
+      if (!topicInput) return "two-of-us";
+      const preferred = Array.from(topicInput.options || []).find((option) => option.value?.trim())?.value;
+      return preferred || "two-of-us";
+    };
+    const ensureAutoMetadata = ({ forPublish = false } = {}) => {
+      const prefs = readPrefs();
+      const topicInput = field("topic");
+      const authorInput = field("author");
+      const summaryInput = field("summary");
+      const contentInput = field("content_md");
+      const statusInput = field("status");
+      const writtenAtInput = field("written_at");
+      const photoTimeInput = field("photo_time");
+      const publishedInput = field("published_at_local");
+      const slugInput = field("slug");
+
+      if (topicInput && !String(topicInput.value || "").trim()) {
+        topicInput.value = String(prefs.topic || getDefaultTopic());
+        triggerInput(topicInput);
+      }
+      if (authorInput && !String(authorInput.value || "").trim()) {
+        authorInput.value = String(prefs.author || "Hai đứa mình");
+        triggerInput(authorInput);
+      }
+      if (slugInput) {
+        const autoSlug = getSlugValue({ allowFallback: true });
+        if (autoSlug && slugInput.value !== autoSlug) {
+          slugInput.value = autoSlug;
+          triggerInput(slugInput);
+        }
+      }
+      if (summaryInput && !String(summaryInput.value || "").trim()) {
+        const autoSummary = buildAutoSummary(contentInput?.value || "");
+        if (autoSummary) {
+          summaryInput.value = autoSummary;
+          triggerInput(summaryInput);
+        }
+      }
+      if (writtenAtInput && !String(writtenAtInput.value || "").trim()) {
+        writtenAtInput.value = getTodayLabel();
+        triggerInput(writtenAtInput);
+      }
+      if (photoTimeInput && !String(photoTimeInput.value || "").trim()) {
+        photoTimeInput.value = getTodayLabel();
+        triggerInput(photoTimeInput);
+      }
+      if (forPublish) {
+        if (statusInput && statusInput.value !== "published") {
+          statusInput.value = "published";
+          triggerInput(statusInput);
+        }
+        if (publishedInput && !publishedInput.value) {
+          publishedInput.value = toLocalDateTimeInput(new Date());
+          triggerInput(publishedInput);
+        }
+      }
+
+      const finalTopic = String(topicInput?.value || "").trim();
+      const finalAuthor = String(authorInput?.value || "").trim();
+      if (finalTopic || finalAuthor) {
+        writePrefs({
+          topic: finalTopic || undefined,
+          author: finalAuthor || undefined,
+        });
+      }
+    };
+    const setButtonBusy = (button, busy, busyText) => {
+      if (!button) return;
+      if (busy) {
+        if (!button.dataset.originalLabel) {
+          button.dataset.originalLabel = button.textContent || "";
+        }
+        button.textContent = busyText || "Đang xử lý...";
+        button.disabled = true;
+        return;
+      }
+      if (button.dataset.originalLabel) {
+        button.textContent = button.dataset.originalLabel;
+      }
+      button.disabled = false;
+    };
+    const updateQuickHint = (text = "") => {
+      if (!quickHint) return;
+      quickHint.textContent =
+        text || "Chỉ cần nhập tiêu đề + nội dung + chọn ảnh/video, rồi bấm “Đăng ngay (1 chạm)”.";
     };
 
     const getCsrfToken = () => {
@@ -757,6 +924,19 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
 
     const DRAFT_KEY = "twaw_admin_draft_v1";
 
+    const applySavedPrefsToForm = () => {
+      if (!form) return;
+      const prefs = readPrefs();
+      const topicInput = field("topic");
+      const authorInput = field("author");
+      if (topicInput && !String(topicInput.value || "").trim()) {
+        topicInput.value = String(prefs.topic || getDefaultTopic());
+      }
+      if (authorInput && !String(authorInput.value || "").trim()) {
+        authorInput.value = String(prefs.author || "Hai đứa mình");
+      }
+    };
+
     const saveDraft = () => {
       if (!form || !enableDraftSave) return;
       if (state.active?.id) return;
@@ -789,6 +969,7 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       if (publishInput && !publishInput.value) {
         publishInput.value = toLocalDateTimeInput(new Date());
       }
+      applySavedPrefsToForm();
       status.textContent = "Đang dùng bản nháp trên máy";
       updateLinkPreview();
     };
@@ -830,6 +1011,17 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       status.textContent = post.status
         ? `Trạng thái: ${post.status}`
         : "Chưa chọn bài";
+      const topicValue = String(post.topic || "").trim();
+      const authorValue = String(post.author ?? post.author_name ?? "").trim();
+      if (topicValue || authorValue) {
+        writePrefs({
+          topic: topicValue || undefined,
+          author: authorValue || undefined,
+        });
+      }
+      if (!post?.id) {
+        applySavedPrefsToForm();
+      }
       updateLinkPreview();
     };
 
@@ -950,6 +1142,8 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
     newBtn?.addEventListener("click", () => {
       state.active = null;
       fillForm({});
+      ensureAutoMetadata();
+      updateQuickHint();
     });
 
     form?.querySelector("[name='title']")?.addEventListener("input", (e) => {
@@ -971,11 +1165,41 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
     const requiredFields = ["title", "author", "content_md"];
     const requiredOnCreate = ["topic"];
 
-    const savePost = async ({ silent = false } = {}) => {
+    const savePost = async ({ silent = false, autoMeta = false, forPublish = false, ensureMedia = false } = {}) => {
       if (!form) return false;
       if (!isUnlocked()) {
         note.textContent = "Cần mở khóa để lưu bài.";
         return false;
+      }
+      if (autoMeta) {
+        ensureAutoMetadata({ forPublish });
+      }
+      if (forPublish) {
+        const statusInput = field("status");
+        if (statusInput && statusInput.value !== "published") {
+          statusInput.value = "published";
+        }
+      }
+      if (ensureMedia) {
+        if (selectedFiles.length > 0 && !imageUploadTask) {
+          if (!silent && uploadNote) uploadNote.textContent = "Đang upload ảnh trước khi lưu...";
+          await startUpload();
+        }
+        if (imageUploadTask) {
+          await imageUploadTask;
+        }
+        const hasVideoFile = Boolean(videoUploadInput?.files?.[0]);
+        const hasVideoUrl = Boolean(String(field("video_url")?.value || "").trim());
+        if (forPublish && hasVideoFile && !hasVideoUrl) {
+          if (!videoUploadTask) {
+            videoUploadTask = startVideoUpload().finally(() => {
+              videoUploadTask = null;
+            });
+          }
+          await videoUploadTask;
+        } else if (videoUploadTask) {
+          await videoUploadTask;
+        }
       }
       if (!silent) note.textContent = "Đang lưu...";
       const data = {};
@@ -1012,6 +1236,10 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       }
 
       const isNew = !data.id;
+      const isPublishing = data.status === "published" || forPublish;
+      if (isPublishing) {
+        data.status = "published";
+      }
 
       const missingField = requiredFields.find((name) => {
         const value = typeof data[name] === "string" ? data[name].trim() : "";
@@ -1039,12 +1267,15 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
           input?.focus();
           return false;
         }
-        const contentValue = String(data.content_md || "");
-        const hasImage = Boolean(data.cover_url) || /!\[.*?\]\(.+?\)/.test(contentValue);
-        const hasVideo = isLikelyVideoUrl(data.video_url);
-        if (!hasImage && !hasVideo) {
-          note.textContent = "Thiếu media. Hãy upload ảnh hoặc video.";
-          return false;
+        if (isPublishing) {
+          const contentValue = String(data.content_md || "");
+          const hasImage =
+            Boolean(data.cover_url) || /!\[.*?\]\(.+?\)/.test(contentValue) || selectedFiles.length > 0;
+          const hasVideo = isLikelyVideoUrl(data.video_url);
+          if (!hasImage && !hasVideo) {
+            note.textContent = "Thiếu media. Hãy upload ảnh hoặc video.";
+            return false;
+          }
         }
       }
       const res = await fetch(isNew ? "/api/admin/posts" : `/api/admin/posts/${data.id}`, {
@@ -1109,9 +1340,7 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       };
     };
 
-    publishBtn?.addEventListener("click", async () => {
-      const id = form?.querySelector("[name='id']")?.value;
-      if (!id) return;
+    const publishPost = async (id) => {
       const res = await fetch(`/api/admin/posts/${id}/publish`, {
         method: "POST",
         headers: { "content-type": "application/json", "x-csrf-token": getCsrfToken() },
@@ -1122,19 +1351,31 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
           unlocked = false;
           setLocked(true);
           note.textContent = "Cần mở khóa để publish.";
-          return;
+          return false;
         }
         const payload = await res.json().catch(() => ({}));
         const message = formatApiError(payload, "Publish lỗi, thử lại nhé.");
         note.textContent = message;
         showToast(message);
-        return;
+        return false;
       }
       await loadPosts();
       state.active = state.posts.find((p) => p.id === id);
       fillForm(state.active);
       updateLinkPreview();
       showToast("Đã publish. Link sẵn sàng mở.", "success");
+      return true;
+    };
+
+    publishBtn?.addEventListener("click", async () => {
+      const id = form?.querySelector("[name='id']")?.value;
+      if (!id) return;
+      setButtonBusy(publishBtn, true, "Đang publish...");
+      try {
+        await publishPost(id);
+      } finally {
+        setButtonBusy(publishBtn, false);
+      }
     });
 
     unpublishBtn?.addEventListener("click", async () => {
@@ -1163,34 +1404,53 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
     });
 
     submitBtn?.addEventListener("click", async () => {
-      const saved = await savePost();
-      if (!saved) return;
-      const id = form?.querySelector("[name='id']")?.value;
-      if (!id) return;
-      const res = await fetch(`/api/admin/posts/${id}/publish`, {
-        method: "POST",
-        headers: { "content-type": "application/json", "x-csrf-token": getCsrfToken() },
-        body: JSON.stringify(buildPublishPayload()),
-      });
-      if (!res.ok) {
-        if (res.status === 401) {
-          unlocked = false;
-          setLocked(true);
-          note.textContent = "Cần mở khóa để publish.";
+      setButtonBusy(submitBtn, true, "Đang đăng...");
+      updateQuickHint("Đang tự điền metadata, upload media và đăng bài...");
+      try {
+        const saved = await savePost({
+          autoMeta: true,
+          forPublish: true,
+          ensureMedia: true,
+        });
+        if (!saved) {
+          updateQuickHint("Thiếu thông tin hoặc media. Kiểm tra ghi chú bên dưới và thử lại.");
           return;
         }
-        const payload = await res.json().catch(() => ({}));
-        const message = formatApiError(payload, "Publish lỗi, thử lại nhé.");
-        note.textContent = message;
-        showToast(message);
-        return;
+        const id = form?.querySelector("[name='id']")?.value;
+        if (!id) return;
+        const published = await publishPost(id);
+        if (published) {
+          note.textContent = "Đã đăng bài.";
+          updateQuickHint("Đã đăng xong. Có thể bấm “Tạo bài mới” để viết bài tiếp theo.");
+        }
+      } finally {
+        setButtonBusy(submitBtn, false);
       }
-      await loadPosts();
-      state.active = state.posts.find((p) => p.id === id);
-      fillForm(state.active);
-      note.textContent = "Đã đăng bài.";
+    });
+
+    saveQuickBtn?.addEventListener("click", async () => {
+      setButtonBusy(saveQuickBtn, true, "Đang lưu...");
+      updateQuickHint("Đang lưu nháp nhanh...");
+      try {
+        const saved = await savePost({
+          autoMeta: true,
+          ensureMedia: true,
+        });
+        if (saved) {
+          note.textContent = "Đã lưu nháp nhanh.";
+          updateQuickHint("Đã lưu nháp. Bạn có thể bấm “Đăng ngay (1 chạm)” bất cứ lúc nào.");
+        }
+      } finally {
+        setButtonBusy(saveQuickBtn, false);
+      }
+    });
+
+    smartFillBtn?.addEventListener("click", () => {
+      ensureAutoMetadata();
       updateLinkPreview();
-      showToast("Đã publish. Link sẵn sàng mở.", "success");
+      note.textContent = "Đã tự điền metadata cơ bản.";
+      updateQuickHint("Metadata đã được tự điền. Bạn có thể đăng ngay.");
+      showToast("Đã tự điền metadata.", "info");
     });
 
     deleteBtn?.addEventListener("click", async () => {
@@ -1229,6 +1489,8 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
 
     renderDeviceTimeZone();
     loadDraft();
+    applySavedPrefsToForm();
+    updateQuickHint();
     if (!form?.querySelector("[name='published_at_local']")?.value) {
       const publishedInput = form?.querySelector("[name='published_at_local']");
       if (publishedInput) publishedInput.value = toLocalDateTimeInput(new Date());

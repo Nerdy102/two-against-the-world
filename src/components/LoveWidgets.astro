@@ -8,7 +8,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
       <div class="love-counter-strip" data-love-counter>
         <span class="love-counter__icons" aria-hidden="true">♥︎ ✶ ☾</span>
         <div class="love-counter__day" data-love-day>DAY 0</div>
-        <div class="love-counter__since">since 31 Dec 2025</div>
+        <div class="love-counter__since">since 2026</div>
       </div>
 
       <section class="love-events-strip" data-love-events aria-label="Events for My Uyen and Viet Hoa">
@@ -370,7 +370,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
       let eventEls = collectEventEls();
       refreshExtraEventsCount();
 
-      const startParts = { year: 2025, month: 12, day: 31 };
+      const startParts = { year: 2026, month: 1, day: 1 };
       const eventTimezoneOffsetMinutes = 7 * 60;
       const pastStorageKey = "twaw:past-events";
       const pad = (value) => String(value).padStart(2, "0");

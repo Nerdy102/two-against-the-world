@@ -325,7 +325,10 @@ const stripGalleryImagesFromMarkdown = (markdown: string, gallerySources: string
   return withoutHtmlImages.replace(/\n{3,}/g, "\n\n").trim();
 };
 
-const contentHtml = marked.parse(stripGalleryImagesFromMarkdown(contentMarkdown, orderedGallerySources));
+const contentHtml = marked.parse(stripGalleryImagesFromMarkdown(contentMarkdown, orderedGallerySources), {
+  gfm: true,
+  breaks: true,
+});
 
 const wallImages = orderedGallerySources.map((src, index) => ({
   src,
