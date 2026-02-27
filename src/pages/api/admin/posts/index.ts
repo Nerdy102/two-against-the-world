@@ -8,8 +8,13 @@ import {
   type PostRecord,
 } from "../../../../lib/d1";
 import { requireAdminSession, verifyCsrf } from "../../../../lib/adminAuth";
-import { deriveVideoPoster, isLikelyVideoUrl, normalizeVideoUrl } from "../../../../lib/stream";
-import { sanitizeSummaryText } from "../../../../lib/followUpLink";
+import {
+  deriveVideoPoster,
+  isLikelyVideoUrl,
+  normalizeVideoUrl,
+  stripStreamUrlMentions,
+} from "../../../../lib/stream";
+import { normalizeEscapedNewlines, sanitizeSummaryText } from "../../../../lib/followUpLink";
 import { buildOrderedPostMediaUrls, syncPostMediaOrder } from "../../../../lib/postMedia";
 import { parseTopicSlug } from "../../../../config/topics";
 
@@ -29,7 +34,16 @@ const slugify = (value: string) =>
     .replace(/[^\w\s-]/g, "")
     .trim()
     .replace(/\s+/g, "-")
-    .replace(/-+/g, "-");
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+const buildFallbackSlug = (seed: string) => {
+  const normalizedSeed = String(seed || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+    .slice(0, 10);
+  return `post-${normalizedSeed || Date.now().toString(36)}`;
+};
 
 const FIRST_MARKDOWN_IMAGE_RE = /!\[[^\]]*]\(([^)\s]+)(?:\s+"[^"]*")?\)/;
 
@@ -134,11 +148,12 @@ export const POST: APIRoute = async ({ locals, request }) => {
         : "";
     const topicInput = typeof payload.topic === "string" ? payload.topic.trim() : "";
     const topic = parseTopicSlug(topicInput);
-    const bodyMarkdown = typeof payload.body_markdown === "string"
-      ? payload.body_markdown.trim()
-      : typeof payload.content_md === "string"
-        ? payload.content_md.trim()
-        : "";
+    const rawContentMarkdown = typeof payload.content_md === "string"
+      ? normalizeEscapedNewlines(payload.content_md).trim()
+      : "";
+    const rawBodyMarkdown = typeof payload.body_markdown === "string"
+      ? normalizeEscapedNewlines(payload.body_markdown).trim()
+      : rawContentMarkdown;
     if (!title) {
       return json(
         { ok: false, error: "Missing title", detail: "Title is required.", code: "POST_TITLE_MISSING" },
@@ -163,7 +178,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
         400
       );
     }
-    if (!bodyMarkdown) {
+    if (!rawBodyMarkdown) {
       return json(
         { ok: false, error: "Missing body", detail: "Content is required.", code: "POST_BODY_MISSING" },
         400
@@ -176,13 +191,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
     await ensurePostsSchema(db, { allowBootstrap });
     await ensurePostMediaSchema(db, { allowBootstrap });
     const hasLegacyAuthor = await tableHasColumn(db, "posts", "author");
-    const baseSlug = slugify(rawSlug || title);
-    if (!baseSlug) {
-      return json(
-        { ok: false, error: "Missing slug", detail: "Slug is required.", code: "POST_SLUG_MISSING" },
-        400
-      );
-    }
+    const baseSlug = slugify(rawSlug || title) || buildFallbackSlug(id);
     const slug = await ensureUniqueSlug(db, baseSlug);
 
     const summary = sanitizeSummaryText(typeof payload.summary === "string" ? payload.summary : "");
@@ -211,6 +220,10 @@ export const POST: APIRoute = async ({ locals, request }) => {
     );
     const hasVideo = isLikelyVideoUrl(normalizedVideoUrl);
     const videoUrl = hasVideo ? normalizedVideoUrl : "";
+    const bodyMarkdown = hasVideo ? stripStreamUrlMentions(rawBodyMarkdown, videoUrl) : rawBodyMarkdown;
+    const contentMarkdown = rawContentMarkdown
+      ? (hasVideo ? stripStreamUrlMentions(rawContentMarkdown, videoUrl) : rawContentMarkdown)
+      : "";
     const manualVideoPoster = typeof payload.video_poster === "string"
       ? payload.video_poster.trim()
       : "";
@@ -227,7 +240,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
       ? null
       : normalizeCoverUrl(payload.cover_url) ??
         firstMarkdownImage(bodyMarkdown) ??
-        firstMarkdownImage(typeof payload.content_md === "string" ? payload.content_md : null);
+        firstMarkdownImage(contentMarkdown || null);
 
     const legacyAuthorColumn = hasLegacyAuthor ? ", author" : "";
     const legacyAuthorValue = hasLegacyAuthor ? ", ?" : "";
@@ -256,7 +269,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
         tagsJson,
         resolvedCoverKey,
         resolvedCoverUrl,
-        payload.content_md ?? null,
+        contentMarkdown || null,
         status,
         authorName,
         topic,
@@ -287,7 +300,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
     const orderedUrls = buildOrderedPostMediaUrls({
       coverUrl: resolvedCoverUrl,
       bodyMarkdown,
-      contentMarkdown: typeof payload.content_md === "string" ? payload.content_md : null,
+      contentMarkdown: contentMarkdown || null,
     });
     await syncPostMediaOrder({
       db,

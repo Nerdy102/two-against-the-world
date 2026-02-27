@@ -7,14 +7,16 @@ type SummaryLinkParts = {
 const MARKDOWN_LINK_RE = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/gi;
 const RAW_URL_RE = /https?:\/\/[^\s)]+/gi;
 const ESCAPED_NEWLINE_RE = /\\r\\n|\\n|\\r/g;
-const LINK_LABEL_LINE_RE = /^\s*(?:[-*•]\s*)?(?:stream\s*)?link\s*:?\s*$/gim;
+const LINK_LABEL_LINE_RE = /^\s*(?:[-*•]\s*)?(?:stream\s*)?link\s*:?\s*(?:watch|video|xem|play)?\s*$/gim;
 const ORPHAN_LINK_TOKEN_RE = /(^|[\s(])(?:\[\s*)?link(?:\s*])?(?=$|[\s).,:;!?"'])/gim;
 
-export const sanitizeSummaryText = (value: string | null | undefined): string => {
+export const normalizeEscapedNewlines = (value: string | null | undefined): string => {
   if (typeof value !== "string") return "";
-  return value
-    .replace(ESCAPED_NEWLINE_RE, "\n")
-    .replace(/\r\n?/g, "\n")
+  return value.replace(ESCAPED_NEWLINE_RE, "\n").replace(/\r\n?/g, "\n");
+};
+
+export const sanitizeSummaryText = (value: string | null | undefined): string => {
+  return normalizeEscapedNewlines(value)
     .split("\n")
     .map((line) => line.replace(/[ \t]+/g, " ").trim())
     .join("\n")

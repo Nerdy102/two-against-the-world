@@ -9,8 +9,13 @@ import {
   tableHasColumn,
 } from "../../../../lib/d1";
 import { requireAdminSession, verifyCsrf } from "../../../../lib/adminAuth";
-import { deriveVideoPoster, isLikelyVideoUrl, normalizeVideoUrl } from "../../../../lib/stream";
-import { sanitizeSummaryText } from "../../../../lib/followUpLink";
+import {
+  deriveVideoPoster,
+  isLikelyVideoUrl,
+  normalizeVideoUrl,
+  stripStreamUrlMentions,
+} from "../../../../lib/stream";
+import { normalizeEscapedNewlines, sanitizeSummaryText } from "../../../../lib/followUpLink";
 import { buildOrderedPostMediaUrls, syncPostMediaOrder } from "../../../../lib/postMedia";
 import { DEFAULT_TOPIC_SLUG, parseTopicSlug } from "../../../../config/topics";
 
@@ -30,7 +35,16 @@ const slugify = (value: string) =>
     .replace(/[^\w\s-]/g, "")
     .trim()
     .replace(/\s+/g, "-")
-    .replace(/-+/g, "-");
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+const buildFallbackSlug = (seed: string) => {
+  const normalizedSeed = String(seed || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+    .slice(0, 10);
+  return `post-${normalizedSeed || Date.now().toString(36)}`;
+};
 
 const FIRST_MARKDOWN_IMAGE_RE = /!\[[^\]]*]\(([^)\s]+)(?:\s+"[^"]*")?\)/;
 
@@ -125,22 +139,12 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
     let nextSlug = current?.slug ?? "";
     if (incomingSlug) {
       const baseSlug = slugify(incomingSlug);
-      if (!baseSlug) {
-        return json(
-          { ok: false, error: "Missing slug", detail: "Slug is required.", code: "POST_SLUG_MISSING" },
-          400
-        );
+      if (baseSlug) {
+        nextSlug = await ensureUniqueSlug(db, baseSlug, id);
       }
-      nextSlug = await ensureUniqueSlug(db, baseSlug, id);
     }
     if (!nextSlug) {
-      const baseSlug = slugify(payload.title ?? "");
-      if (!baseSlug) {
-        return json(
-          { ok: false, error: "Missing slug", detail: "Slug is required.", code: "POST_SLUG_MISSING" },
-          400
-        );
-      }
+      const baseSlug = slugify(payload.title ?? "") || buildFallbackSlug(id);
       nextSlug = await ensureUniqueSlug(db, baseSlug, id);
     }
     const authorName = typeof payload.author_name === "string"
@@ -157,11 +161,12 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
       );
     }
     const topic = parsedIncomingTopic ?? parseTopicSlug(current?.topic ?? null) ?? DEFAULT_TOPIC_SLUG;
-    const bodyMarkdown = typeof payload.body_markdown === "string"
-      ? payload.body_markdown.trim()
-      : typeof payload.content_md === "string"
-        ? payload.content_md.trim()
-        : null;
+    const rawContentMarkdown = typeof payload.content_md === "string"
+      ? normalizeEscapedNewlines(payload.content_md).trim()
+      : null;
+    const rawBodyMarkdown = typeof payload.body_markdown === "string"
+      ? normalizeEscapedNewlines(payload.body_markdown).trim()
+      : rawContentMarkdown;
     const summary = sanitizeSummaryText(typeof payload.summary === "string" ? payload.summary : "");
     const tagsJson =
       payload.tags_json ??
@@ -183,13 +188,17 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
         ? normalizedPublishedAt ?? current?.published_at ?? new Date().toISOString()
         : normalizedPublishedAt ?? current?.published_at ?? null;
     const publishedTz = normalizeTimeZone(payload.published_tz) ?? current?.published_tz ?? null;
-    const resolvedBodyMarkdown =
-      bodyMarkdown ?? (typeof payload.body_markdown === "string" ? payload.body_markdown.trim() : null);
     const normalizedVideoUrl = normalizeVideoUrl(
       typeof payload.video_url === "string" ? payload.video_url : ""
     );
     const hasVideo = isLikelyVideoUrl(normalizedVideoUrl);
     const videoUrl = hasVideo ? normalizedVideoUrl : "";
+    const bodyMarkdown = rawBodyMarkdown
+      ? (hasVideo ? stripStreamUrlMentions(rawBodyMarkdown, videoUrl) : rawBodyMarkdown)
+      : null;
+    const contentMarkdown = rawContentMarkdown
+      ? (hasVideo ? stripStreamUrlMentions(rawContentMarkdown, videoUrl) : rawContentMarkdown)
+      : null;
     const manualVideoPoster = typeof payload.video_poster === "string"
       ? payload.video_poster.trim()
       : "";
@@ -205,8 +214,8 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
     const resolvedCoverUrl = hasVideo
       ? null
       : normalizeCoverUrl(payload.cover_url) ??
-        firstMarkdownImage(resolvedBodyMarkdown) ??
-        firstMarkdownImage(typeof payload.content_md === "string" ? payload.content_md : null);
+        firstMarkdownImage(bodyMarkdown) ??
+        firstMarkdownImage(contentMarkdown);
 
     const legacyAuthorSet = hasLegacyAuthor ? ", author = ?" : "";
     const legacyAuthorBind = hasLegacyAuthor ? [authorName ?? ""] : [];
@@ -251,11 +260,11 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
         payload.title ?? "",
         nextSlug,
         summary || null,
-        resolvedBodyMarkdown ?? payload.content_md ?? null,
+        bodyMarkdown ?? contentMarkdown ?? null,
         tagsJson,
         resolvedCoverKey,
         resolvedCoverUrl,
-        payload.content_md ?? null,
+        contentMarkdown ?? null,
         authorName ?? null,
         topic,
         payload.location ?? null,
@@ -286,8 +295,8 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
 
     const orderedUrls = buildOrderedPostMediaUrls({
       coverUrl: resolvedCoverUrl,
-      bodyMarkdown: resolvedBodyMarkdown,
-      contentMarkdown: typeof payload.content_md === "string" ? payload.content_md : null,
+      bodyMarkdown: bodyMarkdown ?? null,
+      contentMarkdown,
     });
     await syncPostMediaOrder({
       db,

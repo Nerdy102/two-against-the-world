@@ -337,7 +337,16 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
         .replace(/[^\w\s-]/g, "")
         .trim()
         .replace(/\s+/g, "-")
-        .replace(/-+/g, "-");
+        .replace(/-+/g, "-")
+        .replace(/^-+|-+$/g, "");
+
+    const buildFallbackSlug = (seed = "") => {
+      const normalizedSeed = String(seed || "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "")
+        .slice(0, 10);
+      return `post-${normalizedSeed || Date.now().toString(36)}`;
+    };
 
     const form = document.querySelector("[data-post-form]");
     const list = document.querySelector("[data-post-list]");
@@ -595,12 +604,21 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       if (passwordInput) passwordInput.disabled = isLoading;
     };
 
-    const getSlugValue = () => {
+    const getSlugValue = ({ allowFallback = false } = {}) => {
       const slugInput = form?.querySelector("[name='slug']");
       const rawSlug = slugInput?.value?.trim();
-      if (rawSlug) return slugify(rawSlug);
+      if (rawSlug) {
+        const normalizedManualSlug = slugify(rawSlug);
+        if (normalizedManualSlug) return normalizedManualSlug;
+      }
       const titleValue = form?.querySelector("[name='title']")?.value ?? "";
-      return slugify(titleValue);
+      const normalizedTitleSlug = slugify(titleValue);
+      if (normalizedTitleSlug) return normalizedTitleSlug;
+      if (!allowFallback) return "";
+      const activeSlug = typeof state?.active?.slug === "string" ? slugify(state.active.slug) : "";
+      if (activeSlug) return activeSlug;
+      const postId = form?.querySelector("[name='id']")?.value ?? "";
+      return buildFallbackSlug(postId);
     };
 
     const updateLinkPreview = () => {
@@ -986,6 +1004,11 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
             .map((t) => t.trim())
             .filter(Boolean)
         );
+      }
+      data.slug = getSlugValue({ allowFallback: true });
+      const slugInput = form.querySelector("[name='slug']");
+      if (slugInput && data.slug && slugInput.value !== data.slug) {
+        slugInput.value = data.slug;
       }
 
       const isNew = !data.id;
@@ -1444,7 +1467,7 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
         return;
       }
 
-      const safeSlug = getSlugValue() || "untitled";
+      const safeSlug = getSlugValue({ allowFallback: true }) || "untitled";
       videoUploadController?.abort();
       videoUploadController = new AbortController();
       videoUploadCancel?.classList.remove("hidden");
@@ -1612,7 +1635,7 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       }
       uploadNote.textContent = "";
       if (uploadProgress) uploadProgress.textContent = "Đang xử lý ảnh...";
-      const safeSlug = getSlugValue() || "untitled";
+      const safeSlug = getSlugValue({ allowFallback: true }) || "untitled";
       const batchId = uploadBatchId ?? Date.now();
       let successCount = 0;
       uploadController?.abort();

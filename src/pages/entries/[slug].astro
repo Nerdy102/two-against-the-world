@@ -11,8 +11,9 @@ import {
   extractStreamUid,
   isLikelyVideoUrl,
   normalizeVideoUrl,
+  stripStreamUrlMentions,
 } from "../../lib/stream";
-import { splitSummaryFollowUp } from "../../lib/followUpLink";
+import { normalizeEscapedNewlines, splitSummaryFollowUp } from "../../lib/followUpLink";
 import { REACTION_KINDS } from "../../lib/constants";
 import { marked } from "marked";
 
@@ -114,7 +115,7 @@ if (!String(post.cover_url ?? "").trim() && postMediaUrls.length > 0) {
   };
 }
 
-const rawContentMarkdown = post.body_markdown ?? post.content_md ?? "";
+const rawContentMarkdown = normalizeEscapedNewlines(post.body_markdown ?? post.content_md ?? "").trim();
 const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "";
 const siteUrl = import.meta.env.PUBLIC_SITE_URL ?? "";
 const canonicalUrl = siteUrl ? new URL(`/entries/${post.slug}`, siteUrl).toString() : "";
@@ -127,15 +128,6 @@ const joinTags = (tags: unknown) =>
 // Pull meta fields (your schema provides defaults, but this keeps it robust)
 const summaryRaw = s(post.summary);
 const { summaryText, followUpUrl, followUpLabel } = splitSummaryFollowUp(summaryRaw);
-const SUMMARY_LINK_WORD_RE = /\blink\b/i;
-const FIRST_URL_IN_TEXT_RE = /https?:\/\/[^\s)]+/i;
-const fallbackFollowUpUrl = (() => {
-  const match = rawContentMarkdown.match(FIRST_URL_IN_TEXT_RE);
-  return match?.[0]?.trim() || "";
-})();
-const effectiveFollowUpUrl =
-  followUpUrl || (SUMMARY_LINK_WORD_RE.test(summaryRaw) ? fallbackFollowUpUrl || "/entries" : "");
-const effectiveFollowUpLabel = followUpLabel || (effectiveFollowUpUrl ? "Link" : "");
 const author = s(post.author_name);
 const location = s(post.location);
 const eventTime = s(post.event_time);
@@ -164,6 +156,16 @@ const streamEmbedUrl = streamUrls.iframe
       return url.toString();
     })()
   : "";
+const contentMarkdown = hasVideo ? stripStreamUrlMentions(rawContentMarkdown, videoUrl) : rawContentMarkdown;
+const SUMMARY_LINK_WORD_RE = /\blink\b/i;
+const FIRST_URL_IN_TEXT_RE = /https?:\/\/[^\s)]+/i;
+const fallbackFollowUpUrl = (() => {
+  const match = contentMarkdown.match(FIRST_URL_IN_TEXT_RE);
+  return match?.[0]?.trim() || "";
+})();
+const effectiveFollowUpUrl =
+  followUpUrl || (SUMMARY_LINK_WORD_RE.test(summaryRaw) ? fallbackFollowUpUrl || "/entries" : "");
+const effectiveFollowUpLabel = followUpLabel || (effectiveFollowUpUrl ? "Link" : "");
 
 const SUPPORTED_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "heic", "heif"] as const;
 const enableCfImageResize =
@@ -290,8 +292,8 @@ const extractImageUrlsFromMarkdown = (markdown: string | null | undefined) => {
 };
 
 const markdownGallerySources = [
-  ...extractImageUrlsFromMarkdown(post.body_markdown),
-  ...extractImageUrlsFromMarkdown(post.content_md),
+  ...extractImageUrlsFromMarkdown(normalizeEscapedNewlines(post.body_markdown)),
+  ...extractImageUrlsFromMarkdown(normalizeEscapedNewlines(post.content_md)),
 ];
 
 const fallbackPhotoSources = photosWithCandidates.map((photo) => photo.src);
@@ -323,7 +325,7 @@ const stripGalleryImagesFromMarkdown = (markdown: string, gallerySources: string
   return withoutHtmlImages.replace(/\n{3,}/g, "\n\n").trim();
 };
 
-const contentHtml = marked.parse(stripGalleryImagesFromMarkdown(rawContentMarkdown, orderedGallerySources));
+const contentHtml = marked.parse(stripGalleryImagesFromMarkdown(contentMarkdown, orderedGallerySources));
 
 const wallImages = orderedGallerySources.map((src, index) => ({
   src,
