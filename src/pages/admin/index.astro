@@ -1948,81 +1948,84 @@ const commentStatusLabels: Record<(typeof COMMENT_STATUSES)[number], string> = {
       }
       if (uploadLibraryBtn) uploadLibraryBtn.disabled = true;
       if (uploadCameraBtn) uploadCameraBtn.disabled = true;
-      uploadNote.textContent = "";
-      if (uploadProgress) uploadProgress.textContent = "Đang xử lý ảnh...";
-      const safeSlug = getSlugValue({ allowFallback: true }) || "untitled";
-      const batchId = uploadBatchId ?? Date.now();
-      let successCount = 0;
-      uploadController?.abort();
-      uploadController = new AbortController();
-      uploadCancel?.classList.remove("hidden");
-      let nextSortOrder = 1;
-      for (const [index, file] of selectedFiles.entries()) {
-        try {
-          if (uploadController.signal.aborted) break;
-          const filename = file.name || `image-${index + 1}.${isHeic(file) ? "heic" : "jpg"}`;
-          const sortOrder = index === coverIndex ? 0 : nextSortOrder++;
-          if (uploadProgress) {
-            uploadProgress.textContent = `Đang upload ${index + 1}/${selectedFiles.length}...`;
-          }
-          const payload = await uploadImage({
-            file,
-            slug: safeSlug,
-            filename,
-            sortOrder,
-            batchId,
-            index: index + 1,
-            signal: uploadController.signal,
-          });
-          const contentField = form?.querySelector("[name='content_md']");
-          const coverInput = form?.querySelector("[name='cover_url']");
-          const coverKeyInput = form?.querySelector("[name='cover_key']");
-          if (sortOrder === 0) {
-            if (payload.url && coverInput) {
-              coverInput.value = payload.url;
-              coverInput.dispatchEvent(new Event("input", { bubbles: true }));
+      try {
+        uploadNote.textContent = "";
+        if (uploadProgress) uploadProgress.textContent = "Đang xử lý ảnh...";
+        const safeSlug = getSlugValue({ allowFallback: true }) || "untitled";
+        const batchId = uploadBatchId ?? Date.now();
+        let successCount = 0;
+        uploadController?.abort();
+        uploadController = new AbortController();
+        uploadCancel?.classList.remove("hidden");
+        let nextSortOrder = 1;
+        for (const [index, file] of selectedFiles.entries()) {
+          try {
+            if (uploadController.signal.aborted) break;
+            const filename = file.name || `image-${index + 1}.${isHeic(file) ? "heic" : "jpg"}`;
+            const sortOrder = index === coverIndex ? 0 : nextSortOrder++;
+            if (uploadProgress) {
+              uploadProgress.textContent = `Đang upload ${index + 1}/${selectedFiles.length}...`;
             }
-            if (payload.key && coverKeyInput) {
-              coverKeyInput.value = payload.key;
-              coverKeyInput.dispatchEvent(new Event("input", { bubbles: true }));
+            const payload = await uploadImage({
+              file,
+              slug: safeSlug,
+              filename,
+              sortOrder,
+              batchId,
+              index: index + 1,
+              signal: uploadController.signal,
+            });
+            const contentField = form?.querySelector("[name='content_md']");
+            const coverInput = form?.querySelector("[name='cover_url']");
+            const coverKeyInput = form?.querySelector("[name='cover_key']");
+            if (sortOrder === 0) {
+              if (payload.url && coverInput) {
+                coverInput.value = payload.url;
+                coverInput.dispatchEvent(new Event("input", { bubbles: true }));
+              }
+              if (payload.key && coverKeyInput) {
+                coverKeyInput.value = payload.key;
+                coverKeyInput.dispatchEvent(new Event("input", { bubbles: true }));
+              }
+              if (payload.url && contentField && !contentField.value.includes(payload.url)) {
+                contentField.value = `![cover](${payload.url})\n\n${contentField.value}`.trim();
+                contentField.dispatchEvent(new Event("input", { bubbles: true }));
+              }
             }
-            if (payload.url && contentField && !contentField.value.includes(payload.url)) {
-              contentField.value = `![cover](${payload.url})\n\n${contentField.value}`.trim();
-              contentField.dispatchEvent(new Event("input", { bubbles: true }));
+            if (payload.url && contentField) {
+              if (sortOrder !== 0) {
+                contentField.value += `\n\n![${filename}](${payload.url})`;
+                contentField.dispatchEvent(new Event("input", { bubbles: true }));
+              }
+              markDirty();
             }
-          }
-          if (payload.url && contentField) {
-            if (sortOrder !== 0) {
-              contentField.value += `\n\n![${filename}](${payload.url})`;
-              contentField.dispatchEvent(new Event("input", { bubbles: true }));
+            successCount += 1;
+          } catch (error) {
+            if (error?.name === "AbortError") {
+              uploadNote.textContent = "Đã hủy upload ảnh.";
+            } else if (error?.message === "IMAGE_DECODE_FAILED") {
+              uploadNote.textContent = "Không đọc được ảnh này để tối ưu. Vui lòng thử ảnh khác.";
+              showToast("Image decode failed. Try another image.", "info");
+            } else {
+              uploadNote.textContent =
+                "Có ảnh upload lỗi. Thử ảnh khác rồi upload lại.";
             }
-            markDirty();
-          }
-          successCount += 1;
-        } catch (error) {
-          if (error?.name === "AbortError") {
-            uploadNote.textContent = "Đã hủy upload ảnh.";
-          } else if (error?.message === "IMAGE_DECODE_FAILED") {
-            uploadNote.textContent = "Không đọc được ảnh này để tối ưu. Vui lòng thử ảnh khác.";
-            showToast("Image decode failed. Try another image.", "info");
-          } else {
-            uploadNote.textContent =
-              "Có ảnh upload lỗi. Thử ảnh khác rồi upload lại.";
           }
         }
+        if (uploadProgress) uploadProgress.textContent = "";
+        if (!uploadController?.signal?.aborted) {
+          uploadNote.textContent = `Đã upload ${successCount} ảnh.`;
+        }
+        if (uploadInput) uploadInput.value = "";
+        selectedFiles = [];
+        renderPreview();
+        uploadCancel?.classList.add("hidden");
+        uploadController = null;
+        uploadBatchId = null;
+      } finally {
+        if (uploadLibraryBtn) uploadLibraryBtn.disabled = false;
+        if (uploadCameraBtn) uploadCameraBtn.disabled = false;
       }
-      if (uploadProgress) uploadProgress.textContent = "";
-      if (!uploadController?.signal?.aborted) {
-        uploadNote.textContent = `Đã upload ${successCount} ảnh.`;
-      }
-      if (uploadInput) uploadInput.value = "";
-      selectedFiles = [];
-      renderPreview();
-      uploadCancel?.classList.add("hidden");
-      uploadController = null;
-      uploadBatchId = null;
-      if (uploadLibraryBtn) uploadLibraryBtn.disabled = false;
-      if (uploadCameraBtn) uploadCameraBtn.disabled = false;
     };
 
     const startUpload = async () => {
