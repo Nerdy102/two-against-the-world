@@ -239,7 +239,8 @@ const initialImage = imageCandidates[0] ?? image;
   </div>
   {showPinBadge && (
     <span class="feed-card__pin" data-pin-style={pinnedStyle ?? "default"} aria-label="Bài ghim">
-      📌 {pinLabel}
+      <span class="feed-card__pin-emoji" aria-hidden="true">📌</span>
+      <span class="feed-card__pin-label">{pinLabel}</span>
     </span>
   )}
 

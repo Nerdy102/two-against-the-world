@@ -168,6 +168,8 @@ const effectiveFollowUpUrl =
 const effectiveFollowUpLabel = followUpLabel || (effectiveFollowUpUrl ? "Link" : "");
 
 const SUPPORTED_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "heic", "heif"] as const;
+type SupportedExtension = (typeof SUPPORTED_EXTENSIONS)[number];
+const PHOTO_FALLBACK_EXTENSION_ORDER: SupportedExtension[] = ["jpg", "jpeg", "png", "webp", "heic", "heif"];
 const enableCfImageResize =
   !import.meta.env.DEV && import.meta.env.PUBLIC_ENABLE_CF_IMAGE_OPTIMIZE === "true";
 const CDN_IMAGE_EXTENSIONS = new Set(SUPPORTED_EXTENSIONS);
@@ -193,11 +195,44 @@ const getImageExtension = (coverUrl: string | null | undefined) => {
   return SUPPORTED_EXTENSIONS.includes(ext as (typeof SUPPORTED_EXTENSIONS)[number]) ? ext : "jpg";
 };
 
-const buildSrcCandidates = (src: string, ext: string) => {
-  const lowerExt = ext.toLowerCase();
+const normalizeSupportedExtension = (value: string): SupportedExtension => {
+  const lower = (value || "").trim().toLowerCase();
+  return SUPPORTED_EXTENSIONS.includes(lower as SupportedExtension) ? (lower as SupportedExtension) : "jpg";
+};
+
+const uniqueExtensions = (extensions: string[]): SupportedExtension[] => {
+  const seen = new Set<SupportedExtension>();
+  const ordered: SupportedExtension[] = [];
+  for (const ext of extensions) {
+    const normalized = normalizeSupportedExtension(ext);
+    if (seen.has(normalized)) continue;
+    seen.add(normalized);
+    ordered.push(normalized);
+  }
+  return ordered;
+};
+
+const photoExtensionPriority = (coverExt: string, photoCount: number): SupportedExtension[] => {
+  const normalizedCover = normalizeSupportedExtension(coverExt);
+  if (photoCount >= 3 && (normalizedCover === "png" || normalizedCover === "webp")) {
+    return uniqueExtensions(["jpg", "jpeg", normalizedCover, ...PHOTO_FALLBACK_EXTENSION_ORDER]);
+  }
+  if (normalizedCover === "heic" || normalizedCover === "heif") {
+    return uniqueExtensions(["jpg", "jpeg", "png", "webp", normalizedCover, ...PHOTO_FALLBACK_EXTENSION_ORDER]);
+  }
+  return uniqueExtensions([normalizedCover, ...PHOTO_FALLBACK_EXTENSION_ORDER]);
+};
+
+const buildSrcCandidates = (src: string, ext: string, preferredExts: string[] = []) => {
+  const lowerExt = normalizeSupportedExtension(ext);
   const base = src.slice(0, -lowerExt.length);
   const candidates: string[] = [];
-  const isHeicFamily = lowerExt === "heic" || lowerExt === "heif";
+  const extensionOrder = uniqueExtensions([
+    ...(lowerExt === "heic" || lowerExt === "heif" ? ["jpg", "jpeg", "png", "webp"] : []),
+    lowerExt,
+    ...preferredExts,
+    ...PHOTO_FALLBACK_EXTENSION_ORDER,
+  ]);
 
   const add = (value: string) => {
     const resized = toCloudflareResizedCandidate(value);
@@ -205,18 +240,12 @@ const buildSrcCandidates = (src: string, ext: string) => {
     candidates.push(value);
   };
 
-  // Prefer static sidecars first so Chromium doesn't get stuck on HEIC decode failures.
-  if (isHeicFamily) {
-    add(`${base}jpg`);
-    add(`${base}jpeg`);
-    add(`${base}png`);
-    add(`${base}webp`);
-  }
-
-  add(src);
-
-  if (ext !== ext.toUpperCase()) {
-    add(`${base}${ext.toUpperCase()}`);
+  for (const candidateExt of extensionOrder) {
+    add(`${base}${candidateExt}`);
+    const upper = candidateExt.toUpperCase();
+    if (upper !== candidateExt) {
+      add(`${base}${upper}`);
+    }
   }
 
   const mediaProxyMatch = src.match(/^https?:\/\/[^/]+\/media\/(.+)$/i);
@@ -224,12 +253,15 @@ const buildSrcCandidates = (src: string, ext: string) => {
     const localMediaPath = `/media/${mediaProxyMatch[1]}`;
     add(localMediaPath);
     const localExt = localMediaPath.split(".").pop()?.toLowerCase();
-    if (localExt && (localExt === "heic" || localExt === "heif")) {
+    if (localExt) {
       const localBase = localMediaPath.slice(0, -localExt.length);
-      add(`${localBase}jpg`);
-      add(`${localBase}jpeg`);
-      add(`${localBase}png`);
-      add(`${localBase}webp`);
+      for (const candidateExt of extensionOrder) {
+        add(`${localBase}${candidateExt}`);
+        const upper = candidateExt.toUpperCase();
+        if (upper !== candidateExt) {
+          add(`${localBase}${upper}`);
+        }
+      }
     }
   }
 
@@ -240,21 +272,22 @@ const buildSrcCandidates = (src: string, ext: string) => {
 
 // Build photo list: /public/photos/<photoDir>/01.<extension>..N
 const count = Number(post.photo_count ?? 0);
-const imageExt = getImageExtension(post.cover_url);
+const coverExt = getImageExtension(post.cover_url);
+const photoExtOrder = photoExtensionPriority(coverExt, count);
+const primaryPhotoExt = photoExtOrder[0] ?? "jpg";
 const photosWithCandidates =
   post.photo_dir && count > 0
     ? Array.from({ length: Math.max(0, count) }, (_, i) => {
         const n = String(i + 1).padStart(2, "0");
-        const src = `/photos/${post.photo_dir}/${n}.${imageExt}`;
+        const src = `/photos/${post.photo_dir}/${n}.${primaryPhotoExt}`;
         return {
           src,
-          candidates: buildSrcCandidates(src, imageExt),
+          candidates: buildSrcCandidates(src, primaryPhotoExt, photoExtOrder),
         };
       })
     : [];
 
 const coverSrc = resolvePostCoverUrl(post);
-const coverExt = getImageExtension(post.cover_url);
 
 const dedupeOrderedSources = (sources: string[]) => {
   const ordered: string[] = [];
