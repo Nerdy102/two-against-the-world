@@ -22,12 +22,36 @@ const parseIntOrNull = (value: unknown, min: number, max: number) => {
   return Math.max(min, Math.min(max, parsed));
 };
 
+const hexToRgb = (value: string) => {
+  const cleaned = value.trim().replace(/^#/, "");
+  if (!/^[0-9a-f]{3}$/i.test(cleaned) && !/^[0-9a-f]{6}$/i.test(cleaned)) {
+    return null;
+  }
+  const expanded =
+    cleaned.length === 3
+      ? cleaned
+          .split("")
+          .map((part) => `${part}${part}`)
+          .join("")
+      : cleaned;
+  return [0, 2, 4].map((index) => Number.parseInt(expanded.slice(index, index + 2), 16));
+};
+
 const normalizeAccent = (value: unknown) => {
   if (typeof value !== "string") return null;
-  const cleaned = value
+  const raw = value.trim();
+  if (!raw) return null;
+  const hexParts = hexToRgb(raw);
+  if (hexParts) {
+    return `${hexParts[0]} ${hexParts[1]} ${hexParts[2]}`;
+  }
+  const cleaned = raw
+    .replace(/^rgba?\(/i, "")
+    .replace(/[(),]/g, " ")
     .trim()
     .replace(/[^0-9\s]/g, " ")
-    .replace(/\s+/g, " ");
+    .replace(/\s+/g, " ")
+    .trim();
   if (!cleaned) return null;
   const parts = cleaned.split(" ").map((item) => clampInt(item, 0, 255, 0));
   if (parts.length < 3) return null;
@@ -112,7 +136,19 @@ export const POST: APIRoute = async ({ locals, request }) => {
     const minute = clampInt(payload.minute, 0, 59, 0);
     const eventGroup = payload.event_group === "featured" ? "featured" : "extra";
     const icon = typeof payload.icon === "string" ? payload.icon.trim().slice(0, 4) : "";
+    const accentRaw = typeof payload.accent_rgb === "string" ? payload.accent_rgb.trim() : "";
     const accentRgb = normalizeAccent(payload.accent_rgb);
+    if (accentRaw && !accentRgb) {
+      return json(
+        {
+          ok: false,
+          error: "Invalid accent color",
+          detail: "Use #74DAFF, 116 218 255, or rgb(116, 218, 255).",
+          code: "LOVE_EVENT_ACCENT_INVALID",
+        },
+        400
+      );
+    }
 
     const db = getDb(locals);
     await ensureLoveEventsSchema(db, { allowBootstrap: true });
@@ -239,7 +275,19 @@ export const PATCH: APIRoute = async ({ locals, request }) => {
       const minute = clampInt(payload.minute, 0, 59, 0);
       const eventGroup = payload.event_group === "featured" ? "featured" : "extra";
       const icon = typeof payload.icon === "string" ? payload.icon.trim().slice(0, 4) : "";
+      const accentRaw = typeof payload.accent_rgb === "string" ? payload.accent_rgb.trim() : "";
       const accentRgb = normalizeAccent(payload.accent_rgb);
+      if (accentRaw && !accentRgb) {
+        return json(
+          {
+            ok: false,
+            error: "Invalid accent color",
+            detail: "Use #74DAFF, 116 218 255, or rgb(116, 218, 255).",
+            code: "LOVE_EVENT_ACCENT_INVALID",
+          },
+          400
+        );
+      }
 
       await db
         .prepare(
@@ -316,9 +364,21 @@ export const PATCH: APIRoute = async ({ locals, request }) => {
         400
       );
     }
+    const accentRaw = typeof payload.accent_rgb === "string" ? payload.accent_rgb.trim() : "";
     const nextAccent = hasOwn(payload, "accent_rgb")
       ? normalizeAccent(payload.accent_rgb)
       : existing.accent_rgb;
+    if (hasOwn(payload, "accent_rgb") && accentRaw && !nextAccent) {
+      return json(
+        {
+          ok: false,
+          error: "Invalid accent color",
+          detail: "Use #74DAFF, 116 218 255, or rgb(116, 218, 255).",
+          code: "LOVE_EVENT_ACCENT_INVALID",
+        },
+        400
+      );
+    }
 
     await db
       .prepare(

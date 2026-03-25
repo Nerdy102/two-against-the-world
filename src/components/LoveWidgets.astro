@@ -243,7 +243,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
                 data-love-event-admin-tab="edit"
                 aria-selected="false"
               >
-                Edit Description
+                Edit Event
               </button>
             </div>
 
@@ -272,8 +272,29 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
                 </select>
               </label>
               <label class="love-event-admin-modal__field">
-                <span>Accent rgb (optional)</span>
-                <input class="input" name="accent_rgb" placeholder="116 218 255" />
+                <span>Accent color (optional)</span>
+                <div class="love-event-admin-modal__accent-row">
+                  <input
+                    class="love-event-admin-modal__color-input"
+                    type="color"
+                    value="#74daff"
+                    data-love-event-admin-accent-picker
+                    aria-label="Pick accent color"
+                  />
+                  <input
+                    class="input"
+                    name="accent_rgb"
+                    data-love-event-admin-accent-input
+                    placeholder="#74DAFF or 116 218 255"
+                  />
+                </div>
+                <p class="love-event-admin-modal__hint">
+                  Example: <code>#74DAFF</code>, <code>#FF8DB1</code>, <code>116 218 255</code>, or <code>rgb(116, 218, 255)</code>.
+                </p>
+                <div class="love-event-admin-modal__accent-preview">
+                  <span class="love-event-admin-modal__accent-swatch" data-love-event-admin-accent-swatch></span>
+                  <span data-love-event-admin-accent-preview-label>Preview: default featured color</span>
+                </div>
               </label>
               <label class="love-event-admin-modal__field">
                 <span>Description</span>
@@ -298,7 +319,32 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
                   placeholder="Description shown when clicking the note icon"
                 ></textarea>
               </label>
-              <button class="love-event-admin-modal__btn" type="submit">Save Description</button>
+              <label class="love-event-admin-modal__field">
+                <span>Accent color (optional)</span>
+                <div class="love-event-admin-modal__accent-row">
+                  <input
+                    class="love-event-admin-modal__color-input"
+                    type="color"
+                    value="#74daff"
+                    data-love-event-admin-edit-accent-picker
+                    aria-label="Pick accent color for current event"
+                  />
+                  <input
+                    class="input"
+                    name="accent_rgb"
+                    data-love-event-admin-edit-accent-input
+                    placeholder="#74DAFF or 116 218 255"
+                  />
+                </div>
+                <p class="love-event-admin-modal__hint">
+                  Example: <code>#74DAFF</code>, <code>255 132 164</code>, or <code>rgb(255, 132, 164)</code>.
+                </p>
+                <div class="love-event-admin-modal__accent-preview">
+                  <span class="love-event-admin-modal__accent-swatch" data-love-event-admin-edit-accent-swatch></span>
+                  <span data-love-event-admin-edit-accent-preview-label>Preview: current event color</span>
+                </div>
+              </label>
+              <button class="love-event-admin-modal__btn" type="submit">Save Event</button>
             </form>
           </div>
 
@@ -362,6 +408,19 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
       const adminPasswordInput = adminModal ? adminModal.querySelector("[data-love-event-admin-password]") : null;
       const adminUnlockBtn = adminModal ? adminModal.querySelector("[data-love-event-admin-unlock]") : null;
       const adminStatus = adminModal ? adminModal.querySelector("[data-love-event-admin-status]") : null;
+      const adminAddAccentInput = adminModal ? adminModal.querySelector("[data-love-event-admin-accent-input]") : null;
+      const adminAddAccentPicker = adminModal ? adminModal.querySelector("[data-love-event-admin-accent-picker]") : null;
+      const adminAddAccentSwatch = adminModal ? adminModal.querySelector("[data-love-event-admin-accent-swatch]") : null;
+      const adminAddAccentPreviewLabel = adminModal
+        ? adminModal.querySelector("[data-love-event-admin-accent-preview-label]")
+        : null;
+      const adminEditAccentInput = adminModal ? adminModal.querySelector("[data-love-event-admin-edit-accent-input]") : null;
+      const adminEditAccentPicker = adminModal ? adminModal.querySelector("[data-love-event-admin-edit-accent-picker]") : null;
+      const adminEditAccentSwatch = adminModal ? adminModal.querySelector("[data-love-event-admin-edit-accent-swatch]") : null;
+      const adminEditAccentPreviewLabel = adminModal
+        ? adminModal.querySelector("[data-love-event-admin-edit-accent-preview-label]")
+        : null;
+      const adminAddGroupSelect = adminAddForm ? adminAddForm.querySelector("[name='event_group']") : null;
       const clockEls = clockRoot
         ? {
             vn: clockRoot.querySelector("[data-love-clock='vn'] strong"),
@@ -391,6 +450,10 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         hour: Number(eventEl.getAttribute("data-love-event-hour") || "0"),
         minute: Number(eventEl.getAttribute("data-love-event-minute") || "0"),
         note: eventEl.getAttribute("data-love-event-note") || "",
+        accentRgb:
+          eventEl.getAttribute("data-love-event-accent-rgb") ||
+          eventEl.style.getPropertyValue("--event-accent").trim() ||
+          "",
         icon:
           eventEl.querySelector(".love-event-chip__icon")?.textContent?.trim() || "✦",
         eventEl,
@@ -540,6 +603,119 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
           Number(eventLike.minute || 0),
         ].join("|");
 
+      const defaultAccentForGroup = (group) =>
+        group === "featured" ? "116 218 255" : "255 167 118";
+
+      const clampRgb = (value) =>
+        Math.max(0, Math.min(255, Number.parseInt(String(value ?? ""), 10) || 0));
+
+      const rgbPartsToHex = (parts) =>
+        `#${parts.map((part) => clampRgb(part).toString(16).padStart(2, "0")).join("")}`;
+
+      const parseAccentInput = (value) => {
+        const raw = String(value || "").trim();
+        if (!raw) {
+          return { empty: true, valid: true, normalized: "", hex: "", parts: [] };
+        }
+
+        const hexValue = raw.startsWith("#") ? raw.slice(1) : raw;
+        if (/^[0-9a-f]{3}$/i.test(hexValue) || /^[0-9a-f]{6}$/i.test(hexValue)) {
+          const expanded =
+            hexValue.length === 3
+              ? hexValue
+                  .split("")
+                  .map((part) => `${part}${part}`)
+                  .join("")
+              : hexValue;
+          const parts = [0, 2, 4].map((index) => Number.parseInt(expanded.slice(index, index + 2), 16));
+          return {
+            empty: false,
+            valid: true,
+            normalized: `${parts[0]} ${parts[1]} ${parts[2]}`,
+            hex: rgbPartsToHex(parts),
+            parts,
+          };
+        }
+
+        const cleaned = raw
+          .replace(/^rgba?\(/i, "")
+          .replace(/[(),]/g, " ")
+          .replace(/[^0-9\s]/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+        if (!cleaned) {
+          return { empty: false, valid: false, normalized: "", hex: "", parts: [] };
+        }
+        const parts = cleaned
+          .split(" ")
+          .filter(Boolean)
+          .slice(0, 3)
+          .map((part) => clampRgb(part));
+        if (parts.length < 3) {
+          return { empty: false, valid: false, normalized: "", hex: "", parts: [] };
+        }
+        return {
+          empty: false,
+          valid: true,
+          normalized: `${parts[0]} ${parts[1]} ${parts[2]}`,
+          hex: rgbPartsToHex(parts),
+          parts,
+        };
+      };
+
+      const accentCssColor = (accentRgb) => {
+        const parsed = parseAccentInput(accentRgb);
+        if (!parsed.valid || parsed.empty) return "";
+        return `rgb(${parsed.parts[0]} ${parsed.parts[1]} ${parsed.parts[2]})`;
+      };
+
+      const applyAccentToEventEl = (eventEl, accentRgb, group) => {
+        if (!(eventEl instanceof HTMLElement)) return;
+        const normalizedAccent = parseAccentInput(accentRgb);
+        const nextAccent =
+          normalizedAccent.valid && !normalizedAccent.empty
+            ? normalizedAccent.normalized
+            : defaultAccentForGroup(group);
+        eventEl.style.setProperty("--event-accent", nextAccent);
+        if (normalizedAccent.valid && !normalizedAccent.empty) {
+          eventEl.setAttribute("data-love-event-accent-rgb", normalizedAccent.normalized);
+        } else {
+          eventEl.removeAttribute("data-love-event-accent-rgb");
+        }
+      };
+
+      const syncAccentPreview = ({
+        inputEl,
+        pickerEl,
+        swatchEl,
+        labelEl,
+        group = "extra",
+      }) => {
+        if (!(inputEl instanceof HTMLInputElement)) return;
+        const parsed = parseAccentInput(inputEl.value);
+        const fallbackAccent = defaultAccentForGroup(group);
+        const previewAccent =
+          parsed.valid && !parsed.empty ? parsed.normalized : fallbackAccent;
+        const previewColor = accentCssColor(previewAccent);
+
+        inputEl.setCustomValidity(parsed.empty || parsed.valid ? "" : "Use #74DAFF or 116 218 255.");
+        if (swatchEl instanceof HTMLElement && previewColor) {
+          swatchEl.style.background = previewColor;
+        }
+        if (pickerEl instanceof HTMLInputElement) {
+          pickerEl.value = parseAccentInput(previewAccent).hex || "#74daff";
+        }
+        if (labelEl instanceof HTMLElement) {
+          if (parsed.empty) {
+            labelEl.textContent = `Preview: default ${group} color`;
+          } else if (!parsed.valid) {
+            labelEl.textContent = "Use #74DAFF, 116 218 255, or rgb(116, 218, 255).";
+          } else {
+            labelEl.textContent = `Preview: ${parsed.normalized} • ${parsed.hex.toUpperCase()}`;
+          }
+        }
+      };
+
       const getCsrfToken = () => {
         const match = document.cookie.match(/(?:^|; )twaw_admin_csrf=([^;]+)/);
         return match ? decodeURIComponent(match[1]) : "";
@@ -576,8 +752,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
           article.setAttribute("data-love-event-hour", String(hour));
           article.setAttribute("data-love-event-minute", String(minute));
         }
-        const defaultAccent = eventGroup === "featured" ? "116 218 255" : "255 167 118";
-        article.style.setProperty("--event-accent", accentRgb || defaultAccent);
+        applyAccentToEventEl(article, accentRgb, eventGroup);
 
         const iconEl = document.createElement("span");
         iconEl.className = "love-event-chip__icon";
@@ -770,6 +945,45 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         adminStatus.dataset.state = variant;
       };
 
+      const getAdminAddGroup = () =>
+        adminAddGroupSelect instanceof HTMLSelectElement && adminAddGroupSelect.value === "featured"
+          ? "featured"
+          : "extra";
+
+      const getAdminEditGroup = () =>
+        adminEditAccentInput instanceof HTMLInputElement && adminEditAccentInput.dataset.eventGroup === "featured"
+          ? "featured"
+          : "extra";
+
+      const syncAddAccentControls = () =>
+        syncAccentPreview({
+          inputEl: adminAddAccentInput,
+          pickerEl: adminAddAccentPicker,
+          swatchEl: adminAddAccentSwatch,
+          labelEl: adminAddAccentPreviewLabel,
+          group: getAdminAddGroup(),
+        });
+
+      const syncEditAccentControls = () =>
+        syncAccentPreview({
+          inputEl: adminEditAccentInput,
+          pickerEl: adminEditAccentPicker,
+          swatchEl: adminEditAccentSwatch,
+          labelEl: adminEditAccentPreviewLabel,
+          group: getAdminEditGroup(),
+        });
+
+      const populateAdminEditFields = (eventItem) => {
+        if (adminEditNote instanceof HTMLTextAreaElement) {
+          adminEditNote.value = eventItem?.note || "";
+        }
+        if (adminEditAccentInput instanceof HTMLInputElement) {
+          adminEditAccentInput.value = eventItem?.accentRgb || "";
+          adminEditAccentInput.dataset.eventGroup = eventItem?.group || "extra";
+        }
+        syncEditAccentControls();
+      };
+
       const populateAdminEditOptions = (preferredId = "") => {
         if (!(adminEditTarget instanceof HTMLSelectElement)) return;
         if (!(adminEditNote instanceof HTMLTextAreaElement)) return;
@@ -783,6 +997,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
           adminEditTarget.appendChild(option);
           adminEditTarget.disabled = true;
           adminEditNote.value = "";
+          populateAdminEditFields(null);
           return;
         }
         sorted.forEach((eventItem) => {
@@ -801,7 +1016,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
           : sorted[0].id;
         adminEditTarget.value = nextId;
         const activeEvent = findEventItemById(nextId);
-        adminEditNote.value = activeEvent?.note || "";
+        populateAdminEditFields(activeEvent || null);
       };
 
       const setAdminMode = (mode) => {
@@ -819,6 +1034,8 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         });
         if (adminMode === "edit") {
           populateAdminEditOptions();
+        } else {
+          syncAddAccentControls();
         }
       };
 
@@ -833,7 +1050,9 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         if (value) {
           setAdminMode(adminMode);
           populateAdminEditOptions();
-          setAdminStatus("Unlocked. Add new events or edit descriptions directly.");
+          syncAddAccentControls();
+          syncEditAccentControls();
+          setAdminStatus("Unlocked. Add new events or edit event details directly.");
           if (adminPasswordInput instanceof HTMLInputElement) {
             adminPasswordInput.value = "";
           }
@@ -901,9 +1120,49 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
       if (adminEditTarget instanceof HTMLSelectElement && adminEditTarget.dataset.bound !== "1") {
         adminEditTarget.dataset.bound = "1";
         adminEditTarget.addEventListener("change", () => {
-          if (!(adminEditNote instanceof HTMLTextAreaElement)) return;
           const selected = findEventItemById(adminEditTarget.value);
-          adminEditNote.value = selected?.note || "";
+          populateAdminEditFields(selected || null);
+        });
+      }
+
+      if (adminAddAccentInput instanceof HTMLInputElement && adminAddAccentInput.dataset.bound !== "1") {
+        adminAddAccentInput.dataset.bound = "1";
+        adminAddAccentInput.addEventListener("input", () => {
+          syncAddAccentControls();
+        });
+      }
+
+      if (adminAddAccentPicker instanceof HTMLInputElement && adminAddAccentPicker.dataset.bound !== "1") {
+        adminAddAccentPicker.dataset.bound = "1";
+        adminAddAccentPicker.addEventListener("input", () => {
+          if (adminAddAccentInput instanceof HTMLInputElement) {
+            adminAddAccentInput.value = adminAddAccentPicker.value.toUpperCase();
+          }
+          syncAddAccentControls();
+        });
+      }
+
+      if (adminAddGroupSelect instanceof HTMLSelectElement && adminAddGroupSelect.dataset.bound !== "1") {
+        adminAddGroupSelect.dataset.bound = "1";
+        adminAddGroupSelect.addEventListener("change", () => {
+          syncAddAccentControls();
+        });
+      }
+
+      if (adminEditAccentInput instanceof HTMLInputElement && adminEditAccentInput.dataset.bound !== "1") {
+        adminEditAccentInput.dataset.bound = "1";
+        adminEditAccentInput.addEventListener("input", () => {
+          syncEditAccentControls();
+        });
+      }
+
+      if (adminEditAccentPicker instanceof HTMLInputElement && adminEditAccentPicker.dataset.bound !== "1") {
+        adminEditAccentPicker.dataset.bound = "1";
+        adminEditAccentPicker.addEventListener("input", () => {
+          if (adminEditAccentInput instanceof HTMLInputElement) {
+            adminEditAccentInput.value = adminEditAccentPicker.value.toUpperCase();
+          }
+          syncEditAccentControls();
         });
       }
 
@@ -978,9 +1237,18 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
           const eventGroup = fd.get("event_group") === "featured" ? "featured" : "extra";
           const icon = String(fd.get("icon") || "").trim();
           const note = String(fd.get("note") || "").trim();
-          const accentRgb = String(fd.get("accent_rgb") || "").trim();
+          const accentRaw = String(fd.get("accent_rgb") || "").trim();
+          const parsedAccent = parseAccentInput(accentRaw);
           if (!note) {
             setAdminStatus("Description is required for each event.", "error");
+            return;
+          }
+          if (!parsedAccent.empty && !parsedAccent.valid) {
+            setAdminStatus("Accent color must look like #74DAFF or 116 218 255.", "error");
+            if (adminAddAccentInput instanceof HTMLInputElement) {
+              adminAddAccentInput.reportValidity();
+              adminAddAccentInput.focus();
+            }
             return;
           }
           const csrf = getCsrfToken();
@@ -1006,7 +1274,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
                 event_group: eventGroup,
                 icon,
                 note,
-                accent_rgb: accentRgb,
+                accent_rgb: parsedAccent.normalized,
               }),
             });
             const payload = await res.json().catch(() => null);
@@ -1041,6 +1309,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
             populateAdminEditOptions(created.id);
             updateEvents();
             adminAddForm.reset();
+            syncAddAccentControls();
             setAdminStatus("Pushed. Event is now on timeline.");
           } catch (_error) {
             setAdminStatus("Cannot push event right now.", "error");
@@ -1058,15 +1327,24 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
           }
           if (!(adminEditTarget instanceof HTMLSelectElement)) return;
           if (!(adminEditNote instanceof HTMLTextAreaElement)) return;
+          if (!(adminEditAccentInput instanceof HTMLInputElement)) return;
 
           const id = adminEditTarget.value.trim();
           const note = adminEditNote.value.trim();
+          const accentRaw = adminEditAccentInput.value.trim();
+          const parsedAccent = parseAccentInput(accentRaw);
           if (!id) {
-            setAdminStatus("Choose an event to edit description.", "error");
+            setAdminStatus("Choose an event to edit.", "error");
             return;
           }
           if (!note) {
             setAdminStatus("Description cannot be empty.", "error");
+            return;
+          }
+          if (!parsedAccent.empty && !parsedAccent.valid) {
+            setAdminStatus("Accent color must look like #74DAFF or 116 218 255.", "error");
+            adminEditAccentInput.reportValidity();
+            adminEditAccentInput.focus();
             return;
           }
 
@@ -1082,7 +1360,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
             return;
           }
 
-          setAdminStatus("Updating description...");
+          setAdminStatus("Updating event...");
           try {
             const res = await fetch("/api/admin/love-events", {
               method: "PATCH",
@@ -1100,29 +1378,38 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
                 event_group: source.group === "featured" ? "featured" : "extra",
                 icon: source.icon || "",
                 note,
+                accent_rgb: parsedAccent.normalized,
               }),
             });
             const payload = await res.json().catch(() => null);
             if (!res.ok || !payload?.ok || !payload?.event) {
-              setAdminStatus(payload?.error || "Update description failed.", "error");
+              setAdminStatus(payload?.error || "Update event failed.", "error");
               return;
             }
 
             const updated = payload.event;
             if (source.eventEl instanceof HTMLElement) {
               source.eventEl.setAttribute("data-love-event-note", String(updated.note || ""));
+              applyAccentToEventEl(
+                source.eventEl,
+                String(updated.accent_rgb || ""),
+                source.group === "featured" ? "featured" : "extra"
+              );
             }
             eventEls = collectEventEls();
             bindAllNoteTriggers();
             populateAdminEditOptions(id);
-            setAdminStatus("Description updated.");
+            updateEvents();
+            setAdminStatus("Event updated.");
           } catch (_error) {
-            setAdminStatus("Cannot update description right now.", "error");
+            setAdminStatus("Cannot update event right now.", "error");
           }
         });
       }
 
       setAdminMode("add");
+      syncAddAccentControls();
+      syncEditAccentControls();
       ensureAdminSession();
 
       const hydrateRemoteEvents = async () => {
