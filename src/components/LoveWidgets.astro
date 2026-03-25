@@ -87,6 +87,50 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
             <article
               class="love-event-chip love-event-chip--extra"
               role="listitem"
+              style="--event-accent: 255 132 164;"
+              data-love-event
+              data-love-event-id="first-time-we-fuck-2026"
+              data-love-event-group="extra"
+              data-love-event-name="First time we fuck"
+              data-love-event-year="2026"
+              data-love-event-month="3"
+              data-love-event-day="25"
+              data-love-event-note="25/03/2026, first time we fuck, after nearly 3 months of dating."
+            >
+              <span class="love-event-chip__icon" aria-hidden="true">♥︎</span>
+              <div class="love-event-chip__meta">
+                <span class="love-event-chip__name">First time we fuck</span>
+                <span class="love-event-chip__date" data-love-event-date>25/03/2026</span>
+              </div>
+              <strong class="love-event-chip__countdown" data-love-event-countdown>--D --:--:--</strong>
+              <button class="love-event-chip__note-btn" type="button" data-love-event-note-trigger aria-label="View event note">✦</button>
+            </article>
+
+            <article
+              class="love-event-chip love-event-chip--extra"
+              role="listitem"
+              style="--event-accent: 116 218 255;"
+              data-love-event
+              data-love-event-id="our-first-trip-together-2026"
+              data-love-event-group="extra"
+              data-love-event-name="Our first trip together"
+              data-love-event-year="2026"
+              data-love-event-month="3"
+              data-love-event-day="26"
+              data-love-event-note="26/03/2026 our first trip together, to TP.HCM - Việt Nam."
+            >
+              <span class="love-event-chip__icon" aria-hidden="true">🧳</span>
+              <div class="love-event-chip__meta">
+                <span class="love-event-chip__name">Our first trip together</span>
+                <span class="love-event-chip__date" data-love-event-date>26/03/2026</span>
+              </div>
+              <strong class="love-event-chip__countdown" data-love-event-countdown>--D --:--:--</strong>
+              <button class="love-event-chip__note-btn" type="button" data-love-event-note-trigger aria-label="View event note">✦</button>
+            </article>
+
+            <article
+              class="love-event-chip love-event-chip--extra"
+              role="listitem"
               style="--event-accent: 255 205 118;"
               data-love-event
               data-love-event-id="sinh-nhat-viet-hoa"
@@ -341,6 +385,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
           ].join("__"),
         group: eventEl.getAttribute("data-love-event-group") || "extra",
         name: eventEl.getAttribute("data-love-event-name") || "event",
+        year: Number(eventEl.getAttribute("data-love-event-year") || "0"),
         month: Number(eventEl.getAttribute("data-love-event-month") || "1"),
         day: Number(eventEl.getAttribute("data-love-event-day") || "1"),
         hour: Number(eventEl.getAttribute("data-love-event-hour") || "0"),
@@ -447,8 +492,9 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         const currentYear = getDateParts(timeZones.vn).year;
         return [...eventEls]
           .map((eventItem) => {
+            const targetYear = eventItem.year > 0 ? eventItem.year : currentYear;
             const targetTs = eventTargetUtc(
-              currentYear,
+              targetYear,
               eventItem.month,
               eventItem.day,
               eventItem.hour,
@@ -477,6 +523,23 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         return `${days}D ${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
       };
 
+      const normalizeEventName = (value) =>
+        String(value || "")
+          .trim()
+          .replace(/\s+/g, " ")
+          .toLocaleLowerCase();
+
+      const buildEventSignature = (eventLike) =>
+        [
+          eventLike.group || eventLike.eventGroup || "extra",
+          normalizeEventName(eventLike.name),
+          Number(eventLike.year || 0),
+          Number(eventLike.month || 0),
+          Number(eventLike.day || 0),
+          Number(eventLike.hour || 0),
+          Number(eventLike.minute || 0),
+        ].join("|");
+
       const getCsrfToken = () => {
         const match = document.cookie.match(/(?:^|; )twaw_admin_csrf=([^;]+)/);
         return match ? decodeURIComponent(match[1]) : "";
@@ -485,6 +548,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
       const createEventChip = ({
         id,
         name,
+        year = 0,
         month,
         day,
         hour = 0,
@@ -502,6 +566,9 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         article.setAttribute("data-love-event-id", id);
         article.setAttribute("data-love-event-group", eventGroup);
         article.setAttribute("data-love-event-name", name);
+        if (year > 0) {
+          article.setAttribute("data-love-event-year", String(year));
+        }
         article.setAttribute("data-love-event-month", String(month));
         article.setAttribute("data-love-event-day", String(day));
         article.setAttribute("data-love-event-note", note || "");
@@ -527,7 +594,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         const dateEl = document.createElement("span");
         dateEl.className = "love-event-chip__date";
         dateEl.setAttribute("data-love-event-date", "");
-        dateEl.textContent = `${pad(day)}/${pad(month)}`;
+        dateEl.textContent = year > 0 ? `${pad(day)}/${pad(month)}/${year}` : `${pad(day)}/${pad(month)}`;
 
         metaEl.appendChild(nameEl);
         metaEl.appendChild(dateEl);
@@ -606,7 +673,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
             name: item.name,
             month: item.month,
             day: item.day,
-            year: currentYear,
+            year: Number(item.year || currentYear),
             icon: item.icon,
             completedAt: item.completedAt,
           }))
@@ -721,7 +788,11 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         sorted.forEach((eventItem) => {
           const option = document.createElement("option");
           option.value = eventItem.id;
-          option.textContent = `${pad(eventItem.day)}/${pad(eventItem.month)} · ${eventItem.name}`;
+          const dateLabel =
+            eventItem.year > 0
+              ? `${pad(eventItem.day)}/${pad(eventItem.month)}/${eventItem.year}`
+              : `${pad(eventItem.day)}/${pad(eventItem.month)}`;
+          option.textContent = `${dateLabel} · ${eventItem.name}`;
           adminEditTarget.appendChild(option);
         });
         adminEditTarget.disabled = false;
@@ -1066,20 +1137,32 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
               .map((el) => el.getAttribute("data-love-event-id"))
               .filter(Boolean)
           );
+          const existingSignatures = new Set(eventEls.map((eventItem) => buildEventSignature(eventItem)));
 
           payload.events.forEach((item) => {
             const id = String(item?.id || "").trim();
-            if (!id || existingIds.has(id)) return;
             const eventGroup = item?.event_group === "featured" ? "featured" : "extra";
-            const targetRail = eventGroup === "featured" ? featuredRail : extraRail;
-            if (!(targetRail instanceof HTMLElement)) return;
             const month = Number(item?.month || 1);
             const day = Number(item?.day || 1);
             const hour = Number(item?.hour || 0);
             const minute = Number(item?.minute || 0);
+            const year = Number(item?.year || 0);
+            const signature = buildEventSignature({
+              eventGroup,
+              name: String(item?.name || "Event"),
+              year,
+              month,
+              day,
+              hour,
+              minute,
+            });
+            if (!id || existingIds.has(id) || existingSignatures.has(signature)) return;
+            const targetRail = eventGroup === "featured" ? featuredRail : extraRail;
+            if (!(targetRail instanceof HTMLElement)) return;
             const chip = createEventChip({
               id,
               name: String(item?.name || "Event"),
+              year,
               month,
               day,
               hour,
@@ -1091,6 +1174,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
             });
             targetRail.appendChild(chip);
             existingIds.add(id);
+            existingSignatures.add(signature);
           });
 
           eventEls = collectEventEls();
@@ -1112,8 +1196,9 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         let nearest = null;
 
         eventEls.forEach((eventItem) => {
+          const targetYear = eventItem.year > 0 ? eventItem.year : currentYear;
           const targetTs = eventTargetUtc(
-            currentYear,
+            targetYear,
             eventItem.month,
             eventItem.day,
             eventItem.hour,
@@ -1124,6 +1209,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
             pastEntries.push({
               id: eventItem.id,
               name: eventItem.name,
+              year: targetYear,
               month: eventItem.month,
               day: eventItem.day,
               icon: eventItem.icon,
@@ -1139,7 +1225,10 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
             eventItem.countdownEl.textContent = formatCountdown(diff);
           }
           if (eventItem.dateEl) {
-            eventItem.dateEl.textContent = `${pad(eventItem.day)}/${pad(eventItem.month)} · ${currentYear}`;
+            eventItem.dateEl.textContent =
+              eventItem.year > 0
+                ? `${pad(eventItem.day)}/${pad(eventItem.month)} · ${targetYear}`
+                : `${pad(eventItem.day)}/${pad(eventItem.month)} · ${currentYear}`;
           }
 
           if (!nearest || diff < nearest.diff) {

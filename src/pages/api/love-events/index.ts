@@ -9,6 +9,22 @@ const json = (data: unknown, status = 200) =>
     headers: { "content-type": "application/json" },
   });
 
+const normalizeEventName = (value: string) =>
+  value
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLocaleLowerCase();
+
+const buildEventSignature = (event: LoveEventRecord) =>
+  [
+    event.event_group || "extra",
+    normalizeEventName(event.name || ""),
+    Number(event.month || 0),
+    Number(event.day || 0),
+    Number(event.hour || 0),
+    Number(event.minute || 0),
+  ].join("|");
+
 export const GET: APIRoute = async ({ locals }) => {
   try {
     const db = getDb(locals);
@@ -34,7 +50,14 @@ export const GET: APIRoute = async ({ locals }) => {
          ORDER BY datetime(created_at) DESC`
       )
       .all<LoveEventRecord>();
-    return json({ ok: true, events: results ?? [] });
+    const seen = new Set<string>();
+    const dedupedEvents = (results ?? []).filter((event) => {
+      const signature = buildEventSignature(event);
+      if (seen.has(signature)) return false;
+      seen.add(signature);
+      return true;
+    });
+    return json({ ok: true, events: dedupedEvents });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to fetch love events.";
     return json({ ok: false, error: message, detail: message, code: "LOVE_EVENTS_FETCH_FAILED" }, 500);
