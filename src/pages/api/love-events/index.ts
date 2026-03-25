@@ -19,6 +19,7 @@ const buildEventSignature = (event: LoveEventRecord) =>
   [
     event.event_group || "extra",
     normalizeEventName(event.name || ""),
+    Number(event.year || 0),
     Number(event.month || 0),
     Number(event.day || 0),
     Number(event.hour || 0),
@@ -34,6 +35,7 @@ export const GET: APIRoute = async ({ locals }) => {
         `SELECT
            id,
            name,
+           year,
            month,
            day,
            hour,

@@ -67,6 +67,7 @@ const hasOwn = (payload: Record<string, unknown>, key: string) =>
 const selectByIdSql = `SELECT
   id,
   name,
+  year,
   month,
   day,
   hour,
@@ -130,6 +131,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
       );
     }
 
+    const year = parseIntOrNull(payload.year, 1900, 9999);
     const month = clampInt(payload.month, 1, 12, 1);
     const day = clampInt(payload.day, 1, 31, 1);
     const hour = clampInt(payload.hour, 0, 23, 0);
@@ -160,6 +162,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
         `INSERT INTO love_events (
           id,
           name,
+          year,
           month,
           day,
           hour,
@@ -171,11 +174,12 @@ export const POST: APIRoute = async ({ locals, request }) => {
           is_active,
           created_at,
           updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`
       )
       .bind(
         id,
         name,
+        year,
         month,
         day,
         hour,
@@ -192,6 +196,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
     const createdEvent: LoveEventRecord = {
       id,
       name,
+      year,
       month,
       day,
       hour,
@@ -247,6 +252,7 @@ export const PATCH: APIRoute = async ({ locals, request }) => {
       }
       const month = parseIntOrNull(payload.month, 1, 12);
       const day = parseIntOrNull(payload.day, 1, 31);
+      const year = parseIntOrNull(payload.year, 1900, 9999);
       if (month === null || day === null) {
         return json(
           {
@@ -294,6 +300,7 @@ export const PATCH: APIRoute = async ({ locals, request }) => {
           `INSERT INTO love_events (
             id,
             name,
+            year,
             month,
             day,
             hour,
@@ -305,11 +312,12 @@ export const PATCH: APIRoute = async ({ locals, request }) => {
             is_active,
             created_at,
             updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`
         )
         .bind(
           id,
           name,
+          year,
           month,
           day,
           hour,
@@ -341,6 +349,9 @@ export const PATCH: APIRoute = async ({ locals, request }) => {
       );
     }
 
+    const nextYear = hasOwn(payload, "year")
+      ? parseIntOrNull(payload.year, 1900, 9999)
+      : existing.year;
     const nextMonth = parseIntOrNull(payload.month, 1, 12) ?? existing.month;
     const nextDay = parseIntOrNull(payload.day, 1, 31) ?? existing.day;
     const nextHour = parseIntOrNull(payload.hour, 0, 23) ?? existing.hour;
@@ -384,6 +395,7 @@ export const PATCH: APIRoute = async ({ locals, request }) => {
       .prepare(
         `UPDATE love_events
          SET name = ?,
+             year = ?,
              month = ?,
              day = ?,
              hour = ?,
@@ -398,6 +410,7 @@ export const PATCH: APIRoute = async ({ locals, request }) => {
       )
       .bind(
         nextNameRaw,
+        nextYear,
         nextMonth,
         nextDay,
         nextHour,

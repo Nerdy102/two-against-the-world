@@ -1,0 +1,1 @@
+ALTER TABLE love_events ADD COLUMN year INTEGER;

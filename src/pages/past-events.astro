@@ -25,6 +25,7 @@ import RansomTitle from "../components/RansomTitle.astro";
     const initPastEventsPage = () => {
       const listEl = document.querySelector("[data-past-events-list]");
       if (!(listEl instanceof HTMLElement)) return;
+      const globalState = window.__twawPastEventsPageState || {};
 
       const storageKey = "twaw:past-events";
       const pad = (value) => String(value).padStart(2, "0");
@@ -94,8 +95,16 @@ import RansomTitle from "../components/RansomTitle.astro";
             ? `${day}/${month}/${year} · ended at ${completed}`
             : `${day}/${month}/${year}`;
 
+          const description = String(item?.note || "").trim();
+
           card.appendChild(head);
           card.appendChild(meta);
+          if (description) {
+            const body = document.createElement("p");
+            body.className = "past-event-card__body";
+            body.textContent = description;
+            card.appendChild(body);
+          }
           fragment.appendChild(card);
         });
 
@@ -103,6 +112,16 @@ import RansomTitle from "../components/RansomTitle.astro";
       };
 
       render();
+      if (globalState.renderHandler) {
+        window.removeEventListener("twaw:past-events-updated", globalState.renderHandler);
+        window.removeEventListener("storage", globalState.renderHandler);
+      }
+      globalState.renderHandler = () => {
+        render();
+      };
+      window.addEventListener("twaw:past-events-updated", globalState.renderHandler);
+      window.addEventListener("storage", globalState.renderHandler);
+      window.__twawPastEventsPageState = globalState;
     };
 
     initPastEventsPage();

@@ -458,6 +458,7 @@ export async function ensureLoveEventsSchema(
         `CREATE TABLE IF NOT EXISTS love_events (
           id TEXT PRIMARY KEY,
           name TEXT NOT NULL,
+          year INTEGER,
           month INTEGER NOT NULL,
           day INTEGER NOT NULL,
           hour INTEGER NOT NULL DEFAULT 0,
@@ -472,6 +473,9 @@ export async function ensureLoveEventsSchema(
         )`
       )
       .run();
+    if (!(await tableHasColumn(db, "love_events", "year"))) {
+      await db.prepare("ALTER TABLE love_events ADD COLUMN year INTEGER").run();
+    }
     await db
       .prepare(
         `CREATE INDEX IF NOT EXISTS idx_love_events_active
@@ -544,6 +548,7 @@ export type ReactionRecord = {
 export type LoveEventRecord = {
   id: string;
   name: string;
+  year: number | null;
   month: number;
   day: number;
   hour: number;

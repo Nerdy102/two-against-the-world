@@ -2438,6 +2438,14 @@ a { color: inherit; text-decoration: none; }
   color: rgba(0,0,0,0.52);
 }
 
+.past-event-card__body {
+  margin: 2px 0 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: rgba(0,0,0,0.72);
+  white-space: pre-wrap;
+}
+
 .love-widgets__clocks {
   display: grid;
   gap: 6px;

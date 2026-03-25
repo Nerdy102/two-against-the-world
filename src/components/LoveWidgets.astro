@@ -287,6 +287,14 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
                 <select class="input" data-love-event-admin-edit-target required></select>
               </label>
               <label class="love-event-admin-modal__field">
+                <span>Date</span>
+                <input class="input" type="date" data-love-event-admin-edit-date required />
+              </label>
+              <label class="love-event-admin-modal__field">
+                <span>Time (optional)</span>
+                <input class="input" type="time" step="60" data-love-event-admin-edit-time />
+              </label>
+              <label class="love-event-admin-modal__field">
                 <span>Description</span>
                 <textarea
                   class="input"
@@ -381,6 +389,8 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
       const adminAddForm = adminModal ? adminModal.querySelector("[data-love-event-admin-form]") : null;
       const adminEditForm = adminModal ? adminModal.querySelector("[data-love-event-admin-edit-form]") : null;
       const adminEditTarget = adminModal ? adminModal.querySelector("[data-love-event-admin-edit-target]") : null;
+      const adminEditDateInput = adminModal ? adminModal.querySelector("[data-love-event-admin-edit-date]") : null;
+      const adminEditTimeInput = adminModal ? adminModal.querySelector("[data-love-event-admin-edit-time]") : null;
       const adminEditNote = adminModal ? adminModal.querySelector("[data-love-event-admin-edit-note]") : null;
       const adminTabEls = adminModal ? adminModal.querySelectorAll("[data-love-event-admin-tab]") : [];
       const adminPasswordInput = adminModal ? adminModal.querySelector("[data-love-event-admin-password]") : null;
@@ -786,9 +796,11 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         try {
           if (!items.length) {
             window.localStorage.removeItem(pastStorageKey);
+            window.dispatchEvent(new CustomEvent("twaw:past-events-updated"));
             return;
           }
           window.localStorage.setItem(pastStorageKey, JSON.stringify(items));
+          window.dispatchEvent(new CustomEvent("twaw:past-events-updated"));
         } catch (_error) {}
       };
 
@@ -812,9 +824,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
       };
 
       const hydratePastBannerFromStorage = () => {
-        const currentYear = getDateParts(timeZones.vn).year;
         const items = readPastEvents()
-          .filter((item) => Number(item?.year) === currentYear)
           .sort((a, b) => Number(b?.completedAt || 0) - Number(a?.completedAt || 0));
         renderPastEventsBanner(items);
       };
@@ -828,10 +838,11 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
             day: item.day,
             year: Number(item.year || currentYear),
             icon: item.icon,
+            note: String(item.note || "").trim(),
             completedAt: item.completedAt,
           }))
           .sort((a, b) => b.completedAt - a.completedAt);
-        const snapshot = `${currentYear}:${normalized.map((item) => item.id).join("|")}`;
+        const snapshot = `${currentYear}:${normalized.map((item) => `${item.id}:${item.note}`).join("|")}`;
         if (snapshot === pastSnapshot) return;
         pastSnapshot = snapshot;
         writePastEvents(normalized);
@@ -952,6 +963,19 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
         });
 
       const populateAdminEditFields = (eventItem) => {
+        if (adminEditDateInput instanceof HTMLInputElement) {
+          const fallbackYear = getDateParts(timeZones.vn).year;
+          const eventYear = eventItem?.year > 0 ? eventItem.year : fallbackYear;
+          const month = pad(eventItem?.month || 1);
+          const day = pad(eventItem?.day || 1);
+          adminEditDateInput.value = `${eventYear}-${month}-${day}`;
+        }
+        if (adminEditTimeInput instanceof HTMLInputElement) {
+          const hour = Number(eventItem?.hour || 0);
+          const minute = Number(eventItem?.minute || 0);
+          adminEditTimeInput.value =
+            hour > 0 || minute > 0 ? `${pad(hour)}:${pad(minute)}` : "";
+        }
         if (adminEditNote instanceof HTMLTextAreaElement) {
           adminEditNote.value = eventItem?.note || "";
         }
@@ -1205,6 +1229,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
             setAdminStatus("Invalid date.", "error");
             return;
           }
+          const year = Math.max(1900, Math.min(9999, dateParts[0]));
           const month = Math.max(1, Math.min(12, dateParts[1]));
           const day = Math.max(1, Math.min(31, dateParts[2]));
 
@@ -1245,6 +1270,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
               },
               body: JSON.stringify({
                 name,
+                year,
                 month,
                 day,
                 hour,
@@ -1271,6 +1297,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
             const chip = createEventChip({
               id: created.id,
               name: created.name,
+              year: Number(created.year || 0),
               month: Number(created.month),
               day: Number(created.day),
               hour: Number(created.hour || 0),
@@ -1304,15 +1331,23 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
             return;
           }
           if (!(adminEditTarget instanceof HTMLSelectElement)) return;
+          if (!(adminEditDateInput instanceof HTMLInputElement)) return;
+          if (!(adminEditTimeInput instanceof HTMLInputElement)) return;
           if (!(adminEditNote instanceof HTMLTextAreaElement)) return;
           if (!(adminEditAccentInput instanceof HTMLInputElement)) return;
 
           const id = adminEditTarget.value.trim();
+          const dateRaw = adminEditDateInput.value.trim();
+          const timeRaw = adminEditTimeInput.value.trim();
           const note = adminEditNote.value.trim();
           const accentRaw = adminEditAccentInput.value.trim();
           const parsedAccent = parseAccentInput(accentRaw);
           if (!id) {
             setAdminStatus("Choose an event to edit.", "error");
+            return;
+          }
+          if (!dateRaw) {
+            setAdminStatus("Choose a date for this event.", "error");
             return;
           }
           if (!note) {
@@ -1331,6 +1366,17 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
             setAdminStatus("Cannot find this event on timeline.", "error");
             return;
           }
+          const dateParts = dateRaw.split("-").map((part) => Number(part));
+          if (dateParts.length !== 3 || dateParts.some((part) => !Number.isFinite(part))) {
+            setAdminStatus("Invalid date.", "error");
+            return;
+          }
+          const year = Math.max(1900, Math.min(9999, dateParts[0]));
+          const month = Math.max(1, Math.min(12, dateParts[1]));
+          const day = Math.max(1, Math.min(31, dateParts[2]));
+          const [hhRaw = "0", mmRaw = "0"] = timeRaw ? timeRaw.split(":") : ["0", "0"];
+          const hour = Math.max(0, Math.min(23, Number.parseInt(hhRaw, 10) || 0));
+          const minute = Math.max(0, Math.min(59, Number.parseInt(mmRaw, 10) || 0));
 
           const csrf = getCsrfToken();
           if (!csrf) {
@@ -1349,10 +1395,11 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
               body: JSON.stringify({
                 id,
                 name: source.name,
-                month: source.month,
-                day: source.day,
-                hour: source.hour,
-                minute: source.minute,
+                year,
+                month,
+                day,
+                hour,
+                minute,
                 event_group: source.group === "featured" ? "featured" : "extra",
                 icon: source.icon || "",
                 note,
@@ -1368,6 +1415,15 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
             const updated = payload.event;
             if (source.eventEl instanceof HTMLElement) {
               source.eventEl.setAttribute("data-love-event-note", String(updated.note || ""));
+              if (Number(updated.year || 0) > 0) {
+                source.eventEl.setAttribute("data-love-event-year", String(updated.year));
+              } else {
+                source.eventEl.removeAttribute("data-love-event-year");
+              }
+              source.eventEl.setAttribute("data-love-event-month", String(updated.month));
+              source.eventEl.setAttribute("data-love-event-day", String(updated.day));
+              source.eventEl.setAttribute("data-love-event-hour", String(updated.hour || 0));
+              source.eventEl.setAttribute("data-love-event-minute", String(updated.minute || 0));
               applyAccentToEventEl(
                 source.eventEl,
                 String(updated.accent_rgb || ""),
@@ -1478,6 +1534,7 @@ const enabled = import.meta.env.PUBLIC_ENABLE_LOVE_WIDGETS !== "false";
               month: eventItem.month,
               day: eventItem.day,
               icon: eventItem.icon,
+              note: eventItem.note,
               completedAt: targetTs,
             });
             return;
