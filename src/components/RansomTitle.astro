@@ -3,11 +3,12 @@
 // - English words use mixed fonts for punk vibe.
 // - Any word with non-ASCII chars is forced to a VN-safe font.
 
-const { text, stampEvery = 0, as = "h1", class: className = "", ...rest } = Astro.props as {
+const { text, stampEvery = 0, as = "h1", class: className = "", interactive = false, ...rest } = Astro.props as {
   text: string;
   stampEvery?: number; // 0 = no stamp
   as?: string;
   class?: string;
+  interactive?: boolean;
   [key: string]: unknown;
 };
 
@@ -46,7 +47,7 @@ function pickFrom<T>(arr: T[], i: number, salt: number) {
 const hasNonAscii = (s: string) => /[^\x00-\x7F]/.test(s);
 ---
 
-<Tag class={`ransom h-display ${className}`.trim()} {...rest}>
+<Tag class={`ransom h-display ${interactive ? "ransom--interactive" : ""} ${className}`.trim()} {...rest}>
   {words.map((w, i) => {
     const vn = hasNonAscii(w);
 
@@ -59,7 +60,7 @@ const hasNonAscii = (s: string) => /[^\x00-\x7F]/.test(s);
     return (
       <span
         class={`cut ${fontCls} ${toneCls} ${vn ? "vn" : ""} ${stamp ? "stamp" : ""}`}
-        style={`--tilt:${tilt}deg`}
+        style={`--tilt:${tilt}deg; --cut-index:${i};`}
       >
         {w}
       </span>

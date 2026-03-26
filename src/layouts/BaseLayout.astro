@@ -94,6 +94,8 @@ const buildTime =
         raf = 0;
         root.style.setProperty('--parallax-x', px + 'px');
         root.style.setProperty('--parallax-y', py + 'px');
+        root.style.setProperty('--title-parallax-x', (px * 0.16).toFixed(2) + 'px');
+        root.style.setProperty('--title-parallax-y', (py * 0.10).toFixed(2) + 'px');
       };
 
       const onMove = (e) => {
