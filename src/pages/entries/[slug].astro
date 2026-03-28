@@ -227,8 +227,9 @@ const buildSrcCandidates = (src: string, ext: string, preferredExts: string[] = 
   const lowerExt = normalizeSupportedExtension(ext);
   const base = src.slice(0, -lowerExt.length);
   const candidates: string[] = [];
+  const isHeicFamily = lowerExt === "heic" || lowerExt === "heif";
   const extensionOrder = uniqueExtensions([
-    ...(lowerExt === "heic" || lowerExt === "heif" ? ["jpg", "jpeg", "png", "webp"] : []),
+    ...(isHeicFamily ? ["png", "jpg", "jpeg", "webp"] : []),
     lowerExt,
     ...preferredExts,
     ...PHOTO_FALLBACK_EXTENSION_ORDER,
@@ -239,6 +240,12 @@ const buildSrcCandidates = (src: string, ext: string, preferredExts: string[] = 
     if (resized) candidates.push(resized);
     candidates.push(value);
   };
+
+  // For non-HEIC assets, prefer the exact source path first so mixed-case extensions
+  // like `.JPG` or `.PNG` render immediately instead of waiting for fallback recovery.
+  if (!isHeicFamily) {
+    add(src);
+  }
 
   for (const candidateExt of extensionOrder) {
     add(`${base}${candidateExt}`);
